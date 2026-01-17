@@ -11,6 +11,9 @@ export const calculateScore = (
   let totalScore = aiAnalysis.admin_audit.overall_score || 0;
   const factors: ScoringFactor[] = [];
 
+  // Silencing TS unused parameter warning explicitly
+  void _competitors;
+
   // --- Helper to add factors ---
   const addFactor = (
     id: string, name: string, max: number, earned: number, 

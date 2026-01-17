@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, HelpCircle } from 'lucide-react';
+import { Check, HelpCircle, ArrowRight } from 'lucide-react';
 import type { SiteContent } from '../types';
 
 interface PricingPageProps {
@@ -204,7 +204,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onNavigateToAudit, content })
                onClick={onNavigateToAudit}
                className="px-8 py-4 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-all flex items-center gap-2 mx-auto"
             >
-               Run Free Audit
+               Run Free Audit <ArrowRight className="w-5 h-5" />
             </button>
          </div>
       </section>
