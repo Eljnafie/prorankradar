@@ -1,7 +1,8 @@
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { CheckCircle, XCircle, ChevronDown, ChevronUp, Download, ExternalLink, Lock, MessageCircle, X, Check, Unlock, Grid, TrendingUp, ListChecks, Rocket, MapPin, Star, ArrowUpRight } from 'lucide-react';
+import { CheckCircle, XCircle, ChevronDown, ChevronUp, Download, ExternalLink, Lock, MessageCircle, X, Check, Unlock, Grid, TrendingUp, ListChecks, Rocket, MapPin, Star, ArrowUpRight, AlertTriangle } from 'lucide-react';
 import type { AuditReportData, ScoringFactor, SiteContent } from '../types';
+import { generateAuditPdf } from '../services/pdfGenerator';
 
 interface AuditReportProps {
   data: AuditReportData;
@@ -97,7 +98,10 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
         </div>
         
         <div className="flex flex-wrap gap-3 mt-4 md:mt-0 justify-center print:hidden flex-shrink-0 ml-4">
-          <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 font-medium text-sm transition-colors">
+          <button 
+            onClick={() => generateAuditPdf(data)} 
+            className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 font-medium text-sm transition-colors"
+          >
             <Download className="w-4 h-4" /> PDF
           </button>
           {!isUnlocked && (
@@ -549,6 +553,8 @@ const FactorRow: React.FC<{
           <div className="mt-0.5 flex-shrink-0">
              {factor.status === 'good' ? (
                 <CheckCircle className="w-6 h-6 text-green-500" />
+             ) : factor.status === 'warning' ? (
+                <AlertTriangle className="w-6 h-6 text-yellow-500" />
              ) : (
                 <XCircle className="w-6 h-6 text-red-500" />
              )}
