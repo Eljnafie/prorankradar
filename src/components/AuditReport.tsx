@@ -1,6 +1,6 @@
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Download, ExternalLink, Lock, MessageCircle, X, Check, Unlock, Grid, TrendingUp, ListChecks, Rocket, MapPin, Star, ArrowUpRight } from 'lucide-react';
+import { CheckCircle, XCircle, ChevronDown, ChevronUp, Download, ExternalLink, Lock, MessageCircle, X, Check, Unlock, Grid, TrendingUp, ListChecks, Rocket, MapPin, Star, ArrowUpRight } from 'lucide-react';
 import type { AuditReportData, ScoringFactor, SiteContent } from '../types';
 
 interface AuditReportProps {
