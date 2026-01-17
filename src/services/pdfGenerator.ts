@@ -1,8 +1,11 @@
-import { jsPDF } from "jspdf";
 import type { AuditReportData, ScoringFactor } from "../types";
 
 export const generateAuditPdf = (data: AuditReportData) => {
+  // Use global jsPDF from CDN script (defined in index.html)
+  // This bypasses build-time dependency checks
+  const { jsPDF } = (window as any).jspdf;
   const doc = new jsPDF();
+  
   let y = 20; // Start Y position
   const leftMargin = 20;
   const pageWidth = doc.internal.pageSize.width;
