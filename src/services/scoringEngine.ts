@@ -3,7 +3,7 @@ import type { BusinessProfile, AuditInputs, CompetitorData, GeminiAnalysis, Scor
 export const calculateScore = (
   business: BusinessProfile,
   inputs: AuditInputs,
-  competitors: CompetitorData[],
+  _competitors: CompetitorData[],
   aiAnalysis: GeminiAnalysis
 ): { score: number; factors: ScoringFactor[] } => {
   

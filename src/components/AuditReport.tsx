@@ -1,7 +1,7 @@
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Share2, Download, ExternalLink, Lock, MessageCircle, X, Check, Unlock, Grid, TrendingUp, Calendar, MessageSquare, AlertOctagon, BarChart, ArrowUpRight, ListChecks, Rocket, MapPin, Star } from 'lucide-react';
-import type { AuditReportData, ScoringFactor, PrimaryBlocker, SiteContent } from '../types';
+import { CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Download, ExternalLink, Lock, MessageCircle, X, Check, Unlock, Grid, TrendingUp, ListChecks, Rocket, MapPin, Star, ArrowUpRight } from 'lucide-react';
+import type { AuditReportData, ScoringFactor, SiteContent } from '../types';
 
 interface AuditReportProps {
   data: AuditReportData;
@@ -15,14 +15,6 @@ const WHATSAPP_NUMBER = '15550123456';
 const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = false, content }) => {
   const [expandedFactor, setExpandedFactor] = React.useState<string | null>(null);
   const [showPricing, setShowPricing] = React.useState(false);
-
-  // Use dynamic pricing
-  const pricing = content?.pricing || {
-    auditOneTime: "30",
-    expertOneTime: "150",
-    managementSetup: "300",
-    managementMonthly: "100"
-  };
 
   // If unlocked, use Admin data. If locked, use Free data.
   const isFreeView = !isUnlocked;
@@ -537,61 +529,6 @@ const PricingContent: React.FC<{ onContact: any, onClose: any, data: any, conten
       </div>
     </div>
   </>
-  );
-};
-
-const ChecklistCard: React.FC<{ label: string; pass: boolean; sub: string }> = ({ label, pass, sub }) => (
-  <div className={`p-4 rounded-lg border flex items-center justify-between ${pass ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}`}>
-    <div>
-      <div className="font-bold text-slate-800 text-sm">{label}</div>
-      <div className="text-xs text-slate-500">{sub}</div>
-    </div>
-    {pass ? <CheckCircle className="w-6 h-6 text-green-500" /> : <XCircle className="w-6 h-6 text-red-500" />}
-  </div>
-);
-
-const BlockerCard: React.FC<{ blocker: PrimaryBlocker; isUnlocked: boolean; onUnlock: () => void }> = ({ blocker, isUnlocked, onUnlock }) => {
-  const [isOpen, setIsOpen] = React.useState(true);
-
-  return (
-    <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm transition-all hover:shadow-md">
-      <div className="p-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
-        <div className="flex items-center gap-3">
-           {blocker.severity === 'High' ? <XCircle className="w-5 h-5 text-red-500" /> : <AlertTriangle className="w-5 h-5 text-yellow-500" />}
-           <div>
-             <h4 className="font-bold text-slate-800 text-sm">{blocker.title}</h4>
-             <div className="flex gap-2 mt-1">
-               <span className="text-[10px] uppercase font-bold text-slate-500 bg-slate-200 px-1.5 rounded">{blocker.dimension}</span>
-               <span className="text-[10px] uppercase font-bold text-red-500 bg-red-100 px-1.5 rounded">{blocker.severity} Severity</span>
-             </div>
-           </div>
-        </div>
-        {isOpen ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-      </div>
-      
-      {isOpen && (
-        <div className="p-5 relative">
-           <div className="space-y-4">
-              <div>
-                <span className="text-xs font-bold text-slate-400 uppercase">Analysis</span>
-                <p className="text-sm text-slate-700 mt-1 leading-relaxed">{blocker.explanation}</p>
-              </div>
-              <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
-                 <span className="text-xs font-bold text-blue-600 uppercase flex items-center gap-1 mb-1">
-                   <TrendingUp className="w-3 h-3" /> Impact on Visibility
-                 </span>
-                 <p className="text-xs text-blue-800">{blocker.impact}</p>
-              </div>
-              <div>
-                <span className="text-xs font-bold text-slate-400 uppercase">Recommended Fix</span>
-                <div className={`mt-1 ${!isUnlocked ? 'filter blur-sm select-none opacity-50' : ''}`}>
-                   <p className="text-sm text-slate-800 font-medium">{blocker.suggested_fix}</p>
-                </div>
-              </div>
-           </div>
-        </div>
-      )}
-    </div>
   );
 };
 
