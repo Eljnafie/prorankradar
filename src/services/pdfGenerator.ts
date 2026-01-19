@@ -314,17 +314,26 @@ export const generateAuditPdf = (data: AuditReportData) => {
     "4. Competitive Environment": []
   };
 
-  // Sort Factors into Groups
+  // Sort Factors into Groups based on new IDs from scoringEngine.ts
   data.factors.forEach(f => {
-    if (["cat_rel", "sec_cat", "title_opt", "addr_city", "pin_acc", "prof_comp", "ver_status", "clean_profile", "website_link"].includes(f.id) || f.id.startsWith("blocker_")) {
+    // Group 1: GBP Core
+    if (["cat_rel", "sec_cat", "title_opt", "addr_pin", "prof_comp", "ver_status", "cat_consist", "clean_profile", "website_link"].includes(f.id) || f.id.startsWith("blocker_")) {
        groups["1. Google Business Profile (GBP) Core Signals"].push(f);
-    } else if (["rev_rate", "rev_vol", "rev_kw", "seo_engage", "content_freshness", "freshness", "review_health"].includes(f.id)) {
+    } 
+    // Group 2: Reputation
+    else if (["review_health", "rev_kw", "freshness", "photo_vol"].includes(f.id)) {
        groups["2. Reputation & Engagement Metrics"].push(f);
-    } else if (["seo_h1", "seo_title", "seo_nap", "seo_links", "seo_internal", "seo_geo", "seo_auth", "h1_opt", "title_geo"].includes(f.id)) {
+    } 
+    // Group 3: Website/SEO
+    else if (["h1_opt", "title_geo", "seo_nap", "seo_links", "seo_internal", "seo_geo", "seo_auth"].includes(f.id)) {
        groups["3. External & Local SEO (Website Signals)"].push(f);
-    } else if (["seo_spam", "comp_density"].includes(f.id)) {
+    } 
+    // Group 4: Competitive
+    else if (["seo_spam", "market_leader"].includes(f.id)) {
        groups["4. Competitive Environment"].push(f);
-    } else {
+    } 
+    // Fallback logic
+    else {
        if (f.category === 'gbp') groups["1. Google Business Profile (GBP) Core Signals"].push(f);
        else groups["3. External & Local SEO (Website Signals)"].push(f);
     }
