@@ -1,3 +1,4 @@
+export type AuditLanguage = 'en' | 'es' | 'fr' | 'de' | 'it' | 'pt';
 
 export interface BusinessProfile {
   placeId: string;
@@ -20,12 +21,10 @@ export interface CompetitorData {
   isAd?: boolean;
 }
 
-export type AuditLanguage = 'en' | 'es' | 'fr' | 'de' | 'it' | 'pt';
-
 export interface AuditInputs {
   targetKeyword: string;
   targetCity: string;
-  language: AuditLanguage;
+  language?: AuditLanguage;
   websiteContent?: {
     titleTag: string;
     h1: string;
@@ -44,74 +43,38 @@ export interface ScoringFactor {
   reason: string;
   fixAction: string;
   category: 'gbp' | 'seo';
-  dimension?: string;
-}
-
-// --- NEW TWO-TIER AUDIT TYPES ---
-
-export interface FreeAuditReport {
-  overall_score: number;
-  seo_strength: number;
-  competitor_comparison: {
-    my_rating: number;
-    competitor_avg_rating: number;
-    rating_diff: string;
-  };
-  high_impact_issues: {
-    title: string;
-    impact_summary: string;
-  }[];
-  teaser_text: string;
-}
-
-export interface PrimaryBlocker {
-  dimension: 'Relevance' | 'Proximity' | 'Prominence' | 'Trust' | 'Engagement';
-  severity: 'High' | 'Medium' | 'Low';
-  confidence: number;
-  title: string;
-  explanation: string; // 40-70 words
-  impact: string;
-  suggested_fix: string;
-}
-
-export interface ReviewGapAnalysis {
-  current_rating: number;
-  target_rating: number;
-  reviews_needed: number;
-  competitor_comparison_text: string;
-}
-
-export interface ContentFreshness {
-  photo_recency_pass: boolean;
-  google_posts_pass: boolean;
-  qa_answered_pass: boolean;
-  engagement_trend: string;
-}
-
-export interface AdminAuditReport {
-  overall_score: number;
-  gbp_health: number;
-  seo_strength: number;
-  review_gap: ReviewGapAnalysis;
-  content_freshness: ContentFreshness;
-  primary_blockers: PrimaryBlocker[];
-  secondary_factors: string[];
-  action_plan: {
-    technical: string;
-    engagement: string;
-    conversion: string;
-  };
-  roi_forecast: string;
-  compliance_notice: string;
 }
 
 export interface GeminiAnalysis {
-  metadata: {
-    seo_title: string;
-    meta_description: string;
+  titleAnalysis: {
+    isSpammy: boolean;
+    reason: string;
+    keywordStuffed: boolean;
   };
-  free_audit: FreeAuditReport;
-  admin_audit: AdminAuditReport;
+  categoryRelevance: {
+    score: number; // 0-10
+    reason: string;
+    suggestedCategories: string[];
+  };
+  reviewSentiment: {
+    hasKeywords: boolean;
+    sentiment: string;
+    topics: string[];
+  };
+  fixPlan: {
+    step1: string;
+    step2: string;
+    step3: string;
+    rankingPotential: string;
+  };
+  roiForecast: string;
+  admin_audit?: {
+    roi_forecast?: string;
+    review_gap?: {
+      target_rating: number;
+      reviews_needed: number;
+    };
+  };
 }
 
 export interface AuditReportData {
@@ -156,7 +119,7 @@ export interface SiteContent {
     phone: string;
     address: string;
   };
-  pricing: {
+  pricing?: {
     auditOneTime: string;
     expertOneTime: string;
     managementSetup: string;

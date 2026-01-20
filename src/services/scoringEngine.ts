@@ -1,3 +1,4 @@
+
 import { BusinessProfile, AuditInputs, CompetitorData, GeminiAnalysis, ScoringFactor } from "../types";
 
 export const calculateScore = (
@@ -31,19 +32,21 @@ export const calculateScore = (
   // --- 1. GBP SIGNALS (70 pts) ---
 
   // Primary Category (15)
-  const catScore = aiAnalysis.admin_audit?.gbp_health && aiAnalysis.admin_audit.gbp_health > 80 ? 15 : 8; 
-  // Fallback if AI data isn't granular, we assume category is okay if high score, else warn. 
-  // Real implementation would check category string against list.
+  const catScore = aiAnalysis.categoryRelevance.score > 8 ? 15 : aiAnalysis.categoryRelevance.score > 5 ? 8 : 0;
   addFactor('cat_rel', 'Primary Category Relevance', 15, catScore, 
-    "Category aligns with keyword.", 
-    "Optimize primary category.", 'gbp');
+    aiAnalysis.categoryRelevance.reason, 
+    `Change primary category to one of: ${aiAnalysis.categoryRelevance.suggestedCategories.join(', ')}`, 'gbp');
 
-  // Business Title (14)
+  // Business Title (14) - Keyword Stuffing Check
   let titleScore = 14;
   let titleReason = "Title is clean and brand-focused.";
   let titleFix = "No action needed.";
   
-  if (business.name.length > 40) {
+  if (aiAnalysis.titleAnalysis.isSpammy) {
+    titleScore = 0; // Hard penalty
+    titleReason = "Title contains keyword stuffing (Risk of suspension).";
+    titleFix = "Reset name to real-world business name immediately.";
+  } else if (business.name.length > 40) {
     titleScore = 7;
     titleReason = "Title is unusually long.";
     titleFix = "Ensure title matches signage exactly.";
@@ -86,17 +89,15 @@ export const calculateScore = (
   addFactor('ver_status', 'Verification Status', 4, 4, 
     "Business appears published.", "Ensure video verification is completed if re-triggered.", 'gbp');
 
-  // Map Pin Accuracy (2)
+  // Map Pin Accuracy (2) - Assume good for now
   addFactor('pin_acc', 'Map Pin Accuracy', 2, 2, "Pin location within valid range.", "Check satellite view to confirm entrance location.", 'gbp');
 
   // Keywords in Reviews (5)
-  // Simplified check: assume pass if > 10 reviews, otherwise warn
-  const hasKeywords = business.user_ratings_total > 10;
-  addFactor('rev_kw', 'Keywords in Reviews', 5, hasKeywords ? 5 : 2, 
-    hasKeywords ? "Keywords likely present in reviews." : "Low review volume limits keyword density.", 
+  addFactor('rev_kw', 'Keywords in Reviews', 5, aiAnalysis.reviewSentiment.hasKeywords ? 5 : 2, 
+    aiAnalysis.reviewSentiment.hasKeywords ? "Keywords found in reviews." : "Customers not mentioning services.", 
     "Ask clients to mention specific services in their reviews.", 'gbp');
 
-  // Secondary Categories (6)
+  // Secondary Categories (6) - Mocked assume if array > 1
   const hasSecondary = business.types.length > 1;
   addFactor('sec_cat', 'Secondary Categories', 6, hasSecondary ? 6 : 0, 
     hasSecondary ? "Secondary categories utilized." : "Only primary category found.", 
@@ -106,6 +107,7 @@ export const calculateScore = (
   // --- 2. EXTERNAL & LOCAL SEO (30 pts) ---
   
   // Website Content (Landing Page) (4)
+  // Simplified check: Does H1 match keyword?
   const h1Match = inputs.websiteContent?.h1.toLowerCase().includes(inputs.targetKeyword.toLowerCase());
   addFactor('seo_h1', 'Landing Page H1 Optimization', 4, h1Match ? 4 : 0, 
     h1Match ? "H1 includes keyword." : "H1 missing target keyword.", 
@@ -117,15 +119,16 @@ export const calculateScore = (
     metaMatch ? "Title tag includes city." : "Title tag missing city name.", 
     `Add '${inputs.targetCity}' to your homepage title tag.`, 'seo');
 
-  // Backlinks (5)
+  // Backlinks (5) - Manual Input
   let linkScore = 0;
   if (inputs.backlinks === 'high') linkScore = 5;
   if (inputs.backlinks === 'medium') linkScore = 3;
   if (inputs.backlinks === 'low') linkScore = 1;
   addFactor('seo_links', 'Local Backlink Strength', 5, linkScore, 
-    `Strength level: ${inputs.backlinks || 'Industry Average'}`, 
+    `Strength level: ${inputs.backlinks}`, 
     "Build citations on Yelp, YellowPages, and local chamber of commerce.", 'seo');
     
+  // Generic SEO fillers for the remaining points to reach 100 total potential
   // NAP Consistency (4)
   addFactor('seo_nap', 'NAP Consistency', 4, 4, "Assumed consistent for audit.", "Audit top 10 directories for matching Name, Address, Phone.", 'seo');
   
@@ -178,6 +181,10 @@ export const calculateScore = (
         f.reason = "Importance: Replying to reviews and posting updates signals that your business is 'Alive.' Active profiles rank significantly higher than abandoned ones.";
         f.fixAction = "Step-by-Step Fix:\n1. Go to 'Reviews.'\n2. Reply to the 5 most recent ones.\n3. Click 'Add Update' and post 1 photo with a caption mentioning your neighborhood.";
       }
+    } else {
+        // Enforce specific passing text as requested
+        f.reason = "No action needed—you are outperforming competitors in this area.";
+        f.fixAction = "Maintain current strategy.";
     }
   });
 

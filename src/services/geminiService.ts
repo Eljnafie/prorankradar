@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import type { BusinessProfile, AuditInputs, GeminiAnalysis, BlogPost } from "../types";
+import { BusinessProfile, AuditInputs, GeminiAnalysis, BlogPost } from "../types";
 
 const ANALYSIS_MODEL = 'gemini-3-flash-preview';
 
@@ -20,162 +20,71 @@ export const analyzeProfileWithGemini = async (
   
   const ai = getAI(apiKey);
 
-  const langMap: Record<string, string> = {
-    'en': 'English',
-    'es': 'Spanish (Español)',
-    'fr': 'French (Français)',
-    'de': 'German (Deutsch)',
-    'it': 'Italian (Italiano)',
-    'pt': 'Portuguese (Português)'
-  };
-  const targetLanguage = langMap[inputs.language] || 'English';
-
   const prompt = `
-    SYSTEM PROMPT: ProRankRadar – Senior Local SEO Consultant & GBP Architect
-
-    Role: You are a Senior Local SEO Architect. Your task is to generate a **Premium Growth Audit** for a client’s Google Business Profile (GBP).
-
-    The audit must be **trust-first**, **neutral**, and **compliant with Google guidelines**, while also being visually structured for business owners and AI systems.
-
-    IMPORTANT: You MUST generate the entire report (including all titles, analysis, fixes, impact summaries, action plans, etc.) in the following language: ${targetLanguage}.
-
-    ---
-
-    INPUT DATA:
-    {
-      "client_profile": {
-        "name": "${business.name}",
-        "primary_category": "${business.types[0] || 'Unknown'}",
-        "secondary_categories": ${JSON.stringify(business.types.slice(1))},
-        "address": "${business.address}",
-        "rating": ${business.rating},
-        "number_of_reviews": ${business.user_ratings_total},
-        "verified": true
-      },
-      "competitors": ${JSON.stringify(competitors.map(c => ({ name: c.name, rating: c.rating, reviews: c.reviewCount })) )},
-      "main_keyword": "${inputs.targetKeyword}",
-      "target_city": "${inputs.targetCity}",
-      "audit_date": "${new Date().toISOString()}"
-    }
-
-    ---
-
-    TASK:
-    Generate two distinct audit versions in a single JSON response:
+    You are a Senior Local SEO Consultant & GBP Architect.
     
-    1. **Version A: Free / Prospect Audit ("Symptom Report")**
-       - Focus: Show issues/gaps without technical fixes.
-       - Include: Overall Score, Competitor Rating Gap, High-Impact Issues list, and a teaser.
+    Business Name: "${business.name}"
+    Target Keyword: "${inputs.targetKeyword}"
+    Target City: "${inputs.targetCity}"
+    Primary Category: "${business.types[0] || 'Unknown'}"
+    Rating: ${business.rating} (${business.user_ratings_total} reviews)
+    Competitor Avg Rating: ${competitors.length > 0 ? (competitors.reduce((acc, c) => acc + c.rating, 0) / competitors.length).toFixed(1) : 'N/A'}
+    
+    Analyze the following:
+    1. Is the business title keyword stuffed? (Google Guidelines violation risk).
+    2. Is the category relevant to the keyword?
+    3. Based on the data, suggest a 3-step "Fix & Rank" plan.
+    4. Estimate ranking potential (Top 3, Top 5, Top 10) if fixes are applied.
+    5. Generate a mandatory ROI Forecast statement using this exact template logic: "Based on your current Local Ranking Score, fixing these [FAIL/WARN] points typically results in a 25% to 50% increase in direction requests and calls within 90-120 days. This allows you to reclaim revenue currently being lost to competitors in the red zones of your Geo-Grid."
 
-    2. **Version B: Admin / Premium Audit ("Master Plan")**
-       - Focus: Complete solution and action plan.
-       - **Review Gap Analysis**: Provide a "Competitive Checkmate" strategy (e.g. "To win, you must reply to every review...").
-       - **Primary Blockers**: Explanation must start with "Why it matters:". Fix must start with "The Fix:".
-       
-    MANDATORY ROI FORECAST LOGIC:
-    For the 'roi_forecast' field, you MUST strictly use this logic and format:
-    "Based on your current Local Ranking Score, fixing these [FAIL/WARN] points typically results in a 25% to 50% increase in direction requests and calls within 90-120 days. This allows you to reclaim revenue currently being lost to competitors in the red zones of your Geo-Grid."
+    Rule: Never use 'N/A'. Use 'Industry Average' if specific data is missing.
 
-    **Requirements:**
-    - Never use 'N/A'. Use 'Industry Average' if data is missing.
-    - Ensure tone is professional, authoritative, yet simple enough for a client with 0 experience.
-    - Translate ALL text fields to ${targetLanguage}.
-
-    Return strict JSON matching the schema.
+    Return the data in strict JSON format.
   `;
 
   const schema = {
     type: Type.OBJECT,
     properties: {
-      metadata: {
+      titleAnalysis: {
         type: Type.OBJECT,
         properties: {
-          seo_title: { type: Type.STRING },
-          meta_description: { type: Type.STRING },
-        }
-      },
-      free_audit: {
-        type: Type.OBJECT,
-        properties: {
-          overall_score: { type: Type.NUMBER },
-          seo_strength: { type: Type.NUMBER },
-          competitor_comparison: {
-            type: Type.OBJECT,
-            properties: {
-              my_rating: { type: Type.NUMBER },
-              competitor_avg_rating: { type: Type.NUMBER },
-              rating_diff: { type: Type.STRING }
-            }
-          },
-          high_impact_issues: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                title: { type: Type.STRING },
-                impact_summary: { type: Type.STRING }
-              }
-            }
-          },
-          teaser_text: { type: Type.STRING }
+          isSpammy: { type: Type.BOOLEAN },
+          reason: { type: Type.STRING },
+          keywordStuffed: { type: Type.BOOLEAN },
         },
-        required: ["overall_score", "high_impact_issues"]
+        required: ["isSpammy", "reason", "keywordStuffed"]
       },
-      admin_audit: {
+      categoryRelevance: {
         type: Type.OBJECT,
         properties: {
-          overall_score: { type: Type.NUMBER },
-          gbp_health: { type: Type.NUMBER },
-          seo_strength: { type: Type.NUMBER },
-          review_gap: {
-            type: Type.OBJECT,
-            properties: {
-              current_rating: { type: Type.NUMBER },
-              target_rating: { type: Type.NUMBER },
-              reviews_needed: { type: Type.NUMBER },
-              competitor_comparison_text: { type: Type.STRING },
-            }
-          },
-          content_freshness: {
-            type: Type.OBJECT,
-            properties: {
-              photo_recency_pass: { type: Type.BOOLEAN },
-              google_posts_pass: { type: Type.BOOLEAN },
-              qa_answered_pass: { type: Type.BOOLEAN },
-              engagement_trend: { type: Type.STRING },
-            }
-          },
-          primary_blockers: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                dimension: { type: Type.STRING, enum: ["Relevance", "Proximity", "Prominence", "Trust", "Engagement"] },
-                severity: { type: Type.STRING, enum: ["High", "Medium", "Low"] },
-                confidence: { type: Type.NUMBER },
-                title: { type: Type.STRING },
-                explanation: { type: Type.STRING },
-                impact: { type: Type.STRING },
-                suggested_fix: { type: Type.STRING },
-              }
-            }
-          },
-          secondary_factors: { type: Type.ARRAY, items: { type: Type.STRING } },
-          action_plan: {
-            type: Type.OBJECT,
-            properties: {
-              technical: { type: Type.STRING },
-              engagement: { type: Type.STRING },
-              conversion: { type: Type.STRING },
-            }
-          },
-          roi_forecast: { type: Type.STRING },
-          compliance_notice: { type: Type.STRING }
+          score: { type: Type.NUMBER, description: "0 to 10 score of relevance" },
+          reason: { type: Type.STRING },
+          suggestedCategories: { type: Type.ARRAY, items: { type: Type.STRING } },
         },
-        required: ["review_gap", "primary_blockers", "action_plan", "roi_forecast"]
-      }
+        required: ["score", "reason", "suggestedCategories"]
+      },
+      reviewSentiment: {
+        type: Type.OBJECT,
+        properties: {
+          hasKeywords: { type: Type.BOOLEAN },
+          sentiment: { type: Type.STRING },
+          topics: { type: Type.ARRAY, items: { type: Type.STRING } },
+        },
+        required: ["hasKeywords", "sentiment", "topics"]
+      },
+      fixPlan: {
+        type: Type.OBJECT,
+        properties: {
+          step1: { type: Type.STRING, description: "First priority fix action" },
+          step2: { type: Type.STRING, description: "Second priority fix action" },
+          step3: { type: Type.STRING, description: "Third priority fix action" },
+          rankingPotential: { type: Type.STRING, description: "e.g. 'Top 3 in 90 days'" },
+        },
+        required: ["step1", "step2", "step3", "rankingPotential"]
+      },
+      roiForecast: { type: Type.STRING, description: "The mandatory ROI forecast text" }
     },
-    required: ["metadata", "free_audit", "admin_audit"]
+    required: ["titleAnalysis", "categoryRelevance", "reviewSentiment", "fixPlan", "roiForecast"]
   };
 
   try {
@@ -195,28 +104,13 @@ export const analyzeProfileWithGemini = async (
 
   } catch (error) {
     console.error("Gemini Analysis Error:", error);
-    // Fallback data
+    // Fallback mock data if API fails or key is invalid
     return {
-      metadata: { seo_title: "Error", meta_description: "Error" },
-      free_audit: {
-        overall_score: 50,
-        seo_strength: 40,
-        competitor_comparison: { my_rating: business.rating, competitor_avg_rating: 4.8, rating_diff: "-0.5" },
-        high_impact_issues: [{ title: "Analysis Failed", impact_summary: "Please retry." }],
-        teaser_text: "Unlock to see details."
-      },
-      admin_audit: {
-        overall_score: 50,
-        gbp_health: 50,
-        seo_strength: 40,
-        review_gap: { current_rating: business.rating, target_rating: 4.8, reviews_needed: 10, competitor_comparison_text: "N/A" },
-        content_freshness: { photo_recency_pass: false, google_posts_pass: false, qa_answered_pass: false, engagement_trend: "Unknown" },
-        primary_blockers: [],
-        secondary_factors: [],
-        action_plan: { technical: "", engagement: "", conversion: "" },
-        roi_forecast: "Based on your current Local Ranking Score, fixing these issues typically results in a 25% to 50% increase in calls within 90 days.",
-        compliance_notice: "Error"
-      }
+      titleAnalysis: { isSpammy: false, keywordStuffed: false, reason: "Could not analyze (System Limit)" },
+      categoryRelevance: { score: 5, reason: "Defaulting due to limit", suggestedCategories: [] },
+      reviewSentiment: { hasKeywords: false, sentiment: "Neutral", topics: [] },
+      fixPlan: { step1: "Verify listing", step2: "Add photos", step3: "Get more reviews", rankingPotential: "Unknown" },
+      roiForecast: "Based on your current Local Ranking Score, fixing these issues typically results in a 25% to 50% increase in direction requests and calls within 90-120 days."
     };
   }
 };
