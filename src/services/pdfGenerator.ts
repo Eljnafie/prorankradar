@@ -295,7 +295,6 @@ export const generateAuditPdf = (data: AuditReportData) => {
   const seoPercent = Math.round((seoScore / (seoMax || 1)) * 100);
 
   // Position circles nicely
-  const circleY = y;
   drawScoreCircle(t.overall, data.overallScore, leftMargin + 30);
   drawScoreCircle(t.gbp_health, gbpPercent, leftMargin + 85);
   drawScoreCircle(t.seo_strength, seoPercent, leftMargin + 140);
