@@ -385,34 +385,44 @@ export const calculateScore = (
     lang === 'en' ? "Monitor leader's review velocity." : "Monitor leader.", 'seo', 'medium');
 
   // --- POST-PROCESSING: SENIOR GBP ARCHITECT EXPERT MODULES ---
-  // If user is on English (or any language, but applying English expert text for consistency if fallback)
-  // and score is not perfect, apply the "Expert Explanation Module".
+  // Overrides standard strings with Expert Architect Advice when a factor is not a perfect pass.
   factors.forEach(f => {
-    if (f.score < f.maxScore) {
-      
-      // 1. CATEGORY ALIGNMENT
-      if (f.id === 'cat_rel' || f.id === 'sec_cat') {
-        f.reason = "Google uses categories as the 'DNA' of your profile. If you are listed as a general 'Establishment' instead of a specific 'Hotel' or 'Bar', Google’s algorithm won't show you to users searching for those specific terms. You are likely missing out on 40% of search traffic.";
-        f.fixAction = "1. Log into your Google Business Profile. 2. Click 'Edit Profile' > 'Business Information'. 3. Update the Primary Category to the most specific industry match. 4. Add 3–5 'Secondary Categories' to capture different types of searches.";
-      }
+    if (f.score === f.maxScore) {
+       // Perfect Pass - Encouraging
+       f.reason = "No action needed—you are outperforming competitors in this area.";
+       f.fixAction = "Maintain current strategy.";
+    } else {
+       // Failed or Warning - Apply Expert Framework based on ID
+       
+       // 1. Primary Category / Category Alignment
+       if (f.id === 'cat_rel' || f.id === 'sec_cat') {
+          f.reason = "Google uses this to decide which 'searches' you belong in. An incorrect category makes you invisible to 40% of potential customers.";
+          f.fixAction = "1. Log in to GBP.\n2. Click 'Edit Profile.'\n3. Select 'Business Information.'\n4. Change Category to the correct industry match.\n5. Save.";
+       }
 
-      // 2. REPUTATION & REVIEW VOLUME
-      if (['review_health', 'rev_rate', 'rev_vol'].includes(f.id)) {
-        f.reason = "High volume and a high rating (4.2+) act as a 'Conversion Magnet.' Profiles with fewer reviews or lower ratings are filtered out by Google and ignored by customers who perceive the business as 'inactive' or 'lower quality'.";
-        f.fixAction = "1. Click 'Ask for reviews' in your dashboard to get your direct link. 2. Print this link as a QR code on physical menus, business cards, or receipts. 3. Reply to every review (positive or negative) within 48 hours to signal high engagement.";
-      }
+       // 2. Review Volume / Rating
+       if (['review_health', 'rev_rate', 'rev_vol'].includes(f.id)) {
+          f.reason = "Customers use the '4.0+ Stars' filter. If you have a 3.9, you don't even appear on their screen. High volume builds 'Trust Authority.'";
+          f.fixAction = "1. Click 'Ask for reviews.'\n2. Copy the link.\n3. Send it to 5 past customers today.\n4. Reply to all existing reviews.";
+       }
 
-      // 3. GEO-SIGNAL & WEBSITE SEO
-      if (['h1_opt', 'title_geo'].includes(f.id)) {
-        f.reason = "Your website and GBP must 'talk' to each other. If your website doesn't mention your specific neighborhood in the H1 tag, Google loses confidence that you are the most relevant local option, causing your map ranking to drop as soon as a user moves two streets away.";
-        f.fixAction = "1. Open your website editor (WordPress/Wix/etc.). 2. Locate your Homepage H1 tag. 3. Update it to include your city/zip: '[Business Name] - [Industry] in [Zip/Neighborhood]'.";
-      }
+       // 3. H1 Website Optimization / Geo-Signal
+       if (['h1_opt', 'title_geo', 'seo_geo'].includes(f.id)) {
+          f.reason = "Google reads your website to confirm your location. If your website title doesn't mention your city, Google won't rank your map pin in that city.";
+          f.fixAction = "1. Open your website editor.\n2. Change the main top heading to '[Business Name] - [Service] in [City].'";
+       }
 
-      // 4. NAP CONSISTENCY
-      if (f.id === 'seo_nap') {
-        f.reason = "Google looks for your address across the entire internet (Yelp, Yellow Pages, etc.). If your address is written differently in different places, Google gets 'confused' and lowers your trust score.";
-        f.fixAction = "1. Identify all platforms where your info is wrong. 2. Manually update them to match your Google Business Profile address exactly—down to the comma and space.";
-      }
+       // 4. NAP Consistency
+       if (f.id === 'seo_nap' || f.id === 'addr_pin') {
+          f.reason = "If your address is different on Facebook than it is on Google, Google loses trust in your data and drops your rank.";
+          f.fixAction = "1. Copy your address from Google.\n2. Paste it exactly the same on your website and social media.";
+       }
+
+       // 5. Engagement (Review Responses)
+       if (f.id === 'freshness' || f.id === 'rev_kw') {
+          f.reason = "Profiles that respond to reviews rank higher. It signals to Google that the business is 'Alive' and active.";
+          f.fixAction = "1. Go to 'Reviews' tab.\n2. Click 'Reply' on the 5 most recent ones.\n3. Include the name of your city in the reply.";
+       }
     }
   });
 
