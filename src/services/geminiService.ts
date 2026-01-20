@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { BusinessProfile, AuditInputs, GeminiAnalysis, BlogPost } from "../types";
+import type { BusinessProfile, AuditInputs, GeminiAnalysis, BlogPost } from "../types";
 
 const ANALYSIS_MODEL = 'gemini-3-flash-preview';
 
@@ -28,7 +28,7 @@ export const analyzeProfileWithGemini = async (
     Target City: "${inputs.targetCity}"
     Primary Category: "${business.types[0] || 'Unknown'}"
     Rating: ${business.rating} (${business.user_ratings_total} reviews)
-    Competitor Avg Rating: ${competitors.length > 0 ? (competitors.reduce((acc, c) => acc + c.rating, 0) / competitors.length).toFixed(1) : 'N/A'}
+    Competitor Avg Rating: ${competitors.length > 0 ? (competitors.reduce((acc: any, c: any) => acc + c.rating, 0) / competitors.length).toFixed(1) : 'N/A'}
     
     Analyze the following:
     1. Is the business title keyword stuffed? (Google Guidelines violation risk).

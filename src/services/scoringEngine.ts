@@ -1,5 +1,5 @@
 
-import { BusinessProfile, AuditInputs, CompetitorData, GeminiAnalysis, ScoringFactor } from "../types";
+import type { BusinessProfile, AuditInputs, CompetitorData, GeminiAnalysis, ScoringFactor } from "../types";
 
 export const calculateScore = (
   business: BusinessProfile,
