@@ -31,9 +31,9 @@ export const analyzeProfileWithGemini = async (
   const targetLanguage = langMap[inputs.language] || 'English';
 
   const prompt = `
-    SYSTEM PROMPT: ProRankRadar – Two-Tier Google Business Profile Audit Generator
+    SYSTEM PROMPT: ProRankRadar – Senior Local SEO Consultant & GBP Architect
 
-    Role: You are a Local SEO Consultant, Data Analyst, and Conversion Strategist. Your task is to generate a **professional, high-conversion, AI-extractable audit report** for a client’s Google Business Profile (GBP) using ProRankRadar.
+    Role: You are a Senior Local SEO Architect. Your task is to generate a **Premium Growth Audit** for a client’s Google Business Profile (GBP).
 
     The audit must be **trust-first**, **neutral**, and **compliant with Google guidelines**, while also being visually structured for business owners and AI systems.
 
@@ -70,14 +70,15 @@ export const analyzeProfileWithGemini = async (
     2. **Version B: Admin / Premium Audit ("Master Plan")**
        - Focus: Complete solution and action plan.
        - **Review Gap Analysis**: Provide a "Competitive Checkmate" strategy (e.g. "To win, you must reply to every review...").
-       - **Primary Blockers (Detailed Audit)**:
-         - **Explanation**: Must start with "Why it matters:" followed by the impact on walk-ins/clicks (e.g. "Customers choose bars with 4.2 stars. At 3.9, you lose 30% of walk-ins.").
-         - **Suggested Fix**: Must start with "The Fix (Step-by-Step):" followed by specific, physical actions (e.g. "Step 1: Go to Info. Step 2: Add 'Cocktail Bar'.").
+       - **Primary Blockers**: Explanation must start with "Why it matters:". Fix must start with "The Fix:".
+       
+    MANDATORY ROI FORECAST LOGIC:
+    For the 'roi_forecast' field, you MUST strictly use this logic and format:
+    "Based on your current Local Ranking Score, fixing these [FAIL/WARN] points typically results in a 25% to 50% increase in direction requests and calls within 90-120 days. This allows you to reclaim revenue currently being lost to competitors in the red zones of your Geo-Grid."
 
     **Requirements:**
-    - Use "answer-first" structure (40-70 words per explanation).
-    - Ensure tone is professional but actionable for a non-expert.
-    - ROI Forecast should estimate potential calls/direction increase if fixes are applied (e.g. "Fixing these issues typically results in a 25% increase...").
+    - Never use 'N/A'. Use 'Industry Average' if data is missing.
+    - Ensure tone is professional, authoritative, yet simple enough for a client with 0 experience.
     - Translate ALL text fields to ${targetLanguage}.
 
     Return strict JSON matching the schema.
@@ -194,7 +195,7 @@ export const analyzeProfileWithGemini = async (
 
   } catch (error) {
     console.error("Gemini Analysis Error:", error);
-    // Fallback data (Ideally this should also be localized, but for error fallback English is acceptable)
+    // Fallback data
     return {
       metadata: { seo_title: "Error", meta_description: "Error" },
       free_audit: {
@@ -213,7 +214,7 @@ export const analyzeProfileWithGemini = async (
         primary_blockers: [],
         secondary_factors: [],
         action_plan: { technical: "", engagement: "", conversion: "" },
-        roi_forecast: "N/A",
+        roi_forecast: "Based on your current Local Ranking Score, fixing these issues typically results in a 25% to 50% increase in calls within 90 days.",
         compliance_notice: "Error"
       }
     };

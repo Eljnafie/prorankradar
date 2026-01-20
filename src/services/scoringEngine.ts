@@ -1,135 +1,4 @@
-
-import type { BusinessProfile, AuditInputs, CompetitorData, GeminiAnalysis, ScoringFactor, PrimaryBlocker, AuditLanguage } from "../types";
-
-// Translation Map for Hardcoded Factors (Fallback/Short versions)
-const FACTOR_TRANSLATIONS: Record<AuditLanguage, Record<string, { name: string, reason?: string, fix?: string }>> = {
-  en: {
-    clean_profile: { name: "Core Optimization Status" },
-    cat_rel: { name: "Primary Category Relevance" },
-    sec_cat: { name: "Secondary Categories", reason: "Secondary categories utilized.", fix: "Add 2-3 relevant secondary categories." },
-    cat_consist: { name: "Category Consistency", reason: "No conflicting categories detected.", fix: "Ensure all categories align with main service." },
-    title_opt: { name: "Business Title Optimization" },
-    addr_pin: { name: "Physical Address & Pin Accuracy", reason: "Address is within target city.", fix: "Verify map pin location in dashboard." },
-    prof_comp: { name: "Profile Completeness", reason: "Website Link: Present.", fix: "Add website link to profile header." },
-    ver_status: { name: "Verification Status", reason: "Profile appears verified.", fix: "Complete video verification if requested." },
-    photo_vol: { name: "Photo Volume" },
-    rev_kw: { name: "Keywords in Reviews" },
-    h1_opt: { name: "Landing Page H1 Optimization" },
-    title_geo: { name: "Title Tag Geo-Relevance" },
-    seo_nap: { name: "NAP Consistency", reason: "NAP appears consistent.", fix: "Audit top 10 directories." },
-    seo_links: { name: "Local Backlink Strength" },
-    seo_internal: { name: "Internal Linking Structure", reason: "Basic structure detected.", fix: "Link service pages back to location home page." },
-    seo_geo: { name: "Geo-specific Content", reason: "Limited local mentions.", fix: "Create 'Areas We Serve' section." },
-    seo_auth: { name: "Local Authority Signals", reason: "Low local press.", fix: "Sponsor local events for .org links." },
-    seo_spam: { name: "Competitor Spam Levels", reason: "Moderate spam detected in niche.", fix: "Report keyword-stuffed competitor titles." },
-    market_leader: { name: "Market Leader Comparison" }
-  },
-  es: {
-    clean_profile: { name: "Estado de Optimización" },
-    cat_rel: { name: "Relevancia de Categoría" },
-    sec_cat: { name: "Categorías Secundarias", reason: "Se utilizan categorías secundarias.", fix: "Agregue 2-3 categorías secundarias relevantes." },
-    cat_consist: { name: "Consistencia de Categoría", reason: "No se detectaron conflictos.", fix: "Asegúrese de que todas las categorías se alineen con el servicio." },
-    title_opt: { name: "Optimización del Título" },
-    addr_pin: { name: "Precisión de Dirección y Pin", reason: "La dirección está en la ciudad objetivo.", fix: "Verifique la ubicación del pin." },
-    prof_comp: { name: "Integridad del Perfil", reason: "Enlace al sitio web: Presente.", fix: "Agregue enlace al sitio web." },
-    ver_status: { name: "Estado de Verificación", reason: "Perfil verificado.", fix: "Complete verificación si se solicita." },
-    photo_vol: { name: "Volumen de Fotos" },
-    rev_kw: { name: "Palabras Clave en Reseñas" },
-    h1_opt: { name: "Optimización H1" },
-    title_geo: { name: "Geo-Relevancia del Título" },
-    seo_nap: { name: "Consistencia NAP", reason: "NAP consistente.", fix: "Auditar directorios principales." },
-    seo_links: { name: "Fuerza de Backlinks Locales" },
-    seo_internal: { name: "Estructura de Enlaces Internos", reason: "Estructura básica detectada.", fix: "Enlace páginas de servicio al inicio." },
-    seo_geo: { name: "Contenido Geo-Específico", reason: "Menciones locales limitadas.", fix: "Crear sección 'Áreas que servimos'." },
-    seo_auth: { name: "Autoridad Local", reason: "Poca prensa local.", fix: "Patrocinar eventos locales." },
-    seo_spam: { name: "Nivel de Spam Competidor", reason: "Spam moderado detectado.", fix: "Reportar títulos con spam." },
-    market_leader: { name: "Comparación con Líder" }
-  },
-  fr: {
-    clean_profile: { name: "État d'Optimisation" },
-    cat_rel: { name: "Pertinence de Catégorie" },
-    sec_cat: { name: "Catégories Secondaires", reason: "Catégories secondaires utilisées.", fix: "Ajoutez 2-3 catégories pertinentes." },
-    cat_consist: { name: "Cohérence de Catégorie", reason: "Aucun conflit détecté.", fix: "Alignez toutes les catégories." },
-    title_opt: { name: "Optimisation du Titre" },
-    addr_pin: { name: "Précision de l'Adresse", reason: "Adresse dans la ville cible.", fix: "Vérifiez l'emplacement du pin." },
-    prof_comp: { name: "Complétude du Profil", reason: "Lien site web: Présent.", fix: "Ajoutez le lien du site web." },
-    ver_status: { name: "Statut de Vérification", reason: "Profil vérifié.", fix: "Complétez la vérification si demandé." },
-    photo_vol: { name: "Volume de Photos" },
-    rev_kw: { name: "Mots-clés dans les Avis" },
-    h1_opt: { name: "Optimisation H1" },
-    title_geo: { name: "Géo-Pertinence du Titre" },
-    seo_nap: { name: "Cohérence NAP", reason: "NAP cohérent.", fix: "Auditez les annuaires principaux." },
-    seo_links: { name: "Puissance des Backlinks" },
-    seo_internal: { name: "Maillage Interne", reason: "Structure de base détectée.", fix: "Liez les pages services à l'accueil." },
-    seo_geo: { name: "Contenu Géo-Spécifique", reason: "Mentions locales limitées.", fix: "Créez une section 'Zones desservies'." },
-    seo_auth: { name: "Autorité Locale", reason: "Peu de presse locale.", fix: "Parrainez des événements locaux." },
-    seo_spam: { name: "Spam Concurrentiel", reason: "Spam modéré détecté.", fix: "Signalez les titres spam." },
-    market_leader: { name: "Comparaison Leader" }
-  },
-  de: {
-    clean_profile: { name: "Optimierungsstatus" },
-    cat_rel: { name: "Kategorie-Relevanz" },
-    sec_cat: { name: "Sekundäre Kategorien" },
-    cat_consist: { name: "Kategorie-Konsistenz" },
-    title_opt: { name: "Titel-Optimierung" },
-    addr_pin: { name: "Adressgenauigkeit" },
-    prof_comp: { name: "Profilvollständigkeit" },
-    ver_status: { name: "Verifizierungsstatus" },
-    photo_vol: { name: "Foto-Volumen" },
-    rev_kw: { name: "Keywords in Bewertungen" },
-    h1_opt: { name: "H1 Optimierung" },
-    title_geo: { name: "Titel Geo-Relevanz" },
-    seo_nap: { name: "NAP Konsistenz" },
-    seo_links: { name: "Backlink Stärke" },
-    seo_internal: { name: "Interne Verlinkung" },
-    seo_geo: { name: "Geo-Inhalt" },
-    seo_auth: { name: "Lokale Autorität" },
-    seo_spam: { name: "Wettbewerber Spam" },
-    market_leader: { name: "Marktführer Vergleich" }
-  },
-  it: {
-    clean_profile: { name: "Stato Ottimizzazione" },
-    cat_rel: { name: "Rilevanza Categoria" },
-    sec_cat: { name: "Categorie Secondarie" },
-    cat_consist: { name: "Coerenza Categoria" },
-    title_opt: { name: "Ottimizzazione Titolo" },
-    addr_pin: { name: "Precisione Indirizzo" },
-    prof_comp: { name: "Completezza Profilo" },
-    ver_status: { name: "Stato Verifica" },
-    photo_vol: { name: "Volume Foto" },
-    rev_kw: { name: "Parole Chiave Recensioni" },
-    h1_opt: { name: "Ottimizzazione H1" },
-    title_geo: { name: "Geo-Rilevanza Titolo" },
-    seo_nap: { name: "Coerenza NAP" },
-    seo_links: { name: "Forza Backlink" },
-    seo_internal: { name: "Link Interni" },
-    seo_geo: { name: "Contenuto Geo" },
-    seo_auth: { name: "Autorità Locale" },
-    seo_spam: { name: "Spam Competitor" },
-    market_leader: { name: "Confronto Leader" }
-  },
-  pt: {
-    clean_profile: { name: "Status de Otimização" },
-    cat_rel: { name: "Relevância da Categoria" },
-    sec_cat: { name: "Categorias Secundárias" },
-    cat_consist: { name: "Consistência de Categoria" },
-    title_opt: { name: "Otimização de Título" },
-    addr_pin: { name: "Precisão de Endereço" },
-    prof_comp: { name: "Completude do Perfil" },
-    ver_status: { name: "Status de Verificação" },
-    photo_vol: { name: "Volume de Fotos" },
-    rev_kw: { name: "Palavras-chave em Avaliações" },
-    h1_opt: { name: "Otimização H1" },
-    title_geo: { name: "Geo-Relevância do Título" },
-    seo_nap: { name: "Consistência NAP" },
-    seo_links: { name: "Força de Backlinks" },
-    seo_internal: { name: "Links Internos" },
-    seo_geo: { name: "Conteúdo Geo" },
-    seo_auth: { name: "Autoridade Local" },
-    seo_spam: { name: "Spam Concorrente" },
-    market_leader: { name: "Comparação Líder" }
-  }
-};
+import { BusinessProfile, AuditInputs, CompetitorData, GeminiAnalysis, ScoringFactor } from "../types";
 
 export const calculateScore = (
   business: BusinessProfile,
@@ -138,291 +7,177 @@ export const calculateScore = (
   aiAnalysis: GeminiAnalysis
 ): { score: number; factors: ScoringFactor[] } => {
   
-  // Use the Admin Audit score from AI as the source of truth if available, otherwise fallback
-  const adminData = aiAnalysis.admin_audit;
-  const totalScore = adminData?.overall_score || 0;
+  let totalScore = 0;
   const factors: ScoringFactor[] = [];
-  const lang = inputs.language || 'en';
-  
-  // Helper to get translated string or fallback
-  const t = (id: string, field: 'name' | 'reason' | 'fix', fallback: string) => {
-    const dict = FACTOR_TRANSLATIONS[lang] || FACTOR_TRANSLATIONS['en'];
-    const item = dict[id];
-    return (item && item[field]) ? item[field] : fallback;
-  };
-
-  // Helper to find relevant blocker
-  const findBlocker = (keyword: string): PrimaryBlocker | undefined => {
-    return adminData?.primary_blockers?.find(b => 
-      b.title.toLowerCase().includes(keyword.toLowerCase()) || 
-      b.explanation.toLowerCase().includes(keyword.toLowerCase())
-    );
-  };
 
   // --- Helper to add factors ---
   const addFactor = (
-    id: string, nameFallback: string, max: number, earned: number, 
-    reason: string, fix: string, category: 'gbp' | 'seo',
-    impact: 'high' | 'medium' | 'low' = 'medium'
+    id: string, name: string, max: number, earned: number, 
+    reason: string, fix: string, category: 'gbp' | 'seo'
   ) => {
-    const percentage = max > 0 ? earned / max : 0;
+    totalScore += earned;
+    const percentage = earned / max;
     let status: 'good' | 'warning' | 'critical' = 'good';
     if (percentage < 0.5) status = 'critical';
     else if (percentage < 0.8) status = 'warning';
 
     factors.push({
-      id, 
-      name: t(id, 'name', nameFallback), 
-      maxScore: max, score: earned, 
-      status, impact,
-      reason, // Already localized from Gemini if it comes from AI, otherwise pass fallback
-      fixAction: fix, 
-      category
+      id, name, maxScore: max, score: earned, 
+      status, impact: max > 10 ? 'high' : max > 5 ? 'medium' : 'low',
+      reason, fixAction: fix, category
     });
   };
 
-  // --- 1. GBP HEALTH FACTORS ---
+  // --- 1. GBP SIGNALS (70 pts) ---
 
-  // Review Gap Analysis (Derived from AI - Localized by Gemini)
-  if (adminData?.review_gap) {
-    const gap = adminData.review_gap;
-    addFactor(
-      'review_health', 
-      'Reputation & Review Volume', 
-      25, 
-      gap.reviews_needed > 0 ? 10 : 25,
-      gap.competitor_comparison_text || `You have ${gap.current_rating} stars. Competitors avg ${gap.target_rating}.`,
-      `Campaign Strategy: You need ${gap.reviews_needed} new 5-star reviews.`,
-      'gbp',
-      'high'
-    );
-  }
-
-  // Content Freshness (AI Analyzed - Localized by Gemini logic generally, but simple text here needs mapping)
-  if (adminData?.content_freshness) {
-    const fresh = adminData.content_freshness;
-    const freshScore = (fresh.photo_recency_pass ? 5 : 0) + (fresh.google_posts_pass ? 5 : 0);
-    const reasonText = lang === 'en' 
-      ? `Engagement Trend: ${fresh.engagement_trend}. Photos recent? ${fresh.photo_recency_pass ? 'Yes' : 'No'}.`
-      : `${fresh.engagement_trend}.`;
-
-    addFactor(
-      'freshness',
-      'Engagement Signals',
-      10,
-      freshScore,
-      reasonText,
-      lang === 'en' ? "Post 1 update weekly and upload 3 geotagged photos monthly." : "Post update weekly.",
-      'gbp',
-      'medium'
-    );
-  }
-
-  // AI Detected Blockers (Already Localized by Gemini)
-  if (adminData?.primary_blockers && adminData.primary_blockers.length > 0) {
-    adminData.primary_blockers.forEach((blocker, index) => {
-      const isHigh = blocker.severity === 'High';
-      factors.push({
-        id: `blocker_${index}`,
-        name: blocker.title,
-        maxScore: isHigh ? 15 : 10,
-        score: 0, // Blockers represent lost points
-        status: 'critical',
-        impact: isHigh ? 'high' : 'medium',
-        reason: blocker.explanation,
-        fixAction: blocker.suggested_fix,
-        category: 'gbp'
-      });
-    });
-  } else {
-    // Bonus for clean profile
-    addFactor('clean_profile', 'Core Optimization Status', 20, 20, 
-      lang === 'en' ? 'No primary blockers detected.' : 'OK', 
-      lang === 'en' ? 'Maintain current optimization.' : 'OK', 
-      'gbp'
-    );
-  }
-
-  // --- 2. GBP CORE SIGNALS (Hardcoded/Heuristic + AI Check) ---
-
-  // Category Relevance
-  const catBlocker = findBlocker('category');
-  const catScore = catBlocker ? 0 : 15;
+  // Primary Category (15)
+  const catScore = aiAnalysis.admin_audit?.gbp_health && aiAnalysis.admin_audit.gbp_health > 80 ? 15 : 8; 
+  // Fallback if AI data isn't granular, we assume category is okay if high score, else warn. 
+  // Real implementation would check category string against list.
   addFactor('cat_rel', 'Primary Category Relevance', 15, catScore, 
-    catBlocker ? catBlocker.explanation : (lang === 'en' ? "Primary category appears aligned with analysis." : "OK"), 
-    catBlocker ? catBlocker.suggested_fix : (lang === 'en' ? "Ensure primary category covers your main service keyword." : "OK"), 
-    'gbp', 'high');
+    "Category aligns with keyword.", 
+    "Optimize primary category.", 'gbp');
 
-  // Secondary Categories
+  // Business Title (14)
+  let titleScore = 14;
+  let titleReason = "Title is clean and brand-focused.";
+  let titleFix = "No action needed.";
+  
+  if (business.name.length > 40) {
+    titleScore = 7;
+    titleReason = "Title is unusually long.";
+    titleFix = "Ensure title matches signage exactly.";
+  }
+  addFactor('title_opt', 'Business Title Optimization', 14, titleScore, titleReason, titleFix, 'gbp');
+
+  // Address in Target City (11)
+  const cityMatch = business.address.toLowerCase().includes(inputs.targetCity.toLowerCase());
+  addFactor('addr_city', 'Physical Address in Target City', 11, cityMatch ? 11 : 0, 
+    cityMatch ? "Address is within target city." : "Address appears outside target city limits.",
+    cityMatch ? "None" : "Consider a location closer to city center if ranking is priority.", 'gbp');
+
+  // Review Rating (6)
+  let ratingScore = 0;
+  if (business.rating >= 4.5) ratingScore = 6;
+  else if (business.rating >= 4.0) ratingScore = 4;
+  else if (business.rating >= 3.5) ratingScore = 2;
+  addFactor('rev_rate', 'Review Rating', 6, ratingScore, 
+    `Current rating: ${business.rating}`, 
+    "Implement a review generation campaign to increase average rating.", 'gbp');
+
+  // Review Volume vs Competitors (4)
+  const avgCompReviews = competitors.length ? competitors.reduce((a, b) => a + b.reviewCount, 0) / competitors.length : 0;
+  const volRatio = avgCompReviews > 0 ? business.user_ratings_total / avgCompReviews : 1;
+  let volScore = 0;
+  if (volRatio >= 1) volScore = 4;
+  else if (volRatio >= 0.5) volScore = 2;
+  addFactor('rev_vol', 'Review Volume Competitive Gap', 4, volScore, 
+    `You have ${business.user_ratings_total} vs Avg Comp ${Math.round(avgCompReviews)}`, 
+    "Launch aggressive review campaign (SMS/Email) to close gap.", 'gbp');
+
+  // Profile Completeness (6)
+  const hasWebsite = !!business.website;
+  const hasPhotos = (business.photos?.length || 0) > 5;
+  addFactor('prof_comp', 'Profile Completeness', 6, (hasWebsite ? 3 : 0) + (hasPhotos ? 3 : 0), 
+    `Website: ${hasWebsite ? 'Yes' : 'No'}, Photos: ${hasPhotos ? 'Good' : 'Low'}`, 
+    "Add website link and upload 5+ interior/exterior photos.", 'gbp');
+
+  // Verification Status (4)
+  addFactor('ver_status', 'Verification Status', 4, 4, 
+    "Business appears published.", "Ensure video verification is completed if re-triggered.", 'gbp');
+
+  // Map Pin Accuracy (2)
+  addFactor('pin_acc', 'Map Pin Accuracy', 2, 2, "Pin location within valid range.", "Check satellite view to confirm entrance location.", 'gbp');
+
+  // Keywords in Reviews (5)
+  // Simplified check: assume pass if > 10 reviews, otherwise warn
+  const hasKeywords = business.user_ratings_total > 10;
+  addFactor('rev_kw', 'Keywords in Reviews', 5, hasKeywords ? 5 : 2, 
+    hasKeywords ? "Keywords likely present in reviews." : "Low review volume limits keyword density.", 
+    "Ask clients to mention specific services in their reviews.", 'gbp');
+
+  // Secondary Categories (6)
   const hasSecondary = business.types.length > 1;
   addFactor('sec_cat', 'Secondary Categories', 6, hasSecondary ? 6 : 0, 
-    hasSecondary ? t('sec_cat', 'reason', "Secondary categories utilized.") : t('sec_cat', 'reason', "Only primary category found."), 
-    t('sec_cat', 'fix', "Add 2-3 relevant secondary categories."), 
-    'gbp', 'medium');
+    hasSecondary ? "Secondary categories utilized." : "Only primary category found.", 
+    "Add 2-3 relevant secondary categories (e.g. 'Emergency Dental Service').", 'gbp');
+
+
+  // --- 2. EXTERNAL & LOCAL SEO (30 pts) ---
   
-  // Category Consistency
-  addFactor('cat_consist', 'Category Consistency', 2, 2,
-    t('cat_consist', 'reason', "No conflicting categories detected."), 
-    t('cat_consist', 'fix', "Ensure all categories align with main service."), 
-    'gbp', 'low');
+  // Website Content (Landing Page) (4)
+  const h1Match = inputs.websiteContent?.h1.toLowerCase().includes(inputs.targetKeyword.toLowerCase());
+  addFactor('seo_h1', 'Landing Page H1 Optimization', 4, h1Match ? 4 : 0, 
+    h1Match ? "H1 includes keyword." : "H1 missing target keyword.", 
+    `Update H1 to include '${inputs.targetKeyword}'.`, 'seo');
 
-  // Title Optimization
-  let titleScore = 14;
-  let titleReason = lang === 'en' ? "Title is clean and brand-focused." : "OK";
-  let titleFix = lang === 'en' ? "No action needed." : "OK";
-  
-  const titleBlocker = findBlocker('title');
-  const isSuspicious = business.name.length > 60 || business.name.includes("|") || (business.name.match(/ - /g) || []).length > 1;
+  // Title Tag (2)
+  const metaMatch = inputs.websiteContent?.titleTag.toLowerCase().includes(inputs.targetCity.toLowerCase());
+  addFactor('seo_title', 'Title Tag Geo-Relevance', 2, metaMatch ? 2 : 0, 
+    metaMatch ? "Title tag includes city." : "Title tag missing city name.", 
+    `Add '${inputs.targetCity}' to your homepage title tag.`, 'seo');
 
-  if (titleBlocker) {
-    titleScore = 0; 
-    titleReason = titleBlocker.explanation; 
-    titleFix = titleBlocker.suggested_fix;
-  } else if (isSuspicious) {
-    titleScore = 7;
-    titleReason = lang === 'en' ? "Title is unusually long (Risk of keyword stuffing)." : "Title too long.";
-    titleFix = lang === 'en' ? "Reset name to real-world business name immediately." : "Reset name.";
-  }
-  addFactor('title_opt', 'Business Title Optimization', 14, titleScore, titleReason, titleFix, 'gbp', 'high');
-
-  // Address & Pin
-  const cityMatch = business.address.toLowerCase().includes(inputs.targetCity.toLowerCase());
-  addFactor('addr_pin', 'Physical Address & Pin Accuracy', 5, cityMatch ? 5 : 0,
-    cityMatch ? t('addr_pin', 'reason', "Address is within target city.") : (lang === 'en' ? "Address outside target." : "Address error."),
-    t('addr_pin', 'fix', "Verify map pin location in dashboard."), 'gbp', 'medium');
-
-  // Profile Completeness
-  const hasWebsite = !!business.website;
-  addFactor('prof_comp', 'Profile Completeness', 5, hasWebsite ? 5 : 0,
-    `Website: ${hasWebsite ? 'Yes' : 'No'}.`,
-    t('prof_comp', 'fix', "Add website link to profile header."), 'gbp', 'high');
-
-  // Verification
-  addFactor('ver_status', 'Verification Status', 5, 5, 
-    t('ver_status', 'reason', "Profile appears verified."), 
-    t('ver_status', 'fix', "Complete video verification if requested."), 'gbp', 'high');
-
-  // --- 3. REPUTATION SPECIFICS ---
-  
-  // Photo Volume
-  const photoCount = business.photos?.length || 0;
-  addFactor('photo_vol', 'Photo Volume', 5, photoCount > 5 ? 5 : 2,
-    `Count: ${photoCount}.`,
-    lang === 'en' ? "Upload 10+ high-quality photos." : "Upload 10+ photos.", 'gbp', 'medium');
-
-  // Review Keywords
-  const kwBlocker = findBlocker('keyword');
-  const hasKeywords = business.user_ratings_total > 30;
-  
-  let kwScore = 5;
-  let kwReason = lang === 'en' ? "Good review volume suggests keyword coverage." : "Good volume.";
-  let kwFix = lang === 'en' ? "Continue asking for specific service mentions." : "OK";
-
-  if (kwBlocker) {
-    kwScore = 0;
-    kwReason = kwBlocker.explanation;
-    kwFix = kwBlocker.suggested_fix;
-  } else if (!hasKeywords) {
-    kwScore = 2;
-    kwReason = lang === 'en' ? "Low review volume reduces semantic relevance." : "Low volume.";
-    kwFix = lang === 'en' ? "Ask clients to mention specific services in reviews." : "Get more reviews.";
-  }
-
-  addFactor('rev_kw', 'Keywords in Reviews', 5, kwScore, kwReason, kwFix, 'gbp', 'medium');
-
-
-  // --- 4. SEO FACTORS ---
-
-  // H1 Optimization
-  const h1Match = inputs.websiteContent?.h1?.toLowerCase().includes(inputs.targetKeyword.toLowerCase());
-  addFactor('h1_opt', 'Landing Page H1 Optimization', 5, h1Match ? 5 : 0,
-    h1Match ? "H1 matches keyword." : "H1 missing keyword.",
-    `Update H1: "${inputs.targetKeyword}".`, 'seo', 'medium');
-
-  // Title Tag Geo
-  const titleMatch = inputs.websiteContent?.titleTag?.toLowerCase().includes(inputs.targetCity.toLowerCase());
-  addFactor('title_geo', 'Title Tag Geo-Relevance', 5, titleMatch ? 5 : 0,
-    titleMatch ? "Title tag contains city." : "Title tag missing city.",
-    `Add "${inputs.targetCity}" to title tag.`, 'seo', 'medium');
-
-  // NAP
-  addFactor('seo_nap', 'NAP Consistency', 5, 5, 
-    t('seo_nap', 'reason', "NAP appears consistent."), 
-    t('seo_nap', 'fix', "Audit top 10 directories."), 'seo', 'medium');
-  
-  // Backlinks
-  const linkScore = inputs.backlinks === 'high' ? 5 : inputs.backlinks === 'medium' ? 3 : 1;
+  // Backlinks (5)
+  let linkScore = 0;
+  if (inputs.backlinks === 'high') linkScore = 5;
+  if (inputs.backlinks === 'medium') linkScore = 3;
+  if (inputs.backlinks === 'low') linkScore = 1;
   addFactor('seo_links', 'Local Backlink Strength', 5, linkScore, 
-    `Strength: ${inputs.backlinks || 'Low'}`, 
-    lang === 'en' ? "Build citations on local chambers/news sites." : "Build local links.", 'seo', 'medium');
-
-  // Internal Linking
-  addFactor('seo_internal', 'Internal Linking Structure', 3, 2, 
-    t('seo_internal', 'reason', "Basic structure detected."), 
-    t('seo_internal', 'fix', "Link service pages back to location home page."), 'seo', 'low');
-
-  // Geo Content
-  addFactor('seo_geo', 'Geo-specific Content', 2, 1, 
-    t('seo_geo', 'reason', "Limited local mentions."), 
-    t('seo_geo', 'fix', "Create 'Areas We Serve' section."), 'seo', 'low');
-
-  // Authority
-  addFactor('seo_auth', 'Local Authority Signals', 3, 1, 
-    t('seo_auth', 'reason', "Low local press."), 
-    t('seo_auth', 'fix', "Sponsor local events for .org links."), 'seo', 'low');
-
-  // --- 5. COMPETITIVE ---
+    `Strength level: ${inputs.backlinks || 'Industry Average'}`, 
+    "Build citations on Yelp, YellowPages, and local chamber of commerce.", 'seo');
+    
+  // NAP Consistency (4)
+  addFactor('seo_nap', 'NAP Consistency', 4, 4, "Assumed consistent for audit.", "Audit top 10 directories for matching Name, Address, Phone.", 'seo');
   
-  // Spam
-  addFactor('seo_spam', 'Competitor Spam Levels', 5, 3, 
-    t('seo_spam', 'reason', "Moderate spam detected in niche."), 
-    t('seo_spam', 'fix', "Report keyword-stuffed competitor titles."), 'seo', 'medium');
+  // Competitor Spam (5)
+  addFactor('seo_spam', 'Competitor Spam Levels', 5, 3, "Moderate spam detected in niche.", "Report keyword-stuffed competitor titles to Google.", 'seo');
   
-  // Market Leader
-  const compCount = competitors.length;
-  addFactor('market_leader', 'Market Leader Comparison', 5, compCount > 0 ? 3 : 5, 
-    `Analyzed vs ${compCount} competitors.`, 
-    lang === 'en' ? "Monitor leader's review velocity." : "Monitor leader.", 'seo', 'medium');
+  // Internal Linking (3)
+  addFactor('seo_internal', 'Internal Linking Structure', 3, 2, "Basic structure detected.", "Link service pages back to location home page.", 'seo');
+  
+  // Geo Content (2)
+  addFactor('seo_geo', 'Geo-specific Content', 2, 1, "Limited local mentions.", "Create a 'Areas We Serve' section.", 'seo');
+  
+  // Local Authority (3)
+  addFactor('seo_auth', 'Local Authority Signals', 3, 1, "Low local press/events.", "Sponsor a local team or event for .edu/.org links.", 'seo');
+  
+  // Engagement (2)
+  addFactor('seo_engage', 'Engagement Signals', 2, 2, "Traffic flow appears normal.", "Post weekly updates to drive click-through rate.", 'seo');
 
-  // --- POST-PROCESSING: SENIOR GBP ARCHITECT EXPERT MODULES ---
-  // Overrides standard strings with Expert Architect Advice when a factor is not a perfect pass.
+  // --- POST-PROCESSING: SENIOR LOCAL SEO CONSULTANT EXPERT MODULES ---
+  // Mandatory replacement for failed/warn items based on prompt database
   factors.forEach(f => {
-    if (f.score === f.maxScore) {
-       // Perfect Pass - Encouraging
-       f.reason = "No action needed—you are outperforming competitors in this area.";
-       f.fixAction = "Maintain current strategy.";
-    } else {
-       // Failed or Warning - Apply Expert Framework based on ID
-       
-       // 1. Primary Category / Category Alignment
-       if (f.id === 'cat_rel' || f.id === 'sec_cat') {
-          f.reason = "Google uses this to decide which 'searches' you belong in. An incorrect category makes you invisible to 40% of potential customers.";
-          f.fixAction = "1. Log in to GBP.\n2. Click 'Edit Profile.'\n3. Select 'Business Information.'\n4. Change Category to the correct industry match.\n5. Save.";
-       }
+    if (f.score < f.maxScore) {
+      
+      // 1. Primary & Secondary Categories
+      if (f.id === 'cat_rel' || f.id === 'sec_cat') {
+        f.reason = "Importance: This is the 'DNA' of your profile. If your primary category is too broad, you are invisible to 40% of customers searching for your specific service.";
+        f.fixAction = "Step-by-Step Fix:\n1. Log in to your GBP dashboard.\n2. Click 'Edit Profile.'\n3. Select 'Business Information.'\n4. Change the Primary Category to the most specific match.\n5. Add 3 relevant Secondary Categories.\n6. Click Save.";
+      }
 
-       // 2. Review Volume / Rating
-       if (['review_health', 'rev_rate', 'rev_vol'].includes(f.id)) {
-          f.reason = "Customers use the '4.0+ Stars' filter. If you have a 3.9, you don't even appear on their screen. High volume builds 'Trust Authority.'";
-          f.fixAction = "1. Click 'Ask for reviews.'\n2. Copy the link.\n3. Send it to 5 past customers today.\n4. Reply to all existing reviews.";
-       }
+      // 2. Review Rating & Volume Gap
+      if (['rev_rate', 'rev_vol'].includes(f.id)) {
+        f.reason = "Importance: Google uses a '4.0+ Star' filter. If you have a 3.9, you don't even appear in those searches. High volume creates 'Social Proof' that makes customers choose you over a competitor.";
+        f.fixAction = "Step-by-Step Fix:\n1. Click 'Ask for reviews' in your dashboard.\n2. Copy the short link.\n3. Send it to 5 past customers today.\n4. Print a QR code of this link and place it on your counter/menu.";
+      }
 
-       // 3. H1 Website Optimization / Geo-Signal
-       if (['h1_opt', 'title_geo', 'seo_geo'].includes(f.id)) {
-          f.reason = "Google reads your website to confirm your location. If your website title doesn't mention your city, Google won't rank your map pin in that city.";
-          f.fixAction = "1. Open your website editor.\n2. Change the main top heading to '[Business Name] - [Service] in [City].'";
-       }
+      // 3. Address/Pin Accuracy & NAP Consistency
+      if (['addr_city', 'pin_acc', 'seo_nap'].includes(f.id)) {
+        f.reason = "Importance: If your address format differs between your website and Google (e.g., 'St.' vs 'Street'), Google loses trust in your location, and your ranking drops.";
+        f.fixAction = "Step-by-Step Fix:\n1. Copy your address from Google.\n2. Go to your website footer and 'Contact' page.\n3. Paste the address exactly so it is a 100% match.\n4. Update your Facebook/Instagram to match.";
+      }
 
-       // 4. NAP Consistency
-       if (f.id === 'seo_nap' || f.id === 'addr_pin') {
-          f.reason = "If your address is different on Facebook than it is on Google, Google loses trust in your data and drops your rank.";
-          f.fixAction = "1. Copy your address from Google.\n2. Paste it exactly the same on your website and social media.";
-       }
+      // 4. Website H1 & Title Tag Optimization
+      if (['seo_h1', 'seo_title'].includes(f.id)) {
+        f.reason = "Importance: This tells Google's 'crawlers' that your website and your Map pin are the same business. Without your City/Zip in the H1 tag, your ranking power is cut in half.";
+        f.fixAction = "Step-by-Step Fix:\n1. Open your website editor.\n2. Locate the main top heading (H1).\n3. Change it to: '[Business Name] - [Service] in [City/Zip]'.\n4. Update the Browser Title Tag to match.";
+      }
 
-       // 5. Engagement (Review Responses)
-       if (f.id === 'freshness' || f.id === 'rev_kw') {
-          f.reason = "Profiles that respond to reviews rank higher. It signals to Google that the business is 'Alive' and active.";
-          f.fixAction = "1. Go to 'Reviews' tab.\n2. Click 'Reply' on the 5 most recent ones.\n3. Include the name of your city in the reply.";
-       }
+      // 5. Engagement (Review Responses & Posts)
+      if (['seo_engage', 'rev_kw'].includes(f.id)) {
+        f.reason = "Importance: Replying to reviews and posting updates signals that your business is 'Alive.' Active profiles rank significantly higher than abandoned ones.";
+        f.fixAction = "Step-by-Step Fix:\n1. Go to 'Reviews.'\n2. Reply to the 5 most recent ones.\n3. Click 'Add Update' and post 1 photo with a caption mentioning your neighborhood.";
+      }
     }
   });
 
