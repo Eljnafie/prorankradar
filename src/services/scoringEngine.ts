@@ -1,7 +1,7 @@
 
 import type { BusinessProfile, AuditInputs, CompetitorData, GeminiAnalysis, ScoringFactor, PrimaryBlocker, AuditLanguage } from "../types";
 
-// Translation Map for Hardcoded Factors
+// Translation Map for Hardcoded Factors (Fallback/Short versions)
 const FACTOR_TRANSLATIONS: Record<AuditLanguage, Record<string, { name: string, reason?: string, fix?: string }>> = {
   en: {
     clean_profile: { name: "Core Optimization Status" },
@@ -383,6 +383,38 @@ export const calculateScore = (
   addFactor('market_leader', 'Market Leader Comparison', 5, compCount > 0 ? 3 : 5, 
     `Analyzed vs ${compCount} competitors.`, 
     lang === 'en' ? "Monitor leader's review velocity." : "Monitor leader.", 'seo', 'medium');
+
+  // --- POST-PROCESSING: SENIOR GBP ARCHITECT EXPERT MODULES ---
+  // If user is on English (or any language, but applying English expert text for consistency if fallback)
+  // and score is not perfect, apply the "Expert Explanation Module".
+  factors.forEach(f => {
+    if (f.score < f.maxScore) {
+      
+      // 1. CATEGORY ALIGNMENT
+      if (f.id === 'cat_rel' || f.id === 'sec_cat') {
+        f.reason = "Google uses categories as the 'DNA' of your profile. If you are listed as a general 'Establishment' instead of a specific 'Hotel' or 'Bar', Google’s algorithm won't show you to users searching for those specific terms. You are likely missing out on 40% of search traffic.";
+        f.fixAction = "1. Log into your Google Business Profile. 2. Click 'Edit Profile' > 'Business Information'. 3. Update the Primary Category to the most specific industry match. 4. Add 3–5 'Secondary Categories' to capture different types of searches.";
+      }
+
+      // 2. REPUTATION & REVIEW VOLUME
+      if (['review_health', 'rev_rate', 'rev_vol'].includes(f.id)) {
+        f.reason = "High volume and a high rating (4.2+) act as a 'Conversion Magnet.' Profiles with fewer reviews or lower ratings are filtered out by Google and ignored by customers who perceive the business as 'inactive' or 'lower quality'.";
+        f.fixAction = "1. Click 'Ask for reviews' in your dashboard to get your direct link. 2. Print this link as a QR code on physical menus, business cards, or receipts. 3. Reply to every review (positive or negative) within 48 hours to signal high engagement.";
+      }
+
+      // 3. GEO-SIGNAL & WEBSITE SEO
+      if (['h1_opt', 'title_geo'].includes(f.id)) {
+        f.reason = "Your website and GBP must 'talk' to each other. If your website doesn't mention your specific neighborhood in the H1 tag, Google loses confidence that you are the most relevant local option, causing your map ranking to drop as soon as a user moves two streets away.";
+        f.fixAction = "1. Open your website editor (WordPress/Wix/etc.). 2. Locate your Homepage H1 tag. 3. Update it to include your city/zip: '[Business Name] - [Industry] in [Zip/Neighborhood]'.";
+      }
+
+      // 4. NAP CONSISTENCY
+      if (f.id === 'seo_nap') {
+        f.reason = "Google looks for your address across the entire internet (Yelp, Yellow Pages, etc.). If your address is written differently in different places, Google gets 'confused' and lowers your trust score.";
+        f.fixAction = "1. Identify all platforms where your info is wrong. 2. Manually update them to match your Google Business Profile address exactly—down to the comma and space.";
+      }
+    }
+  });
 
   return { score: totalScore, factors };
 };
