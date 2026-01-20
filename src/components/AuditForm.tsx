@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, MapPin, Globe, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
-import type { AuditInputs, BusinessProfile } from '../types';
+import { Search, MapPin, Globe, ArrowRight, Loader2, AlertCircle, Languages } from 'lucide-react';
+import type { AuditInputs, BusinessProfile, AuditLanguage } from '../types';
 
 interface AuditFormProps {
   onRunAudit: (business: BusinessProfile, inputs: AuditInputs) => void;
@@ -13,6 +13,7 @@ interface AuditFormProps {
 const AuditForm: React.FC<AuditFormProps> = ({ onRunAudit, isLoading, mapsApiKey, isMapsLoaded }) => {
   const [keyword, setKeyword] = useState('');
   const [city, setCity] = useState('');
+  const [language, setLanguage] = useState<AuditLanguage>('en');
   const [h1Text, setH1Text] = useState('');
   const [titleTag, setTitleTag] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -147,6 +148,7 @@ const AuditForm: React.FC<AuditFormProps> = ({ onRunAudit, isLoading, mapsApiKey
     const inputs: AuditInputs = {
       targetKeyword: keyword,
       targetCity: city,
+      language: language,
       websiteContent: {
         h1: h1Text || keyword, 
         titleTag: titleTag || `${keyword} in ${city}`,
@@ -249,6 +251,27 @@ const AuditForm: React.FC<AuditFormProps> = ({ onRunAudit, isLoading, mapsApiKey
                   onChange={(e) => setCity(e.target.value)}
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Language Selection */}
+          <div className="pt-2">
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Report Language</label>
+            <div className="relative">
+              <Languages className="absolute left-3 top-3.5 text-slate-400 w-5 h-5" />
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as AuditLanguage)}
+                className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none appearance-none cursor-pointer"
+              >
+                <option value="en">English</option>
+                <option value="es">Español (Spanish)</option>
+                <option value="fr">Français (French)</option>
+                <option value="de">Deutsch (German)</option>
+                <option value="it">Italiano (Italian)</option>
+                <option value="pt">Português (Portuguese)</option>
+              </select>
+              <div className="absolute right-4 top-4 w-2 h-2 border-r-2 border-b-2 border-slate-400 transform rotate-45 pointer-events-none"></div>
             </div>
           </div>
 

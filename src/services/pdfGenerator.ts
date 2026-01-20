@@ -1,11 +1,172 @@
-import type { AuditReportData, ScoringFactor } from "../types";
+import type { AuditReportData, ScoringFactor, AuditLanguage } from "../types";
+
+// Translation dictionary for PDF Labels
+const PDF_TRANSLATIONS: Record<AuditLanguage, Record<string, string>> = {
+  en: {
+    title: "PREMIUM BUSINESS GROWTH AUDIT",
+    prepared_for: "Prepared for:",
+    exec_summary: "Executive Performance Summary",
+    overall: "Overall Score",
+    gbp_health: "GBP Health",
+    seo_strength: "SEO Strength",
+    ranking_forecast: "RANKING POTENTIAL FORECAST",
+    geo_grid: "Visual Geo-Grid (Rank Tracking)",
+    grid_legend: "Grid Legend:",
+    money_zones: "Money Zones (Top 3)",
+    lost_revenue: "Lost Revenue (Ranking > 10)",
+    your_loc: "Your Location",
+    comp_gap: "Competitive Gap Analysis",
+    you: "You",
+    leader: "Leader",
+    review_goal: "REVIEW GOAL:",
+    review_goal_sub: "more 5-star reviews to reach a 4.3+ rating and stop being filtered out.",
+    detailed_audit: "Detailed Technical Audit",
+    step_fix: "Step-by-Step Fix:",
+    analysis: "Analysis:",
+    recommendation: "Recommendation:",
+    roi_forecast: "PROJECTED ROI FORECAST",
+    roi_sub1: "Resolving these gaps typically results in a 25% to 50% increase in calls",
+    roi_sub2: "and direction requests within 90-120 days."
+  },
+  es: {
+    title: "AUDITORÍA PREMIUM DE CRECIMIENTO",
+    prepared_for: "Preparado para:",
+    exec_summary: "Resumen Ejecutivo de Rendimiento",
+    overall: "Puntuación General",
+    gbp_health: "Salud GBP",
+    seo_strength: "Fuerza SEO",
+    ranking_forecast: "PRONÓSTICO DE CLASIFICACIÓN",
+    geo_grid: "Geo-Grid Visual (Rastreo de Rango)",
+    grid_legend: "Leyenda:",
+    money_zones: "Zonas de Dinero (Top 3)",
+    lost_revenue: "Ingresos Perdidos (> 10)",
+    your_loc: "Tu Ubicación",
+    comp_gap: "Análisis de Brecha Competitiva",
+    you: "Tú",
+    leader: "Líder",
+    review_goal: "META DE RESEÑAS:",
+    review_goal_sub: "más reseñas de 5 estrellas para alcanzar 4.3+ y dejar de ser filtrado.",
+    detailed_audit: "Auditoría Técnica Detallada",
+    step_fix: "Solución Paso a Paso:",
+    analysis: "Análisis:",
+    recommendation: "Recomendación:",
+    roi_forecast: "PRONÓSTICO DE ROI",
+    roi_sub1: "Resolver estas brechas típicamente resulta en un aumento del 25% al 50% en llamadas",
+    roi_sub2: "y solicitudes de dirección en 90-120 días."
+  },
+  fr: {
+    title: "AUDIT DE CROISSANCE PREMIUM",
+    prepared_for: "Préparé pour:",
+    exec_summary: "Résumé Exécutif de Performance",
+    overall: "Score Global",
+    gbp_health: "Santé GBP",
+    seo_strength: "Force SEO",
+    ranking_forecast: "PRÉVISIONS DE CLASSEMENT",
+    geo_grid: "Géo-Grille Visuelle",
+    grid_legend: "Légende:",
+    money_zones: "Zones Rentables (Top 3)",
+    lost_revenue: "Revenus Perdus (> 10)",
+    your_loc: "Votre Emplacement",
+    comp_gap: "Analyse de l'Écart Concurrentiel",
+    you: "Vous",
+    leader: "Leader",
+    review_goal: "OBJECTIF AVIS:",
+    review_goal_sub: "avis 5 étoiles de plus pour atteindre 4.3+.",
+    detailed_audit: "Audit Technique Détaillé",
+    step_fix: "Correction Étape par Étape:",
+    analysis: "Analyse:",
+    recommendation: "Recommandation:",
+    roi_forecast: "PRÉVISIONS ROI",
+    roi_sub1: "La résolution de ces problèmes entraîne généralement une augmentation de 25% à 50%",
+    roi_sub2: "des appels et itinéraires sous 90-120 jours."
+  },
+  de: {
+    title: "PREMIUM WACHSTUMS-AUDIT",
+    prepared_for: "Vorbereitet für:",
+    exec_summary: "Leistungszusammenfassung",
+    overall: "Gesamtpunktzahl",
+    gbp_health: "GBP Gesundheit",
+    seo_strength: "SEO Stärke",
+    ranking_forecast: "RANKING PROGNOSE",
+    geo_grid: "Visuelles Geo-Grid",
+    grid_legend: "Legende:",
+    money_zones: "Geldzonen (Top 3)",
+    lost_revenue: "Verlorener Umsatz (> 10)",
+    your_loc: "Ihr Standort",
+    comp_gap: "Wettbewerbsanalyse",
+    you: "Sie",
+    leader: "Führer",
+    review_goal: "BEWERTUNGSZIEL:",
+    review_goal_sub: "mehr 5-Sterne-Bewertungen, um 4.3+ zu erreichen.",
+    detailed_audit: "Detailliertes Technisches Audit",
+    step_fix: "Schritt-für-Schritt Lösung:",
+    analysis: "Analyse:",
+    recommendation: "Empfehlung:",
+    roi_forecast: "ROI PROGNOSE",
+    roi_sub1: "Die Behebung dieser Lücken führt typischerweise zu 25-50% mehr Anrufen",
+    roi_sub2: "und Wegbeschreibungen innerhalb von 90-120 Tagen."
+  },
+  it: {
+    title: "AUDIT DI CRESCITA PREMIUM",
+    prepared_for: "Preparato per:",
+    exec_summary: "Riepilogo Prestazioni",
+    overall: "Punteggio",
+    gbp_health: "Salute GBP",
+    seo_strength: "Forza SEO",
+    ranking_forecast: "PREVISIONE RANKING",
+    geo_grid: "Geo-Griglia Visiva",
+    grid_legend: "Legenda:",
+    money_zones: "Zone Redditizie (Top 3)",
+    lost_revenue: "Ricavi Persi (> 10)",
+    your_loc: "Tua Posizione",
+    comp_gap: "Analisi Competitiva",
+    you: "Tu",
+    leader: "Leader",
+    review_goal: "OBIETTIVO RECENSIONI:",
+    review_goal_sub: "recensioni a 5 stelle in più per raggiungere 4.3+.",
+    detailed_audit: "Audit Tecnico Dettagliato",
+    step_fix: "Soluzione Passo-Passo:",
+    analysis: "Analisi:",
+    recommendation: "Raccomandazione:",
+    roi_forecast: "PREVISIONE ROI",
+    roi_sub1: "Risolvere questi problemi porta tipicamente a un aumento del 25-50% delle chiamate",
+    roi_sub2: "e richieste di indicazioni in 90-120 giorni."
+  },
+  pt: {
+    title: "AUDITORIA DE CRESCIMENTO PREMIUM",
+    prepared_for: "Preparado para:",
+    exec_summary: "Resumo Executivo",
+    overall: "Pontuação Geral",
+    gbp_health: "Saúde GBP",
+    seo_strength: "Força SEO",
+    ranking_forecast: "PREVISÃO DE RANKING",
+    geo_grid: "Geo-Grade Visual",
+    grid_legend: "Legenda:",
+    money_zones: "Zonas de Lucro (Top 3)",
+    lost_revenue: "Receita Perdida (> 10)",
+    your_loc: "Sua Localização",
+    comp_gap: "Análise Competitiva",
+    you: "Você",
+    leader: "Líder",
+    review_goal: "META DE AVALIAÇÕES:",
+    review_goal_sub: "mais avaliações de 5 estrelas para atingir 4.3+.",
+    detailed_audit: "Auditoria Técnica Detalhada",
+    step_fix: "Correção Passo a Passo:",
+    analysis: "Análise:",
+    recommendation: "Recomendação:",
+    roi_forecast: "PREVISÃO DE ROI",
+    roi_sub1: "Resolver essas lacunas resulta tipicamente em aumento de 25-50% em chamadas",
+    roi_sub2: "e solicitações de rota em 90-120 dias."
+  }
+};
 
 export const generateAuditPdf = (data: AuditReportData) => {
-  // Use global jsPDF from CDN script (defined in index.html)
-  // This bypasses build-time dependency checks
   const { jsPDF } = (window as any).jspdf;
   const doc = new jsPDF();
   
+  const lang = data.inputs.language || 'en';
+  const t = PDF_TRANSLATIONS[lang] || PDF_TRANSLATIONS['en'];
+
   let y = 20; // Start Y position
   const leftMargin = 20;
   const rightMargin = 20;
@@ -57,7 +218,7 @@ export const generateAuditPdf = (data: AuditReportData) => {
     doc.setFont("helvetica", "bold");
     doc.text("ProRankRadar", leftMargin, 10);
     doc.setFont("helvetica", "normal");
-    doc.text("PREMIUM BUSINESS GROWTH AUDIT", pageWidth - rightMargin - 70, 10);
+    doc.text(t.title, pageWidth - rightMargin - 70, 10);
   };
 
   // --- 1. COVER / INTRO ---
@@ -74,13 +235,13 @@ export const generateAuditPdf = (data: AuditReportData) => {
   // Document Title
   doc.setFontSize(24);
   doc.setFont("helvetica", "bold");
-  doc.text("PREMIUM BUSINESS", leftMargin, 28);
-  doc.text("GROWTH AUDIT", leftMargin, 38);
+  doc.text(t.title.split(' ')[0] + ' ' + t.title.split(' ')[1], leftMargin, 28);
+  doc.text(t.title.split(' ').slice(2).join(' '), leftMargin, 38);
   
   // Client Details
   doc.setFontSize(14);
   doc.setFont("helvetica", "normal");
-  doc.text(`Prepared for: ${data.business.name}`, leftMargin, 65);
+  doc.text(`${t.prepared_for} ${data.business.name}`, leftMargin, 65);
   
   // Extract Zip/Neighborhood from address
   const addressParts = data.business.address.split(',');
@@ -96,7 +257,7 @@ export const generateAuditPdf = (data: AuditReportData) => {
   doc.setTextColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
   doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
-  doc.text("Executive Performance Summary", leftMargin, y);
+  doc.text(t.exec_summary, leftMargin, y);
   y += 15;
 
   // Draw Circles for Scores
@@ -135,9 +296,9 @@ export const generateAuditPdf = (data: AuditReportData) => {
 
   // Position circles nicely
   const circleY = y;
-  drawScoreCircle("Overall Score", data.overallScore, leftMargin + 30);
-  drawScoreCircle("GBP Health", gbpPercent, leftMargin + 85);
-  drawScoreCircle("SEO Strength", seoPercent, leftMargin + 140);
+  drawScoreCircle(t.overall, data.overallScore, leftMargin + 30);
+  drawScoreCircle(t.gbp_health, gbpPercent, leftMargin + 85);
+  drawScoreCircle(t.seo_strength, seoPercent, leftMargin + 140);
 
   y += 55;
 
@@ -148,11 +309,11 @@ export const generateAuditPdf = (data: AuditReportData) => {
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
-  doc.text("RANKING POTENTIAL FORECAST", leftMargin + 5, y + 8);
+  doc.text(t.ranking_forecast, leftMargin + 5, y + 8);
   
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  const potentialText = data.geminiAnalysis.admin_audit?.roi_forecast || "Fixing these critical issues can push this profile to the Top 5 in 120 Days.";
+  const potentialText = data.geminiAnalysis.admin_audit?.roi_forecast || "Fixing critical issues can push this profile to the Top 5.";
   doc.text(potentialText, leftMargin + 5, y + 16);
   
   y += 40;
@@ -162,7 +323,7 @@ export const generateAuditPdf = (data: AuditReportData) => {
   doc.setTextColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
   doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
-  doc.text("Visual Geo-Grid (Rank Tracking)", leftMargin, y);
+  doc.text(t.geo_grid, leftMargin, y);
   y += 10;
 
   // Draw 7x7 Grid
@@ -201,20 +362,20 @@ export const generateAuditPdf = (data: AuditReportData) => {
   const legendX = startX + (gridSize * gap) + 20;
   doc.setTextColor(COLORS.slate600[0], COLORS.slate600[1], COLORS.slate600[2]);
   doc.setFontSize(10);
-  doc.text("Grid Legend:", legendX, y + 10);
+  doc.text(t.grid_legend, legendX, y + 10);
   
   // Legend Dots
   doc.setFillColor(COLORS.green500[0], COLORS.green500[1], COLORS.green500[2]);
   doc.circle(legendX + 2, y + 18, 2, 'F');
-  doc.text("Money Zones (Top 3)", legendX + 6, y + 20);
+  doc.text(t.money_zones, legendX + 6, y + 20);
 
   doc.setFillColor(COLORS.red500[0], COLORS.red500[1], COLORS.red500[2]);
   doc.circle(legendX + 2, y + 28, 2, 'F');
-  doc.text("Lost Revenue (Ranking > 10)", legendX + 6, y + 30);
+  doc.text(t.lost_revenue, legendX + 6, y + 30);
 
   doc.setFillColor(COLORS.blue600[0], COLORS.blue600[1], COLORS.blue600[2]);
   doc.circle(legendX + 2, y + 38, 2, 'F');
-  doc.text("Your Location", legendX + 6, y + 40);
+  doc.text(t.your_loc, legendX + 6, y + 40);
 
   y += (gridSize * gap) + 15;
 
@@ -223,7 +384,7 @@ export const generateAuditPdf = (data: AuditReportData) => {
   doc.setTextColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
   doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
-  doc.text("Competitive Gap Analysis", leftMargin, y);
+  doc.text(t.comp_gap, leftMargin, y);
   y += 10;
 
   // Simple Bar Chart
@@ -233,14 +394,14 @@ export const generateAuditPdf = (data: AuditReportData) => {
   
   // You
   doc.setFontSize(11);
-  doc.text("You", leftMargin, y + 10);
+  doc.text(t.you, leftMargin, y + 10);
   doc.setFillColor(COLORS.yellow500[0], COLORS.yellow500[1], COLORS.yellow500[2]);
   doc.rect(leftMargin + 30, y + 2, (clientRating / 5) * maxBarWidth, 8, 'F'); 
   doc.setTextColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
   doc.text(clientRating.toString(), leftMargin + 30 + ((clientRating / 5) * maxBarWidth) + 5, y + 8);
 
   // Market Leader
-  doc.text("Leader", leftMargin, y + 25);
+  doc.text(t.leader, leftMargin, y + 25);
   doc.setFillColor(COLORS.green500[0], COLORS.green500[1], COLORS.green500[2]);
   doc.rect(leftMargin + 30, y + 17, (competitorRating / 5) * maxBarWidth, 8, 'F');
   doc.text(competitorRating.toString(), leftMargin + 30 + ((competitorRating / 5) * maxBarWidth) + 5, y + 23);
@@ -252,8 +413,7 @@ export const generateAuditPdf = (data: AuditReportData) => {
   doc.setFontSize(11);
   doc.setTextColor(COLORS.red500[0], COLORS.red500[1], COLORS.red500[2]);
   doc.setFont("helvetica", "bold");
-  doc.text(`REVIEW GOAL: You need exactly ${reviewsNeeded} more 5-star reviews to reach a 4.3+ rating`, leftMargin, y);
-  doc.text(`and stop being filtered out by customers.`, leftMargin, y + 6);
+  doc.text(`${t.review_goal} ${reviewsNeeded} ${t.review_goal_sub}`, leftMargin, y);
   y += 15;
 
   // --- 5. DETAILED TECHNICAL AUDIT ---
@@ -266,7 +426,7 @@ export const generateAuditPdf = (data: AuditReportData) => {
   doc.setTextColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
   doc.setFontSize(18);
   doc.setFont("helvetica", "bold");
-  doc.text("Detailed Technical Audit", leftMargin, y);
+  doc.text(t.detailed_audit, leftMargin, y);
   y += 15;
 
   // Helper for rows
@@ -292,13 +452,13 @@ export const generateAuditPdf = (data: AuditReportData) => {
     y += 5;
 
     // Analysis
-    addWrappedText(`Analysis: ${factor.reason}`, 10, "normal", COLORS.slate600);
+    addWrappedText(`${t.analysis} ${factor.reason}`, 10, "normal", COLORS.slate600);
     
     // Fix (Only for Warn/Fail)
     if (factor.status !== 'good') {
         doc.setFont("helvetica", "bold");
         doc.setTextColor(COLORS.blue600[0], COLORS.blue600[1], COLORS.blue600[2]);
-        doc.text("Step-by-Step Fix:", leftMargin, y);
+        doc.text(t.step_fix, leftMargin, y);
         y += 5;
         addWrappedText(factor.fixAction, 10, "normal", COLORS.slate900);
     }
@@ -314,7 +474,7 @@ export const generateAuditPdf = (data: AuditReportData) => {
     "4. Competitive Environment": []
   };
 
-  // Sort Factors into Groups based on new IDs from scoringEngine.ts
+  // Sort Factors into Groups based on IDs (need to map localized names if they exist, but grouping is by ID)
   data.factors.forEach(f => {
     // Group 1: GBP Core
     if (["cat_rel", "sec_cat", "title_opt", "addr_pin", "prof_comp", "ver_status", "cat_consist", "clean_profile", "website_link"].includes(f.id) || f.id.startsWith("blocker_")) {
@@ -363,13 +523,13 @@ export const generateAuditPdf = (data: AuditReportData) => {
   doc.setTextColor(COLORS.green500[0], COLORS.green500[1], COLORS.green500[2]);
   doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
-  doc.text("PROJECTED ROI FORECAST", leftMargin + 5, y + 10);
+  doc.text(t.roi_forecast, leftMargin + 5, y + 10);
   
   doc.setTextColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
   doc.setFontSize(11);
   doc.setFont("helvetica", "normal");
-  doc.text("Resolving these gaps typically results in a 25% to 50% increase in calls", leftMargin + 5, y + 18);
-  doc.text("and direction requests within 90-120 days.", leftMargin + 5, y + 24);
+  doc.text(t.roi_sub1, leftMargin + 5, y + 18);
+  doc.text(t.roi_sub2, leftMargin + 5, y + 24);
 
   // Footer Numbers
   const pageCount = doc.getNumberOfPages();

@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import type { BusinessProfile, AuditInputs, GeminiAnalysis, BlogPost } from "../types";
 
@@ -19,12 +20,24 @@ export const analyzeProfileWithGemini = async (
   
   const ai = getAI(apiKey);
 
+  const langMap: Record<string, string> = {
+    'en': 'English',
+    'es': 'Spanish (Español)',
+    'fr': 'French (Français)',
+    'de': 'German (Deutsch)',
+    'it': 'Italian (Italiano)',
+    'pt': 'Portuguese (Português)'
+  };
+  const targetLanguage = langMap[inputs.language] || 'English';
+
   const prompt = `
     SYSTEM PROMPT: ProRankRadar – Two-Tier Google Business Profile Audit Generator
 
     Role: You are a Local SEO Consultant, Data Analyst, and Conversion Strategist. Your task is to generate a **professional, high-conversion, AI-extractable audit report** for a client’s Google Business Profile (GBP) using ProRankRadar.
 
     The audit must be **trust-first**, **neutral**, and **compliant with Google guidelines**, while also being visually structured for business owners and AI systems.
+
+    IMPORTANT: You MUST generate the entire report (including all titles, analysis, fixes, impact summaries, action plans, etc.) in the following language: ${targetLanguage}.
 
     ---
 
@@ -65,6 +78,7 @@ export const analyzeProfileWithGemini = async (
     - Use "answer-first" structure (40-70 words per explanation).
     - Ensure tone is professional but actionable for a non-expert.
     - ROI Forecast should estimate potential calls/direction increase if fixes are applied (e.g. "Fixing these issues typically results in a 25% increase...").
+    - Translate ALL text fields to ${targetLanguage}.
 
     Return strict JSON matching the schema.
   `;
@@ -180,7 +194,7 @@ export const analyzeProfileWithGemini = async (
 
   } catch (error) {
     console.error("Gemini Analysis Error:", error);
-    // Fallback data
+    // Fallback data (Ideally this should also be localized, but for error fallback English is acceptable)
     return {
       metadata: { seo_title: "Error", meta_description: "Error" },
       free_audit: {

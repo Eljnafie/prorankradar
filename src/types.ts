@@ -1,3 +1,4 @@
+
 export interface BusinessProfile {
   placeId: string;
   name: string;
@@ -19,9 +20,12 @@ export interface CompetitorData {
   isAd?: boolean;
 }
 
+export type AuditLanguage = 'en' | 'es' | 'fr' | 'de' | 'it' | 'pt';
+
 export interface AuditInputs {
   targetKeyword: string;
   targetCity: string;
+  language: AuditLanguage;
   websiteContent?: {
     titleTag: string;
     h1: string;
