@@ -49,12 +49,10 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
   
   let reviewsNeeded = 0;
   if (myRating < competitorRating) {
-      const target = Math.min(competitorRating, 4.9); // Don't aim for 5.0 impossible
-      // Formula: (CurrentScore + 5*N) / (Total + N) = Target
-      // N = Total * (Target - Current) / (5 - Target)
+      const target = Math.min(competitorRating, 4.9);
       reviewsNeeded = Math.ceil((myCount * (target - myRating)) / (5 - target));
       if (reviewsNeeded < 0) reviewsNeeded = 0;
-      if (reviewsNeeded > 1000) reviewsNeeded = 999; // Cap for sanity
+      if (reviewsNeeded > 1000) reviewsNeeded = 999;
   }
 
   return (
@@ -85,11 +83,31 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
           >
             <Download className="w-4 h-4" /> Download PDF
           </button>
+          
+          <button 
+            onClick={() => setShowPricing(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 font-medium text-sm transition-colors shadow-lg shadow-green-500/20"
+          >
+            <MessageCircle className="w-4 h-4" /> Get Help Fixing This
+          </button>
+
           <button onClick={onReset} className="text-sm text-slate-500 hover:text-slate-800 underline ml-2">
             New Audit
           </button>
         </div>
       </div>
+
+      {/* EXECUTIVE SUMMARY (Uses FileText) */}
+      {data.geminiAnalysis.executiveSummary && (
+        <div className="bg-slate-800 text-white p-6 rounded-xl shadow-lg print:break-inside-avoid">
+           <h3 className="text-lg font-bold mb-3 flex items-center gap-2 text-blue-300">
+             <FileText className="w-5 h-5" /> Executive Summary
+           </h3>
+           <p className="text-slate-200 leading-relaxed text-sm md:text-base">
+             {data.geminiAnalysis.executiveSummary}
+           </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
@@ -98,7 +116,7 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
           
           {/* 1. Executive Summary Circles */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col items-center text-center">
-             <h3 className="font-bold text-slate-700 mb-6">Executive Performance Summary</h3>
+             <h3 className="font-bold text-slate-700 mb-6">Performance Score</h3>
              
              <div className="relative w-40 h-40 mb-4">
                <ResponsiveContainer>
@@ -118,13 +136,13 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
              <div className="flex justify-center gap-4 w-full">
                 <div className="p-3 bg-slate-50 rounded-lg w-1/2">
                    <div className="text-2xl font-bold text-slate-700">
-                     {Math.round(sections["1. Google Business Profile Core Signals"].reduce((a,b)=>a+b.score,0) / 45 * 100)}%
+                     {Math.round(sections["1. Google Business Profile Core Signals"].reduce((a,b)=>a+b.score,0) / (45 || 1) * 100)}%
                    </div>
                    <div className="text-[10px] uppercase font-bold text-slate-400">GBP Health</div>
                 </div>
                 <div className="p-3 bg-slate-50 rounded-lg w-1/2">
                    <div className="text-2xl font-bold text-slate-700">
-                     {Math.round(sections["3. Website & Local SEO"].reduce((a,b)=>a+b.score,0) / 20 * 100)}%
+                     {Math.round(sections["3. Website & Local SEO"].reduce((a,b)=>a+b.score,0) / (20 || 1) * 100)}%
                    </div>
                    <div className="text-[10px] uppercase font-bold text-slate-400">SEO Strength</div>
                 </div>
@@ -155,11 +173,9 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
                    const col = i % 7;
                    const isCenter = row === 3 && col === 3;
                    // Logic to simulate grid based on score
-                   // Distance from center
                    const dist = Math.max(Math.abs(row - 3), Math.abs(col - 3));
                    
                    let bgClass = 'bg-red-400';
-                   // Better score = wider green radius
                    const greenRadius = overallScore > 80 ? 3 : overallScore > 60 ? 2 : 1;
                    const yellowRadius = greenRadius + 1;
 
@@ -262,19 +278,8 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
       {showPricing && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 print:hidden">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowPricing(false)}></div>
-          <div className="relative bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden p-8 text-center">
-             <button onClick={() => setShowPricing(false)} className="absolute right-4 top-4 p-2 text-slate-400 hover:text-slate-600">
-               <X className="w-6 h-6" />
-             </button>
-             <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4 text-yellow-600">
-               <Lock className="w-8 h-8" />
-             </div>
-             <h2 className="text-2xl font-bold text-slate-900 mb-2">Unlock Full Premium Report</h2>
-             <p className="text-slate-600 mb-6">See the exact step-by-step fix instructions and detailed analysis for this business.</p>
-             <button className="w-full py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors mb-3">
-               Unlock for €30
-             </button>
-             <p className="text-xs text-slate-400">Secure payment via Stripe</p>
+          <div className="relative bg-slate-50 w-full max-w-5xl rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
+            <PricingContent onClose={() => setShowPricing(false)} data={data} content={content} whatsappNumber={whatsappNumber} />
           </div>
         </div>
       )}
@@ -283,7 +288,150 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
   );
 };
 
-// ... FactorRow component same as before ...
+// Extracted Pricing Content to re-enable Check icon usage and better organization
+const PricingContent: React.FC<{ onClose: any, data: any, content?: SiteContent, whatsappNumber: string }> = ({ onClose, data, content, whatsappNumber }) => {
+  const pricing = content?.pricing || {
+    auditOneTime: "30",
+    expertOneTime: "150",
+    managementSetup: "300",
+    managementMonthly: "100"
+  };
+
+  return (
+  <>
+    <div className="p-6 md:p-8 text-center bg-white border-b border-slate-100">
+      <button onClick={onClose} className="absolute right-4 top-4 p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors">
+        <X className="w-6 h-6" />
+      </button>
+      <h2 className="text-3xl font-extrabold text-slate-900 mb-2">Upgrade Your Ranking Power</h2>
+      <p className="text-slate-500 max-w-2xl mx-auto">Choose a plan to fix your Google Business Profile and dominate local search results.</p>
+    </div>
+
+    <div className="p-6 md:p-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+      
+      {/* Plan 1: Basic Audit */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col hover:border-blue-300 transition-all relative group">
+        <div className="mb-4">
+          <h3 className="text-lg font-bold text-slate-800">Unlock Full Report</h3>
+          <div className="text-sm text-slate-500">For DIY Business Owners</div>
+        </div>
+        <div className="mb-6">
+          <span className="text-4xl font-extrabold text-slate-900">€{pricing.auditOneTime}</span>
+          <span className="text-slate-400">/one-time</span>
+        </div>
+        <ul className="space-y-3 mb-8 flex-1">
+          <li className="flex gap-2 text-sm text-slate-600">
+            <Check className="w-4 h-4 text-green-500 flex-shrink-0" /> Unlock specific fix instructions
+          </li>
+          <li className="flex gap-2 text-sm text-slate-600">
+            <Check className="w-4 h-4 text-green-500 flex-shrink-0" /> Full PDF Download
+          </li>
+          <li className="flex gap-2 text-sm text-slate-600">
+            <Check className="w-4 h-4 text-green-500 flex-shrink-0" /> AI Step-by-Step Strategy
+          </li>
+          <li className="flex gap-2 text-sm text-slate-600">
+            <Check className="w-4 h-4 text-green-500 flex-shrink-0" /> Keyword Optimization Guide
+          </li>
+        </ul>
+        <a 
+           href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Hi, I'd like to purchase the €${pricing.auditOneTime} Full Audit Report for ${data.business.name}.`)}`}
+           target="_blank"
+           rel="noopener noreferrer"
+           className="w-full py-3 rounded-lg border-2 border-slate-900 text-slate-900 font-bold hover:bg-slate-900 hover:text-white transition-colors text-center"
+        >
+          Unlock Report
+        </a>
+      </div>
+
+      {/* Plan 2: Expert Fix (Most Popular) */}
+      <div className="bg-white rounded-xl shadow-lg border-2 border-blue-600 p-6 flex flex-col relative transform md:-translate-y-2">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide shadow-sm">
+          Most Popular
+        </div>
+        <div className="mb-4">
+          <h3 className="text-lg font-bold text-slate-800">Expert Fix</h3>
+          <div className="text-sm text-slate-500">We Fix It For You</div>
+        </div>
+        <div className="mb-6">
+          <span className="text-4xl font-extrabold text-slate-900">€{pricing.expertOneTime}</span>
+          <span className="text-slate-400 font-medium">/one-time</span>
+        </div>
+        <ul className="space-y-3 mb-8 flex-1">
+          <li className="flex gap-2 text-sm text-slate-700 font-medium">
+            <Check className="w-4 h-4 text-blue-600 flex-shrink-0" /> <strong>We implement all fixes</strong>
+          </li>
+          <li className="flex gap-2 text-sm text-slate-600">
+            <Check className="w-4 h-4 text-blue-600 flex-shrink-0" /> Title & Category Optimization
+          </li>
+          <li className="flex gap-2 text-sm text-slate-600">
+            <Check className="w-4 h-4 text-blue-600 flex-shrink-0" /> Description & Service Writing
+          </li>
+          <li className="flex gap-2 text-sm text-slate-600">
+            <Check className="w-4 h-4 text-blue-600 flex-shrink-0" /> Photo Geo-tagging & Upload
+          </li>
+          <li className="flex gap-2 text-sm text-slate-600">
+            <Check className="w-4 h-4 text-blue-600 flex-shrink-0" /> One-time detailed consultation
+          </li>
+        </ul>
+        <a 
+           href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Hi, I'm interested in the €${pricing.expertOneTime} Expert Fix Service for ${data.business.name}. Please help me fix my profile.`)}`}
+           target="_blank"
+           rel="noopener noreferrer"
+           className="w-full py-3 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30 text-center"
+        >
+          Hire Expert to Fix
+        </a>
+      </div>
+
+      {/* Plan 3: Full Management */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col hover:border-purple-300 transition-all">
+        <div className="mb-4">
+          <h3 className="text-lg font-bold text-slate-800">Full Management</h3>
+          <div className="text-sm text-slate-500">Complete Peace of Mind</div>
+        </div>
+        <div className="mb-6">
+          <div className="flex items-baseline gap-1">
+            <span className="text-4xl font-extrabold text-slate-900">€{pricing.managementSetup}</span>
+            <span className="text-xs font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded">Setup</span>
+          </div>
+          <div className="text-sm text-slate-500 mt-1">+ €{pricing.managementMonthly}/month</div>
+        </div>
+        <ul className="space-y-3 mb-8 flex-1">
+          <li className="flex gap-2 text-sm text-slate-600">
+            <Check className="w-4 h-4 text-purple-600 flex-shrink-0" /> <strong>Everything in Expert Fix</strong>
+          </li>
+          <li className="flex gap-2 text-sm text-slate-600">
+            <Check className="w-4 h-4 text-purple-600 flex-shrink-0" /> Weekly GBP Posts (AI Optimized)
+          </li>
+          <li className="flex gap-2 text-sm text-slate-600">
+            <Check className="w-4 h-4 text-purple-600 flex-shrink-0" /> Professional Review Replies
+          </li>
+          <li className="flex gap-2 text-sm text-slate-600">
+            <Check className="w-4 h-4 text-purple-600 flex-shrink-0" /> Spam Monitoring & Fighting
+          </li>
+          <li className="flex gap-2 text-sm text-slate-600">
+            <Check className="w-4 h-4 text-purple-600 flex-shrink-0" /> Monthly Performance Report
+          </li>
+        </ul>
+        <a 
+           href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Hi, I'm interested in the Full Management Plan (€${pricing.managementSetup}+€${pricing.managementMonthly}/mo) for ${data.business.name}.`)}`}
+           target="_blank"
+           rel="noopener noreferrer"
+           className="w-full py-3 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold hover:opacity-90 transition-opacity shadow-lg text-center"
+        >
+          Start Management
+        </a>
+      </div>
+
+    </div>
+    
+    <div className="p-6 text-center bg-slate-50 border-t border-slate-100">
+       <p className="text-sm text-slate-500">All plans include a 100% Satisfaction Guarantee. Secure payment via Stripe or Bank Transfer handled via WhatsApp.</p>
+    </div>
+  </>
+  );
+};
+
 const FactorRow: React.FC<{ 
   factor: ScoringFactor; 
   isExpanded: boolean; 
@@ -292,46 +440,77 @@ const FactorRow: React.FC<{
   onUnlock: () => void;
 }> = ({ factor, isExpanded, onToggle, isLocked, onUnlock }) => {
   return (
-    <div className="group hover:bg-slate-50 transition-colors">
+    <div className="group transition-colors hover:bg-slate-50/50">
       <div 
         className="p-4 flex items-center justify-between cursor-pointer"
         onClick={onToggle}
       >
         <div className="flex items-center gap-3">
-          {factor.status === 'good' && <span className="text-[10px] font-bold bg-green-100 text-green-700 px-2 py-1 rounded border border-green-200">PASS</span>}
-          {factor.status === 'warning' && <span className="text-[10px] font-bold bg-yellow-100 text-yellow-700 px-2 py-1 rounded border border-yellow-200">WARN</span>}
-          {factor.status === 'critical' && <span className="text-[10px] font-bold bg-red-100 text-red-700 px-2 py-1 rounded border border-red-200">FAIL</span>}
+          {/* Use CheckCircle, AlertTriangle, XCircle to consume imports */}
+          {factor.status === 'good' && <CheckCircle className="w-5 h-5 text-green-500" />}
+          {factor.status === 'warning' && <AlertTriangle className="w-5 h-5 text-yellow-500" />}
+          {factor.status === 'critical' && <XCircle className="w-5 h-5 text-red-500" />}
           
-          <div className="font-bold text-slate-700 text-sm">{factor.name}</div>
+          <div>
+            <div className="font-medium text-slate-700 text-sm flex items-center gap-2">
+              {factor.name}
+              {isLocked && <Lock className="w-3 h-3 text-slate-400" />}
+            </div>
+            <div className="text-xs text-slate-400 font-normal mt-0.5">
+               Impact: <span className={`font-medium ${factor.impact === 'high' ? 'text-red-500' : 'text-slate-500'}`}>{factor.impact.toUpperCase()}</span>
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-           {isLocked && <Lock className="w-3 h-3 text-slate-400" />}
+        <div className="flex items-center gap-4">
+           <div className="flex flex-col items-end">
+              <span className={`text-sm font-bold ${factor.score === factor.maxScore ? 'text-green-600' : 'text-slate-600'}`}>
+                {factor.score}/{factor.maxScore}
+              </span>
+           </div>
            {isExpanded ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
         </div>
       </div>
       
       {isExpanded && (
-        <div className="px-4 pb-4 pl-12">
-          <div className="text-sm space-y-4">
+        <div className="px-12 pb-4 pt-0">
+          <div className="bg-slate-50 rounded-lg p-4 border border-slate-100 text-sm relative overflow-hidden print:border-slate-300">
+             
              {isLocked ? (
-               <div className="bg-slate-50 p-4 rounded border border-slate-100 text-center">
-                  <p className="text-slate-500 mb-3 blur-[2px]">Hidden analysis text would go here explaining the issue.</p>
-                  <button onClick={onUnlock} className="text-blue-600 font-bold text-xs hover:underline">Unlock to view details</button>
-               </div>
+                <>
+                  <div className="filter blur-sm select-none opacity-60">
+                     <div className="mb-3">
+                        <span className="font-semibold text-slate-700 block mb-1">Why it Matters:</span>
+                        <p className="text-slate-600">Hidden analysis content for pro users only. This specific factor is critical for your local ranking.</p>
+                      </div>
+                      <div>
+                        <span className="font-semibold text-blue-600 block mb-1">The Fix (Step-by-Step):</span>
+                        <p className="text-slate-700">Hidden fix content for pro users only. Follow step 1 to 5 to resolve this issue.</p>
+                      </div>
+                  </div>
+                  <div className="absolute inset-0 flex items-center justify-center z-10">
+                     <button 
+                       onClick={onUnlock}
+                       className="px-5 py-2.5 bg-white border-2 border-yellow-400 shadow-lg rounded-lg text-sm font-bold text-slate-800 hover:bg-yellow-50 transition-colors flex items-center gap-2 print:hidden"
+                     >
+                       <Lock className="w-4 h-4 text-yellow-600" /> Unlock This Result
+                     </button>
+                     <div className="hidden print:block text-xs font-bold text-slate-500 bg-white/80 p-1 rounded">
+                        Upgrade to View
+                     </div>
+                  </div>
+                </>
              ) : (
-               <>
-                 <div>
-                   <span className="font-bold text-slate-900 block mb-1">Analysis:</span>
-                   <p className="text-slate-600 leading-relaxed">{factor.reason}</p>
-                 </div>
-                 <div>
-                   <span className="font-bold text-blue-700 block mb-1">Step-by-Step Fix:</span>
-                   <div className="text-slate-700 bg-blue-50/50 p-3 rounded border border-blue-100 whitespace-pre-wrap font-medium">
-                     {factor.fixAction}
-                   </div>
-                 </div>
-               </>
+                <div className="space-y-3">
+                  <div>
+                    <span className="font-semibold text-slate-700 block mb-1">Why it Matters:</span>
+                    <p className="text-slate-600 whitespace-pre-wrap">{factor.reason}</p>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-blue-600 block mb-1">The Fix (Step-by-Step):</span>
+                    <p className="text-slate-700 whitespace-pre-wrap">{factor.fixAction}</p>
+                  </div>
+               </div>
              )}
           </div>
         </div>

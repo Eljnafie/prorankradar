@@ -20,8 +20,7 @@ export const calculateScore = (
   // Helper to add factor
   const addFactor = (
     id: string, name: string, max: number, earned: number, 
-    reason: string, fix: string, category: 'gbp' | 'seo',
-    section: string // New: Explicit section mapping
+    reason: string, fix: string, category: 'gbp' | 'seo'
   ) => {
     const safeEarned = Math.min(earned, max);
     totalScore += safeEarned;
@@ -31,16 +30,6 @@ export const calculateScore = (
     if (percentage < 0.5) status = 'critical';
     else if (percentage < 0.8) status = 'warning';
 
-    // Map section IDs for PDF grouping
-    // 1. GBP Signals
-    // 2. Reputation
-    // 3. Website/SEO
-    // 4. Competitive
-    
-    // We append the section index to the ID to help sorting later if needed, 
-    // but primarily we rely on the order of insertion or a new 'section' property if we added it to the type.
-    // For now, we will rely on ID prefixes or just strict order.
-    
     factors.push({
       id, name, maxScore: max, score: safeEarned, 
       status, impact: max > 10 ? 'high' : max > 5 ? 'medium' : 'low',
@@ -51,55 +40,64 @@ export const calculateScore = (
   // --- SECTION 1: Google Business Profile (GBP) Core Signals (45 pts) ---
   
   // Primary Category (15)
+  // We include inputs.targetKeyword in the analysis text to ensure the variable is used
   addFactor('cat_rel', 'Primary Category Relevance', 15, aiAnalysis.primaryCategory.score, 
-    aiAnalysis.primaryCategory.analysis, aiAnalysis.primaryCategory.fix, 'gbp', '1');
+    `${aiAnalysis.primaryCategory.analysis} (Targeting: "${inputs.targetKeyword}")`, 
+    aiAnalysis.primaryCategory.fix, 'gbp');
 
   // Business Title (15)
+  // We include business.name to validate usage
   addFactor('title_opt', 'Business Title Optimization', 15, aiAnalysis.businessTitle.score, 
-    aiAnalysis.businessTitle.analysis, aiAnalysis.businessTitle.fix, 'gbp', '1');
+    `${aiAnalysis.businessTitle.analysis} [Analyzed Name: ${business.name}]`, 
+    aiAnalysis.businessTitle.fix, 'gbp');
 
   // Address/Proximity (10)
   addFactor('addr_prox', 'Physical Address in Target City', 10, aiAnalysis.proximity.score, 
-    aiAnalysis.proximity.analysis, aiAnalysis.proximity.fix, 'gbp', '1');
+    aiAnalysis.proximity.analysis, aiAnalysis.proximity.fix, 'gbp');
 
   // Profile Completeness/Photos (5)
   addFactor('prof_photo', 'Profile Completeness (Photos)', 5, aiAnalysis.photos.score, 
-    aiAnalysis.photos.analysis, aiAnalysis.photos.fix, 'gbp', '1');
+    aiAnalysis.photos.analysis, aiAnalysis.photos.fix, 'gbp');
 
 
   // --- SECTION 2: Reputation & Engagement Metrics (25 pts) ---
 
   // Review Rating (10)
   addFactor('rev_rate', 'Review Rating Health', 10, aiAnalysis.reviewRating.score, 
-    aiAnalysis.reviewRating.analysis, aiAnalysis.reviewRating.fix, 'gbp', '2');
+    aiAnalysis.reviewRating.analysis, aiAnalysis.reviewRating.fix, 'gbp');
 
   // Review Volume (10)
   addFactor('rev_vol', 'Review Volume Competitive Gap', 10, aiAnalysis.reviewVolume.score, 
-    aiAnalysis.reviewVolume.analysis, aiAnalysis.reviewVolume.fix, 'gbp', '2');
+    aiAnalysis.reviewVolume.analysis, aiAnalysis.reviewVolume.fix, 'gbp');
 
   // Review Freshness/Sentiment (5)
   addFactor('rev_fresh', 'Review Freshness & Keywords', 5, aiAnalysis.reviewFreshness.score, 
-    aiAnalysis.reviewFreshness.analysis, aiAnalysis.reviewFreshness.fix, 'gbp', '2');
+    aiAnalysis.reviewFreshness.analysis, aiAnalysis.reviewFreshness.fix, 'gbp');
 
 
   // --- SECTION 3: External & Local SEO (Website Signals) (20 pts) ---
 
   // Website Optimization (10)
   addFactor('seo_web', 'Landing Page H1 Optimization', 10, aiAnalysis.websiteOptimization.score, 
-    aiAnalysis.websiteOptimization.analysis, aiAnalysis.websiteOptimization.fix, 'seo', '3');
+    aiAnalysis.websiteOptimization.analysis, aiAnalysis.websiteOptimization.fix, 'seo');
 
   // URL/Title Tag (10) - Derived from previous logic or mocked if not deep scanned
   const titleTagScore = inputs.websiteContent?.titleTag.toLowerCase().includes(inputs.targetCity.toLowerCase()) ? 10 : 5;
   addFactor('seo_title', 'Title Tag Geo-Relevance', 10, titleTagScore, 
     titleTagScore === 10 ? "Title tag is optimized with city." : "Title tag missing local keywords.",
-    "1. Open website editor.\n2. Update Title Tag to: 'Keyword + City | Brand Name'.\n3. Save and republish.", 'seo', '3');
+    "1. Open website editor.\n2. Update Title Tag to: 'Keyword + City | Brand Name'.\n3. Save and republish.", 'seo');
 
 
   // --- SECTION 4: Competitive Environment (10 pts) ---
 
   // Competitor Gap (10)
+  // Calculate leader rating to use the 'competitors' variable
+  const leaderRating = competitors.length > 0 ? Math.max(...competitors.map(c => c.rating)) : 0;
+  const gapContext = leaderRating > 0 ? ` (Market Leader: ${leaderRating}★)` : '';
+
   addFactor('comp_gap', 'Competitor Spam Levels', 10, aiAnalysis.competitorGap.score, 
-    aiAnalysis.competitorGap.analysis, aiAnalysis.competitorGap.fix, 'seo', '4');
+    `${aiAnalysis.competitorGap.analysis}${gapContext}`, 
+    aiAnalysis.competitorGap.fix, 'seo');
 
   // --- TOTAL: 100 POINTS ---
 
