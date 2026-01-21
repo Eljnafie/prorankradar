@@ -47,14 +47,30 @@ export interface ScoringFactor {
 }
 
 export interface GeminiAnalysis {
-  // Legacy fields for Scoring Engine
+  // Master App Engine Fields
+  primaryCategoryAnalysis: {
+    analysis: string;
+    fix: string;
+  };
+  reviewGapAnalysis: {
+    analysis: string;
+    fix: string;
+  };
+  locationContentAnalysis: {
+    analysis: string;
+    fix: string;
+  };
+  roiForecast: string;
+  executiveSummary: string;
+  
+  // Legacy / Helper fields for other parts of the UI
   titleAnalysis: {
     isSpammy: boolean;
     reason: string;
     keywordStuffed: boolean;
   };
   categoryRelevance: {
-    score: number; // 0-10
+    score: number;
     reason: string;
     suggestedCategories: string[];
   };
@@ -69,24 +85,13 @@ export interface GeminiAnalysis {
     step3: string;
     rankingPotential: string;
   };
-  roiForecast: string;
-  
-  // Master Prompt New Fields
-  executiveSummary?: string;
   lvcScore?: {
     score: number;
-    level: string; // Strong / Moderate / Weak
+    level: string;
     explanation: string;
   };
   geoGridAnalysis?: {
     analysis: string;
-  };
-  admin_audit?: {
-    roi_forecast?: string;
-    review_gap?: {
-      target_rating: number;
-      reviews_needed: number;
-    };
   };
 }
 

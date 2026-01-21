@@ -1,4 +1,3 @@
-
 import type { AuditReportData, ScoringFactor, AuditLanguage } from "../types";
 
 // Translation dictionary for PDF Labels
@@ -49,7 +48,7 @@ const PDF_TRANSLATIONS: Record<AuditLanguage, Record<string, string>> = {
     review_goal_sub: "más reseñas de 5 estrellas para alcanzar 4.3+ y dejar de ser filtrado.",
     detailed_audit: "Auditoría Técnica Detallada",
     step_fix: "Solución Paso a Paso:",
-    analysis: "Análisis del Experto:", // Updated to match persona
+    analysis: "Análisis del Experto:", 
     recommendation: "Recomendación:",
     roi_forecast: "PRONÓSTICO DE ROI",
     roi_sub1: "Resolver estas brechas típicamente resulta en un aumento del 25% al 50% en llamadas",
@@ -313,7 +312,8 @@ export const generateAuditPdf = (data: AuditReportData) => {
   
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  const potentialText = data.geminiAnalysis.admin_audit?.roi_forecast || "Fixing critical issues can push this profile to the Top 5.";
+  // FIX: Accessing property directly from GeminiAnalysis type
+  const potentialText = data.geminiAnalysis.roiForecast || "Fixing critical issues can push this profile to the Top 5.";
   doc.text(potentialText, leftMargin + 5, y + 16);
   
   y += 40;
@@ -389,7 +389,12 @@ export const generateAuditPdf = (data: AuditReportData) => {
 
   // Simple Bar Chart
   const clientRating = data.business.rating;
-  const competitorRating = data.geminiAnalysis.admin_audit?.review_gap?.target_rating || 4.8;
+  
+  // FIX: Calculate competitor rating from competitor data instead of accessing non-existent property
+  const competitorRating = data.competitors.length > 0 
+    ? Math.max(...data.competitors.map(c => c.rating)) 
+    : 4.8;
+
   const maxBarWidth = 100;
   
   // You
@@ -409,7 +414,16 @@ export const generateAuditPdf = (data: AuditReportData) => {
   y += 40;
 
   // Review Goal Text
-  const reviewsNeeded = data.geminiAnalysis.admin_audit?.review_gap?.reviews_needed || 0;
+  // FIX: Calculate review goal based on ratings gap
+  let reviewsNeeded = 0;
+  if (clientRating < competitorRating) {
+      const currentReviews = data.business.user_ratings_total || 1;
+      const safeTarget = Math.min(competitorRating, 4.9);
+      // X = N * (Target - Current) / (5 - Target)
+      reviewsNeeded = Math.ceil((currentReviews * (safeTarget - clientRating)) / (5 - safeTarget));
+      if (reviewsNeeded < 5) reviewsNeeded = 5;
+  }
+  
   doc.setFontSize(11);
   doc.setTextColor(COLORS.red500[0], COLORS.red500[1], COLORS.red500[2]);
   doc.setFont("helvetica", "bold");
