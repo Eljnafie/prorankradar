@@ -31,7 +31,7 @@ export interface AuditInputs {
     h1: string;
     metaDescription: string;
   };
-  backlinks?: 'low' | 'medium' | 'high'; // Simplified for manual input
+  backlinks?: 'low' | 'medium' | 'high';
 }
 
 export interface ScoringFactor {
@@ -46,53 +46,37 @@ export interface ScoringFactor {
   category: 'gbp' | 'seo';
 }
 
+// STRICT MAPPING TO PDF SECTIONS
 export interface GeminiAnalysis {
-  // Master App Engine Fields
-  primaryCategoryAnalysis: {
-    analysis: string;
-    fix: string;
-  };
-  reviewGapAnalysis: {
-    analysis: string;
-    fix: string;
-  };
-  locationContentAnalysis: {
-    analysis: string;
-    fix: string;
-  };
-  roiForecast: string;
-  executiveSummary: string;
+  // Section 1: GBP Core Signals
+  primaryCategory: { score: number; analysis: string; fix: string; suggested: string[] };
+  businessTitle: { score: number; analysis: string; fix: string; isSpammy: boolean };
+  proximity: { score: number; analysis: string; fix: string }; // Address check
   
-  // Legacy / Helper fields for other parts of the UI
-  titleAnalysis: {
-    isSpammy: boolean;
-    reason: string;
-    keywordStuffed: boolean;
-  };
-  categoryRelevance: {
-    score: number;
-    reason: string;
-    suggestedCategories: string[];
-  };
-  reviewSentiment: {
-    hasKeywords: boolean;
-    sentiment: string;
-    topics: string[];
-  };
+  // Section 2: Reputation
+  reviewRating: { score: number; analysis: string; fix: string };
+  reviewVolume: { score: number; analysis: string; fix: string };
+  reviewFreshness: { score: number; analysis: string; fix: string }; // New
+  
+  // Section 3: Website & Content
+  websiteOptimization: { score: number; analysis: string; fix: string }; // URL/H1 check
+  photos: { score: number; analysis: string; fix: string };
+  
+  // Section 4: Competitor/Authority
+  competitorGap: { score: number; analysis: string; fix: string };
+  
+  // Summary & Plan
+  executiveSummary: string;
+  roiForecast: string;
   fixPlan: {
     step1: string;
     step2: string;
     step3: string;
     rankingPotential: string;
   };
-  lvcScore?: {
-    score: number;
-    level: string;
-    explanation: string;
-  };
-  geoGridAnalysis?: {
-    analysis: string;
-  };
+  
+  // Legacy helpers for UI compatibility
+  lvcScore?: { score: number; level: string; explanation: string };
 }
 
 export interface AuditReportData {
@@ -110,7 +94,7 @@ export interface BlogPost {
   id: string;
   title: string;
   excerpt: string;
-  content: string; // HTML content
+  content: string; 
   author: string;
   date: string;
   imageUrl?: string;

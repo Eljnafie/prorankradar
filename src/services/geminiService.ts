@@ -4,7 +4,6 @@ import type { BusinessProfile, AuditInputs, GeminiAnalysis, BlogPost } from "../
 
 const ANALYSIS_MODEL = 'gemini-3-flash-preview';
 
-// Helper to get AI instance with dynamic key
 const getAI = (apiKey?: string) => {
   const key = apiKey || import.meta.env.VITE_API_KEY || '';
   if (!key) throw new Error("API Key is missing. Please add it in Admin Settings.");
@@ -13,11 +12,18 @@ const getAI = (apiKey?: string) => {
 
 const LANGUAGE_MAP: Record<string, string> = {
   en: 'English',
-  es: 'Spanish (Castilian)',
+  es: 'Spanish',
   fr: 'French',
   de: 'German',
   it: 'Italian',
   pt: 'Portuguese'
+};
+
+// Helper to format relative time
+const getReviewAge = (time?: number) => {
+    if (!time) return "Unknown date";
+    const date = new Date(time * 1000);
+    return date.toLocaleDateString();
 };
 
 export const analyzeProfileWithGemini = async (
@@ -28,149 +34,141 @@ export const analyzeProfileWithGemini = async (
 ): Promise<GeminiAnalysis> => {
   
   const ai = getAI(apiKey);
-
   const targetLanguage = LANGUAGE_MAP[inputs.language || 'en'] || 'English';
   
-  // Calculate Leader Rating
-  const leaderRatingVal = competitors.length > 0 
-    ? Math.max(...competitors.map((c: any) => c.rating || 0)) 
-    : 4.8;
-  const leaderRating = leaderRatingVal.toFixed(1);
-  const targetRating = (leaderRatingVal - 0.2).toFixed(1);
+  // Prepare Data for Prompt
+  const leaderRatingVal = competitors.length > 0 ? Math.max(...competitors.map((c: any) => c.rating || 0)) : 4.8;
+  
+  // Format Reviews with Dates for "Freshness" analysis
+  const reviewsText = business.reviews?.slice(0, 5).map(r => 
+    `[${getReviewAge(r.time)}]: "${r.text || 'No text'}"`
+  ).join("\n") || "No reviews available.";
+  
+  // Website Content
+  const h1 = inputs.websiteContent?.h1 || "Not detected";
+  const titleTag = inputs.websiteContent?.titleTag || "Not detected";
 
   const prompt = `
-    Role: Senior Local SEO Audit Engine. 
-    Target Language: ${targetLanguage}
-    City: ${inputs.targetCity}
-
-    VARIABLES:
+    Role: Senior Local SEO Auditor. 
+    Task: Conduct a forensic audit of a Google Business Profile (GBP) using the provided Maps API data.
+    Output Language: ${targetLanguage}
+    
+    === INPUT DATA ===
     Business Name: "${business.name}"
-    Current Rating: ${business.rating}
-    Leader Rating: ${leaderRating}
-    Target Rating: ${targetRating}
-
-    1. DYNAMIC REVIEW LOGIC (The "Competitive Gap" Rule):
-    The Formula: IF Current_Rating < ${targetRating}:
-    THEN Output: 'You need a minimum of 15 new 5-star reviews to bridge the gap with the market leader in ${inputs.targetCity} and break the Google quality filter.'
-    NEVER output '0 reviews' if the client is below the Leader's rating.
+    Address: "${business.address}"
+    City: "${inputs.targetCity}"
+    Target Keyword: "${inputs.targetKeyword}"
+    Primary Category: "${business.types[0] || 'Unknown'}"
+    Current Rating: ${business.rating} (${business.user_ratings_total} reviews)
+    Market Leader Rating: ${leaderRatingVal.toFixed(1)}
     
-    2. NO N/A & CITY INJECTION:
-    If data is missing, the engine must use an expert industry fallback explanation.
-    The city "${inputs.targetCity}" must be injected into every technical analysis to prove local expertise.
-
-    3. OUTPUT STRUCTURE (Translate content to ${targetLanguage}):
+    WEBSITE DATA:
+    URL: "${business.website || 'No Website'}"
+    Homepage H1: "${h1}"
+    Meta Title: "${titleTag}"
     
-    [POINT: Primary Category]
-    Expert Analysis: Explain why category is the DNA of the profile in ${inputs.targetCity}. Mention ranking impact.
-    Step-by-Step Fix: 1. Log in to GBP. 2. Edit Profile. 3. Select the most specific category available. 4. Save changes.
+    VISUALS:
+    Photo Count: ${business.photos?.length || 0}
+    
+    RECENT REVIEWS (Analyze Dates & Sentiment):
+    ${reviewsText}
+    ==================
 
-    [POINT: Review Volume]
-    Expert Analysis: Compare ${business.rating} vs Leader ${leaderRating}. Explain 'Trust Share' loss in ${inputs.targetCity}.
-    Step-by-Step Fix: 1. Generate review link. 2. Create QR code. 3. Request reviews from next 15 clients in ${inputs.targetCity}.
+    === ANALYSIS INSTRUCTIONS ===
+    For each section, provide:
+    1. Score (0-15).
+    2. Analysis: Start with "Impact:". Be specific (e.g., "Your H1 tag '${h1}' does not match keyword '${inputs.targetKeyword}'").
+    3. Fix: A numbered list (1. 2. 3.) of actionable technical steps.
 
-    [POINT: H1 & Geo-Tagging]
-    Expert Analysis: Explain how Google crawls the website to verify location in ${inputs.targetCity}.
-    Step-by-Step Fix: 1. Open website editor. 2. Change H1 to: '${business.name} - [Service] in ${inputs.targetCity}'.
+    1. PRIMARY CATEGORY
+    - Is "${business.types[0]}" the specific niche category or a broad one?
+    - Compare against "${inputs.targetKeyword}".
 
-    [POINT: ROI Forecast]
-    Text: 'By closing the gap between your profile and the top competitors in ${inputs.targetCity}, we project a 25% to 50% increase in customer actions within 90 days. Every day you wait, your competitors take the revenue that belongs to you.'
+    2. BUSINESS TITLE & BRANDING
+    - Check for Keyword Stuffing in "${business.name}".
+    - Check if branding is consistent.
 
-    [POINT: Ranking Potential]
-    Short prediction string (e.g., "Top 3 in 90 days").
+    3. REVIEW HEALTH (Freshness & Rating)
+    - Check dates of recent reviews. If last review > 30 days ago, penalize Freshness.
+    - Compare rating ${business.rating} vs Leader ${leaderRatingVal}.
 
-    [POINT: Executive Summary]
-    Briefly summarize the overall health and main blockers in ${targetLanguage}.
+    4. WEBSITE OPTIMIZATION
+    - Does H1 ("${h1}") contain "${inputs.targetKeyword}"?
+    - Does Title Tag ("${titleTag}") contain "${inputs.targetCity}"?
+    - If URL is missing or free site, score 0.
 
-    Return the data in strict JSON format.
+    5. PHOTOS & VISUALS
+    - If count < 5, score low. 
+    - Suggest uploading interior, exterior, and team photos.
+
+    6. COMPETITIVE GAP
+    - How far behind is ${business.user_ratings_total} reviews from the leader (assume leader has +50 more)?
+
+    7. ROI FORECAST
+    - Estimate % growth in calls if they fix these issues (e.g. "35% increase").
+
+    Return valid JSON matching the schema.
   `;
 
   const schema = {
     type: Type.OBJECT,
     properties: {
-      primaryCategoryAnalysis: {
+      primaryCategory: {
         type: Type.OBJECT,
-        properties: {
-          analysis: { type: Type.STRING },
-          fix: { type: Type.STRING }
-        },
-        required: ["analysis", "fix"]
+        properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING }, suggested: { type: Type.ARRAY, items: { type: Type.STRING } } },
+        required: ["score", "analysis", "fix", "suggested"]
       },
-      reviewGapAnalysis: {
+      businessTitle: {
         type: Type.OBJECT,
-        properties: {
-          analysis: { type: Type.STRING },
-          fix: { type: Type.STRING }
-        },
-        required: ["analysis", "fix"]
+        properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING }, isSpammy: { type: Type.BOOLEAN } },
+        required: ["score", "analysis", "fix", "isSpammy"]
       },
-      locationContentAnalysis: {
+      proximity: {
         type: Type.OBJECT,
-        properties: {
-          analysis: { type: Type.STRING },
-          fix: { type: Type.STRING }
-        },
-        required: ["analysis", "fix"]
+        properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } },
+        required: ["score", "analysis", "fix"]
       },
-      roiForecast: { type: Type.STRING },
+      reviewRating: {
+        type: Type.OBJECT,
+        properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } },
+        required: ["score", "analysis", "fix"]
+      },
+      reviewVolume: {
+        type: Type.OBJECT,
+        properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } },
+        required: ["score", "analysis", "fix"]
+      },
+      reviewFreshness: {
+        type: Type.OBJECT,
+        properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } },
+        required: ["score", "analysis", "fix"]
+      },
+      websiteOptimization: {
+        type: Type.OBJECT,
+        properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } },
+        required: ["score", "analysis", "fix"]
+      },
+      photos: {
+        type: Type.OBJECT,
+        properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } },
+        required: ["score", "analysis", "fix"]
+      },
+      competitorGap: {
+        type: Type.OBJECT,
+        properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } },
+        required: ["score", "analysis", "fix"]
+      },
       executiveSummary: { type: Type.STRING },
-      // Legacy fields to maintain UI compatibility
-      titleAnalysis: {
-        type: Type.OBJECT,
-        properties: {
-          isSpammy: { type: Type.BOOLEAN },
-          reason: { type: Type.STRING },
-          keywordStuffed: { type: Type.BOOLEAN },
-        },
-        required: ["isSpammy", "reason", "keywordStuffed"]
-      },
-      categoryRelevance: {
-        type: Type.OBJECT,
-        properties: {
-          score: { type: Type.NUMBER },
-          reason: { type: Type.STRING },
-          suggestedCategories: { type: Type.ARRAY, items: { type: Type.STRING } },
-        },
-        required: ["score", "reason", "suggestedCategories"]
-      },
-      reviewSentiment: {
-        type: Type.OBJECT,
-        properties: {
-          hasKeywords: { type: Type.BOOLEAN },
-          sentiment: { type: Type.STRING },
-          topics: { type: Type.ARRAY, items: { type: Type.STRING } },
-        },
-        required: ["hasKeywords", "sentiment", "topics"]
-      },
+      roiForecast: { type: Type.STRING },
       fixPlan: {
         type: Type.OBJECT,
-        properties: {
-          step1: { type: Type.STRING },
-          step2: { type: Type.STRING },
-          step3: { type: Type.STRING },
-          rankingPotential: { type: Type.STRING },
-        },
+        properties: { step1: { type: Type.STRING }, step2: { type: Type.STRING }, step3: { type: Type.STRING }, rankingPotential: { type: Type.STRING } },
         required: ["step1", "step2", "step3", "rankingPotential"]
-      },
-      lvcScore: {
-        type: Type.OBJECT,
-        properties: {
-          score: { type: Type.NUMBER },
-          level: { type: Type.STRING },
-          explanation: { type: Type.STRING }
-        },
-        required: ["score", "level", "explanation"]
-      },
-      geoGridAnalysis: {
-        type: Type.OBJECT,
-        properties: {
-          analysis: { type: Type.STRING }
-        },
-        required: ["analysis"]
       }
     },
     required: [
-      "primaryCategoryAnalysis", "reviewGapAnalysis", "locationContentAnalysis", "roiForecast", "executiveSummary",
-      "titleAnalysis", "categoryRelevance", "reviewSentiment", "fixPlan", "lvcScore", "geoGridAnalysis"
+      "primaryCategory", "businessTitle", "proximity", "reviewRating", "reviewVolume", "reviewFreshness",
+      "websiteOptimization", "photos", "competitorGap", "executiveSummary", "roiForecast", "fixPlan"
     ]
   };
 
@@ -186,25 +184,30 @@ export const analyzeProfileWithGemini = async (
 
     const text = response.text;
     if (!text) throw new Error("Empty response from Gemini");
+    const data = JSON.parse(text);
+
+    // Helper for LVC
+    data.lvcScore = { score: Math.round(data.primaryCategory.score * 6.6), level: data.primaryCategory.score > 10 ? "Strong" : "Weak", explanation: data.executiveSummary };
     
-    return JSON.parse(text) as GeminiAnalysis;
+    return data as GeminiAnalysis;
 
   } catch (error) {
     console.error("Gemini Analysis Error:", error);
-    // Fallback logic
+    // Safe Fallback
     return {
-      primaryCategoryAnalysis: { analysis: "Analysis failed.", fix: "Check connection." },
-      reviewGapAnalysis: { analysis: "Analysis failed.", fix: "Check connection." },
-      locationContentAnalysis: { analysis: "Analysis failed.", fix: "Check connection." },
-      roiForecast: "Data unavailable.",
-      executiveSummary: "System could not complete analysis.",
-      titleAnalysis: { isSpammy: false, keywordStuffed: false, reason: "N/A" },
-      categoryRelevance: { score: 5, reason: "N/A", suggestedCategories: [] },
-      reviewSentiment: { hasKeywords: false, sentiment: "Neutral", topics: [] },
-      fixPlan: { step1: "Retry Audit", step2: "Check API", step3: "Contact Support", rankingPotential: "Unknown" },
-      lvcScore: { score: 0, level: "Unknown", explanation: "N/A" },
-      geoGridAnalysis: { analysis: "N/A" }
-    };
+      primaryCategory: { score: 0, analysis: "N/A", fix: "N/A", suggested: [] },
+      businessTitle: { score: 0, analysis: "N/A", fix: "N/A", isSpammy: false },
+      proximity: { score: 0, analysis: "N/A", fix: "N/A" },
+      reviewRating: { score: 0, analysis: "N/A", fix: "N/A" },
+      reviewVolume: { score: 0, analysis: "N/A", fix: "N/A" },
+      reviewFreshness: { score: 0, analysis: "N/A", fix: "N/A" },
+      websiteOptimization: { score: 0, analysis: "N/A", fix: "N/A" },
+      photos: { score: 0, analysis: "N/A", fix: "N/A" },
+      competitorGap: { score: 0, analysis: "N/A", fix: "N/A" },
+      executiveSummary: "Analysis unavailable.",
+      roiForecast: "N/A",
+      fixPlan: { step1: "N/A", step2: "N/A", step3: "N/A", rankingPotential: "N/A" }
+    } as GeminiAnalysis;
   }
 };
 
