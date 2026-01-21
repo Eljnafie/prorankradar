@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Search, BarChart3, ShieldCheck, ArrowRight, CheckCircle2, AlertCircle, TrendingUp, BookOpen, Grid, AlertTriangle, Lock } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';

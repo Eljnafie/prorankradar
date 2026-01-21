@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Check, HelpCircle, ArrowRight } from 'lucide-react';
 import type { SiteContent } from '../types';
@@ -98,7 +99,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onNavigateToAudit, content })
                   </ul>
                   <button 
                     onClick={() => handleContact('Expert Fix Service')}
-                    className="w-full py-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold transition-all shadow-lg shadow-blue-900/50"
+                    className="w-full py-4 rounded-xl bg-blue-600 hover:bg-blue-50 text-white font-bold transition-all shadow-lg shadow-blue-900/50"
                   >
                     Book Expert Fix
                   </button>

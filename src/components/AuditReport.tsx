@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Download, ExternalLink, Lock, MessageCircle, X, Check, Unlock, ArrowUpRight } from 'lucide-react';
+import { CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Download, ExternalLink, Lock, MessageCircle, X, Check, Unlock, ArrowUpRight, FileText } from 'lucide-react';
 import type { AuditReportData, ScoringFactor, SiteContent } from '../types';
 import { generateAuditPdf } from '../services/pdfGenerator';
 
@@ -84,6 +85,18 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
         </div>
       </div>
 
+      {/* EXECUTIVE SUMMARY (New) */}
+      {data.geminiAnalysis.executiveSummary && (
+        <div className="bg-slate-800 text-white p-6 rounded-xl shadow-lg print:break-inside-avoid">
+           <h3 className="text-lg font-bold mb-3 flex items-center gap-2 text-blue-300">
+             <FileText className="w-5 h-5" /> Executive Summary
+           </h3>
+           <p className="text-slate-200 leading-relaxed text-sm md:text-base">
+             {data.geminiAnalysis.executiveSummary}
+           </p>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Left Col: Score & Fix Plan */}
@@ -128,6 +141,26 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
                 </div>
              </div>
           </div>
+
+          {/* LVC Score (New) */}
+          {data.geminiAnalysis.lvcScore && (
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 print:border-slate-300 print:break-inside-avoid">
+               <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">Local Visibility Coverage™</h3>
+               <div className="flex items-end gap-2 mb-2">
+                 <span className="text-3xl font-extrabold text-slate-900">{data.geminiAnalysis.lvcScore.score}%</span>
+                 <span className={`text-sm font-bold px-2 py-0.5 rounded mb-1 ${
+                   data.geminiAnalysis.lvcScore.level === 'Strong' ? 'bg-green-100 text-green-700' :
+                   data.geminiAnalysis.lvcScore.level === 'Moderate' ? 'bg-yellow-100 text-yellow-700' :
+                   'bg-red-100 text-red-700'
+                 }`}>
+                   {data.geminiAnalysis.lvcScore.level}
+                 </span>
+               </div>
+               <p className="text-xs text-slate-500 leading-relaxed">
+                 {data.geminiAnalysis.lvcScore.explanation}
+               </p>
+            </div>
+          )}
 
           {/* AI Ranking Potential */}
           <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-xl shadow-lg p-6 text-white relative overflow-hidden print:bg-none print:bg-slate-800 print:text-white print:break-inside-avoid">

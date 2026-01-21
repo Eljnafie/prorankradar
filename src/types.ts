@@ -1,3 +1,4 @@
+
 export type AuditLanguage = 'en' | 'es' | 'fr' | 'de' | 'it' | 'pt';
 
 export interface BusinessProfile {
@@ -46,6 +47,7 @@ export interface ScoringFactor {
 }
 
 export interface GeminiAnalysis {
+  // Legacy fields for Scoring Engine
   titleAnalysis: {
     isSpammy: boolean;
     reason: string;
@@ -68,6 +70,17 @@ export interface GeminiAnalysis {
     rankingPotential: string;
   };
   roiForecast: string;
+  
+  // Master Prompt New Fields
+  executiveSummary?: string;
+  lvcScore?: {
+    score: number;
+    level: string; // Strong / Moderate / Weak
+    explanation: string;
+  };
+  geoGridAnalysis?: {
+    analysis: string;
+  };
   admin_audit?: {
     roi_forecast?: string;
     review_gap?: {

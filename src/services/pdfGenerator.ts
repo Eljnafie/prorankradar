@@ -1,3 +1,4 @@
+
 import type { AuditReportData, ScoringFactor, AuditLanguage } from "../types";
 
 // Translation dictionary for PDF Labels
