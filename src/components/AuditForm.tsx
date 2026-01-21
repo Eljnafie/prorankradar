@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, MapPin, Globe, ArrowRight, Loader2, AlertCircle, Languages } from 'lucide-react';
 import type { AuditInputs, BusinessProfile, AuditLanguage } from '../types';

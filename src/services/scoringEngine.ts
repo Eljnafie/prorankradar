@@ -2,9 +2,9 @@
 import type { BusinessProfile, AuditInputs, CompetitorData, GeminiAnalysis, ScoringFactor } from "../types";
 
 export const calculateScore = (
-  business: BusinessProfile,
-  inputs: AuditInputs,
-  competitors: CompetitorData[],
+  _business: BusinessProfile,
+  _inputs: AuditInputs,
+  _competitors: CompetitorData[],
   aiAnalysis: GeminiAnalysis
 ): { score: number; factors: ScoringFactor[] } => {
   
