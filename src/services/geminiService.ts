@@ -5,7 +5,6 @@ import type { BusinessProfile, AuditInputs, GeminiAnalysis, BlogPost, AuditLangu
 const ANALYSIS_MODEL = 'gemini-3-flash-preview';
 
 const getAI = (apiKey?: string) => {
-  // Use import.meta.env.VITE_API_KEY for Vite compatibility
   const key = apiKey || import.meta.env.VITE_API_KEY || '';
   if (!key) throw new Error("API Key is missing. Please add it in Admin Settings.");
   return new GoogleGenAI({ apiKey: key });
@@ -20,14 +19,12 @@ const LANGUAGE_MAP: Record<string, string> = {
   pt: 'Portuguese'
 };
 
-// Helper to format relative time
 const getReviewAge = (time?: number) => {
     if (!time) return "Unknown date";
     const date = new Date(time * 1000);
     return date.toLocaleDateString();
 };
 
-// Helper timeout function
 const timeout = (ms: number) => new Promise((_, reject) => setTimeout(() => reject(new Error("Analysis Request Timed Out (25s)")), ms));
 
 export const analyzeProfileWithGemini = async (
@@ -37,136 +34,123 @@ export const analyzeProfileWithGemini = async (
   apiKey?: string
 ): Promise<GeminiAnalysis> => {
   
-  // 1. Initialize AI (May throw if no key)
   const ai = getAI(apiKey);
-  
   const targetLanguage = LANGUAGE_MAP[inputs.language || 'en'] || 'English';
-  
-  // Prepare Data for Prompt
   const leaderRatingVal = competitors.length > 0 ? Math.max(...competitors.map((c: any) => c.rating || 0)) : 4.8;
   
-  // Format Reviews with Dates for "Freshness" analysis
   const reviewsText = business.reviews?.slice(0, 5).map(r => 
     `[${getReviewAge(r.time)}]: "${r.text || 'No text'}"`
   ).join("\n") || "No reviews available.";
   
-  // Website Content
   const h1 = inputs.websiteContent?.h1 || "Not detected";
   const titleTag = inputs.websiteContent?.titleTag || "Not detected";
 
   const prompt = `
-    Role: Senior Local SEO Auditor. 
-    Task: Conduct a forensic audit of a Google Business Profile (GBP) using the provided Maps API data.
+    Role: Senior Local SEO Auditor (20+ years experience).
+    Task: Conduct a forensic deep-scan of a Google Business Profile (GBP).
     Output Language: ${targetLanguage}
     
-    === INPUT DATA ===
-    Business Name: "${business.name}"
+    === BUSINESS DATA ===
+    Name: "${business.name}"
     Address: "${business.address}"
-    City: "${inputs.targetCity}"
+    Target City: "${inputs.targetCity}"
     Target Keyword: "${inputs.targetKeyword}"
     Primary Category: "${business.types[0] || 'Unknown'}"
-    Current Rating: ${business.rating} (${business.user_ratings_total} reviews)
-    Market Leader Rating: ${leaderRatingVal.toFixed(1)}
+    Rating: ${business.rating} (${business.user_ratings_total} reviews)
+    Photos: ${business.photos?.length || 0}
+    Website: "${business.website || 'No Website'}"
+    H1: "${h1}"
+    Title Tag: "${titleTag}"
     
-    WEBSITE DATA:
-    URL: "${business.website || 'No Website'}"
-    Homepage H1: "${h1}"
-    Meta Title: "${titleTag}"
-    
-    VISUALS:
-    Photo Count: ${business.photos?.length || 0}
-    
-    RECENT REVIEWS (Analyze Dates & Sentiment):
+    === MARKET DATA ===
+    Competitor Leader Rating: ${leaderRatingVal.toFixed(1)}
+    Reviews: 
     ${reviewsText}
     ==================
 
-    === ANALYSIS INSTRUCTIONS ===
-    For each section, provide:
-    1. Score (0-15).
-    2. Analysis: Start with "Impact:". Be specific.
-    3. Fix: A numbered list (1. 2. 3.) of actionable technical steps.
+    === ANALYSIS REQUIREMENTS ===
+    Analyze 4 Core Areas:
+    
+    1. GBP CORE SIGNALS:
+       - Primary Category: Is it specific? Suggest better ones if generic.
+       - Title: Check for keyword stuffing (Spam).
+       - Address/Proximity: Is it in the target city?
+       - Profile Completeness: Photos, website link.
+       - Verification: Assume based on visibility.
+       - Map Pin: Assess accuracy based on address.
+       - Secondary Categories: Are they likely missing?
 
-    Sections to Analyze:
-    1. Primary Category Relevance
-    2. Business Title & Branding (Keyword Stuffing?)
-    3. Review Health (Freshness, Rating, Volume)
-    4. Website Optimization (H1, Title Tag matching location/keyword)
-    5. Photos & Visuals
-    6. Competitive Gap
+    2. REPUTATION:
+       - Rating Health: Compare to ${leaderRatingVal.toFixed(1)}.
+       - Volume Gap: Does it have enough reviews?
+       - Keywords in Reviews: Do customers mention the service?
 
-    Also provide:
-    - Executive Summary
-    - ROI Forecast (% growth)
-    - 3-Step Fix Plan
-    - Ranking Potential
+    3. WEBSITE & LOCAL SEO:
+       - Landing Page H1: Does it match keyword?
+       - Title Tag: Does it include City + Keyword?
+       - Backlinks: Estimate based on authority (Low/Med/High).
+       - NAP Consistency: Is address format consistent?
+       - Internal Linking: Is structure logical?
+       - Geo-Content: Are "Areas We Serve" missing?
+       - Local Authority: Events, sponsorships?
 
-    Return valid JSON matching the schema.
+    4. COMPETITIVE & AUTHORITY:
+       - Engagement: Are they posting updates?
+       - Competitor Spam: Is the niche spammy?
+
+    For EVERY factor, provide:
+    - Score (0-10 or max points defined in logic).
+    - Analysis: Professional insight starting with "Analysis:".
+    - Fix: A specific numbered list (1. 2. 3.) of actions.
+
+    Return valid JSON.
   `;
 
   const schema = {
     type: Type.OBJECT,
     properties: {
-      primaryCategory: {
-        type: Type.OBJECT,
-        properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING }, suggested: { type: Type.ARRAY, items: { type: Type.STRING } } },
-        required: ["score", "analysis", "fix", "suggested"]
-      },
-      businessTitle: {
-        type: Type.OBJECT,
-        properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING }, isSpammy: { type: Type.BOOLEAN } },
-        required: ["score", "analysis", "fix", "isSpammy"]
-      },
-      proximity: {
-        type: Type.OBJECT,
-        properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } },
-        required: ["score", "analysis", "fix"]
-      },
-      reviewRating: {
-        type: Type.OBJECT,
-        properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } },
-        required: ["score", "analysis", "fix"]
-      },
-      reviewVolume: {
-        type: Type.OBJECT,
-        properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } },
-        required: ["score", "analysis", "fix"]
-      },
-      reviewFreshness: {
-        type: Type.OBJECT,
-        properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } },
-        required: ["score", "analysis", "fix"]
-      },
-      websiteOptimization: {
-        type: Type.OBJECT,
-        properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } },
-        required: ["score", "analysis", "fix"]
-      },
-      photos: {
-        type: Type.OBJECT,
-        properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } },
-        required: ["score", "analysis", "fix"]
-      },
-      competitorGap: {
-        type: Type.OBJECT,
-        properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } },
-        required: ["score", "analysis", "fix"]
-      },
+      // 1. GBP Core
+      primaryCategory: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING }, suggested: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["score", "analysis", "fix", "suggested"] },
+      businessTitle: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING }, isSpammy: { type: Type.BOOLEAN } }, required: ["score", "analysis", "fix", "isSpammy"] },
+      proximity: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
+      completeness: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
+      verification: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
+      mapPin: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
+      secondaryCategories: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
+
+      // 2. Reputation
+      reviewRating: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
+      reviewVolume: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
+      reviewKeywords: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
+
+      // 3. Website/SEO
+      h1Optimization: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
+      titleTag: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
+      backlinks: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
+      napConsistency: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
+      internalLinks: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
+      geoContent: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
+      authority: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
+
+      // 4. Competitive
+      engagement: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
+      competitorSpam: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
+
+      // Summary
       executiveSummary: { type: Type.STRING },
       roiForecast: { type: Type.STRING },
-      fixPlan: {
-        type: Type.OBJECT,
-        properties: { step1: { type: Type.STRING }, step2: { type: Type.STRING }, step3: { type: Type.STRING }, rankingPotential: { type: Type.STRING } },
-        required: ["step1", "step2", "step3", "rankingPotential"]
-      }
+      fixPlan: { type: Type.OBJECT, properties: { step1: { type: Type.STRING }, step2: { type: Type.STRING }, step3: { type: Type.STRING }, rankingPotential: { type: Type.STRING } }, required: ["step1", "step2", "step3", "rankingPotential"] }
     },
     required: [
-      "primaryCategory", "businessTitle", "proximity", "reviewRating", "reviewVolume", "reviewFreshness",
-      "websiteOptimization", "photos", "competitorGap", "executiveSummary", "roiForecast", "fixPlan"
+      "primaryCategory", "businessTitle", "proximity", "completeness", "verification", "mapPin", "secondaryCategories",
+      "reviewRating", "reviewVolume", "reviewKeywords",
+      "h1Optimization", "titleTag", "backlinks", "napConsistency", "internalLinks", "geoContent", "authority",
+      "engagement", "competitorSpam",
+      "executiveSummary", "roiForecast", "fixPlan"
     ]
   };
 
   try {
-    // 2. Race against timeout to prevent hanging UI
     const response: any = await Promise.race([
       ai.models.generateContent({
         model: ANALYSIS_MODEL,
@@ -176,35 +160,17 @@ export const analyzeProfileWithGemini = async (
           responseSchema: schema,
         },
       }),
-      timeout(25000) // 25 seconds timeout
+      timeout(25000)
     ]);
 
     const text = response.text;
     if (!text) throw new Error("Empty response from Gemini");
-    const data = JSON.parse(text);
-
-    // Helper for LVC
-    data.lvcScore = { score: Math.round(data.primaryCategory.score * 6.6), level: data.primaryCategory.score > 10 ? "Strong" : "Weak", explanation: data.executiveSummary };
-    
-    return data as GeminiAnalysis;
+    return JSON.parse(text) as GeminiAnalysis;
 
   } catch (error) {
     console.error("Gemini Analysis Error:", error);
-    // Safe Fallback - Return valid structure so app doesn't crash
-    return {
-      primaryCategory: { score: 5, analysis: "Analysis timed out or failed.", fix: "Check category manually.", suggested: [] },
-      businessTitle: { score: 5, analysis: "N/A", fix: "N/A", isSpammy: false },
-      proximity: { score: 5, analysis: "N/A", fix: "N/A" },
-      reviewRating: { score: 5, analysis: "N/A", fix: "N/A" },
-      reviewVolume: { score: 5, analysis: "N/A", fix: "N/A" },
-      reviewFreshness: { score: 5, analysis: "N/A", fix: "N/A" },
-      websiteOptimization: { score: 5, analysis: "N/A", fix: "N/A" },
-      photos: { score: 5, analysis: "N/A", fix: "N/A" },
-      competitorGap: { score: 5, analysis: "N/A", fix: "N/A" },
-      executiveSummary: "AI Analysis unavailable. Please check API Key or try again.",
-      roiForecast: "N/A",
-      fixPlan: { step1: "Manual Audit Required", step2: "Check API Settings", step3: "Try again later", rankingPotential: "Unknown" }
-    } as GeminiAnalysis;
+    // Fallback if needed, though robust error handling in App.tsx catches this
+    throw error; 
   }
 };
 

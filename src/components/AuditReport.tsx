@@ -18,10 +18,17 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
 
   // Group factors by section for UI similar to PDF
   const sections = {
-    "1. Google Business Profile Core Signals": data.factors.filter(f => ['cat_rel', 'title_opt', 'addr_prox', 'prof_photo'].includes(f.id)),
-    "2. Reputation & Engagement": data.factors.filter(f => ['rev_rate', 'rev_vol', 'rev_fresh'].includes(f.id)),
-    "3. Website & Local SEO": data.factors.filter(f => ['seo_web', 'seo_title'].includes(f.id)),
-    "4. Competitive Environment": data.factors.filter(f => ['comp_gap'].includes(f.id))
+    "1. Google Business Profile Core Signals": data.factors.filter(f => 
+      ['cat_rel', 'title_opt', 'addr_prox', 'prof_comp', 'ver_status', 'pin_acc', 'sec_cat'].includes(f.id)),
+    
+    "2. Reputation & Engagement": data.factors.filter(f => 
+      ['rev_rate', 'rev_vol', 'rev_kw'].includes(f.id)),
+    
+    "3. Website & Local SEO": data.factors.filter(f => 
+      ['seo_h1', 'seo_title', 'seo_links', 'seo_nap', 'seo_int', 'seo_geo', 'seo_auth'].includes(f.id)),
+    
+    "4. Competitive Environment": data.factors.filter(f => 
+      ['seo_eng', 'comp_spam'].includes(f.id))
   };
 
   // Calculate Section specific scores for the summary circles
