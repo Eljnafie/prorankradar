@@ -1,3 +1,4 @@
+
 import type { AuditReportData, ScoringFactor, AuditLanguage } from "../types";
 
 // Translation dictionary for PDF Labels
@@ -24,9 +25,7 @@ const PDF_TRANSLATIONS: Record<AuditLanguage, Record<string, string>> = {
     step_fix: "Step-by-Step Fix:",
     analysis: "Expert Analysis:",
     recommendation: "Recommendation:",
-    roi_forecast: "PROJECTED ROI FORECAST",
-    roi_sub1: "Resolving these gaps typically results in a 25% to 50% increase in calls",
-    roi_sub2: "and direction requests within 90-120 days."
+    roi_forecast: "PROJECTED ROI FORECAST"
   },
   es: {
     title: "AUDITORÍA PREMIUM DE CRECIMIENTO",
@@ -50,9 +49,7 @@ const PDF_TRANSLATIONS: Record<AuditLanguage, Record<string, string>> = {
     step_fix: "Solución Paso a Paso:",
     analysis: "Análisis del Experto:", 
     recommendation: "Recomendación:",
-    roi_forecast: "PRONÓSTICO DE ROI",
-    roi_sub1: "Resolver estas brechas típicamente resulta en un aumento del 25% al 50% en llamadas",
-    roi_sub2: "y solicitudes de dirección en 90-120 días."
+    roi_forecast: "PRONÓSTICO DE ROI"
   },
   fr: {
     title: "AUDIT DE CROISSANCE PREMIUM",
@@ -76,9 +73,7 @@ const PDF_TRANSLATIONS: Record<AuditLanguage, Record<string, string>> = {
     step_fix: "Correction Étape par Étape:",
     analysis: "Analyse d'Expert:",
     recommendation: "Recommandation:",
-    roi_forecast: "PRÉVISIONS ROI",
-    roi_sub1: "La résolution de ces problèmes entraîne généralement une augmentation de 25% à 50%",
-    roi_sub2: "des appels et itinéraires sous 90-120 jours."
+    roi_forecast: "PRÉVISIONS ROI"
   },
   de: {
     title: "PREMIUM WACHSTUMS-AUDIT",
@@ -102,9 +97,7 @@ const PDF_TRANSLATIONS: Record<AuditLanguage, Record<string, string>> = {
     step_fix: "Schritt-für-Schritt Lösung:",
     analysis: "Expertenanalyse:",
     recommendation: "Empfehlung:",
-    roi_forecast: "ROI PROGNOSE",
-    roi_sub1: "Die Behebung dieser Lücken führt typischerweise zu 25-50% mehr Anrufen",
-    roi_sub2: "und Wegbeschreibungen innerhalb von 90-120 Tagen."
+    roi_forecast: "ROI PROGNOSE"
   },
   it: {
     title: "AUDIT DI CRESCITA PREMIUM",
@@ -128,9 +121,7 @@ const PDF_TRANSLATIONS: Record<AuditLanguage, Record<string, string>> = {
     step_fix: "Soluzione Passo-Passo:",
     analysis: "Analisi dell'Esperto:",
     recommendation: "Raccomandazione:",
-    roi_forecast: "PREVISIONE ROI",
-    roi_sub1: "Risolvere questi problemi porta tipicamente a un aumento del 25-50% delle chiamate",
-    roi_sub2: "e richieste di indicazioni in 90-120 giorni."
+    roi_forecast: "PREVISIONE ROI"
   },
   pt: {
     title: "AUDITORIA DE CRESCIMENTO PREMIUM",
@@ -154,9 +145,7 @@ const PDF_TRANSLATIONS: Record<AuditLanguage, Record<string, string>> = {
     step_fix: "Correção Passo a Passo:",
     analysis: "Análise do Especialista:",
     recommendation: "Recomendação:",
-    roi_forecast: "PREVISÃO DE ROI",
-    roi_sub1: "Resolver essas lacunas resulta tipicamente em aumento de 25-50% em chamadas",
-    roi_sub2: "e solicitações de rota em 90-120 dias."
+    roi_forecast: "PREVISÃO DE ROI"
   }
 };
 
@@ -301,7 +290,7 @@ export const generateAuditPdf = (data: AuditReportData) => {
 
   y += 55;
 
-  // Ranking Potential Forecast Box
+  // Ranking Potential Forecast Box (Blue Box from screenshot)
   doc.setFillColor(COLORS.blue600[0], COLORS.blue600[1], COLORS.blue600[2]);
   doc.rect(leftMargin, y, maxLineWidth, 25, 'F');
   
@@ -312,8 +301,8 @@ export const generateAuditPdf = (data: AuditReportData) => {
   
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  // FIX: Accessing property directly from GeminiAnalysis type
-  const potentialText = data.geminiAnalysis.roiForecast || "Fixing critical issues can push this profile to the Top 5.";
+  // Use the short ranking potential string
+  const potentialText = data.geminiAnalysis.fixPlan.rankingPotential || "Fixing critical issues can push this profile to the Top 5.";
   doc.text(potentialText, leftMargin + 5, y + 16);
   
   y += 40;
@@ -466,7 +455,11 @@ export const generateAuditPdf = (data: AuditReportData) => {
     y += 5;
 
     // Analysis
-    addWrappedText(`${t.analysis} ${factor.reason}`, 10, "normal", COLORS.slate600);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
+    doc.text(t.analysis, leftMargin, y);
+    // Dynamic text can be long, so wrap it but start after the label
+    addWrappedText(factor.reason, 10, "normal", COLORS.slate600);
     
     // Fix (Only for Warn/Fail)
     if (factor.status !== 'good') {
@@ -491,19 +484,19 @@ export const generateAuditPdf = (data: AuditReportData) => {
   // Sort Factors into Groups based on IDs (need to map localized names if they exist, but grouping is by ID)
   data.factors.forEach(f => {
     // Group 1: GBP Core
-    if (["cat_rel", "sec_cat", "title_opt", "addr_pin", "prof_comp", "ver_status", "cat_consist", "clean_profile", "website_link"].includes(f.id) || f.id.startsWith("blocker_")) {
+    if (["cat_rel", "sec_cat", "title_opt", "addr_pin", "prof_comp", "ver_status", "cat_consist", "clean_profile", "website_link", "addr_city"].includes(f.id) || f.id.startsWith("blocker_")) {
        groups["1. Google Business Profile (GBP) Core Signals"].push(f);
     } 
     // Group 2: Reputation
-    else if (["review_health", "rev_kw", "freshness", "photo_vol"].includes(f.id)) {
+    else if (["rev_vol", "rev_rate", "rev_kw", "freshness", "photo_vol"].includes(f.id)) {
        groups["2. Reputation & Engagement Metrics"].push(f);
     } 
     // Group 3: Website/SEO
-    else if (["h1_opt", "title_geo", "seo_nap", "seo_links", "seo_internal", "seo_geo", "seo_auth"].includes(f.id)) {
+    else if (["seo_h1", "seo_title", "seo_nap", "seo_links", "seo_internal", "seo_geo", "seo_auth"].includes(f.id)) {
        groups["3. External & Local SEO (Website Signals)"].push(f);
     } 
     // Group 4: Competitive
-    else if (["seo_spam", "market_leader"].includes(f.id)) {
+    else if (["seo_spam", "market_leader", "seo_engage"].includes(f.id)) {
        groups["4. Competitive Environment"].push(f);
     } 
     // Fallback logic
@@ -539,11 +532,15 @@ export const generateAuditPdf = (data: AuditReportData) => {
   doc.setFont("helvetica", "bold");
   doc.text(t.roi_forecast, leftMargin + 5, y + 10);
   
+  // Use the dynamic ROI forecast string from Gemini
+  const roiText = data.geminiAnalysis.roiForecast || "Resolving these gaps typically results in a 25% to 50% increase in calls.";
+  doc.setFont("helvetica", "normal");
   doc.setTextColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
   doc.setFontSize(11);
-  doc.setFont("helvetica", "normal");
-  doc.text(t.roi_sub1, leftMargin + 5, y + 18);
-  doc.text(t.roi_sub2, leftMargin + 5, y + 24);
+  
+  // Wrap ROI text inside the box
+  const splitRoi = doc.splitTextToSize(roiText, maxLineWidth - 10);
+  doc.text(splitRoi, leftMargin + 5, y + 18);
 
   // Footer Numbers
   const pageCount = doc.getNumberOfPages();

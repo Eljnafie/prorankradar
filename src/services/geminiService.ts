@@ -61,19 +61,22 @@ export const analyzeProfileWithGemini = async (
     3. OUTPUT STRUCTURE (Translate content to ${targetLanguage}):
     
     [POINT: Primary Category]
-    Expert Analysis: Explain why category is the DNA of the profile in ${inputs.targetCity}.
-    Step-by-Step Fix: 1. Log in. 2. Edit Profile. 3. Select specific category. 4. Save.
+    Expert Analysis: Explain why category is the DNA of the profile in ${inputs.targetCity}. Mention ranking impact.
+    Step-by-Step Fix: 1. Log in to GBP. 2. Edit Profile. 3. Select the most specific category available. 4. Save changes.
 
     [POINT: Review Volume]
-    Expert Analysis: Compare ${business.rating} vs Leader ${leaderRating}. Mention 'Trust Share' loss in ${inputs.targetCity}.
-    Step-by-Step Fix: 1. Generate link. 2. Print QR. 3. Ask next 15 customers in ${inputs.targetCity}.
+    Expert Analysis: Compare ${business.rating} vs Leader ${leaderRating}. Explain 'Trust Share' loss in ${inputs.targetCity}.
+    Step-by-Step Fix: 1. Generate review link. 2. Create QR code. 3. Request reviews from next 15 clients in ${inputs.targetCity}.
 
     [POINT: H1 & Geo-Tagging]
-    Expert Analysis: Explain Google crawling for location verification in ${inputs.targetCity}.
+    Expert Analysis: Explain how Google crawls the website to verify location in ${inputs.targetCity}.
     Step-by-Step Fix: 1. Open website editor. 2. Change H1 to: '${business.name} - [Service] in ${inputs.targetCity}'.
 
     [POINT: ROI Forecast]
     Text: 'By closing the gap between your profile and the top competitors in ${inputs.targetCity}, we project a 25% to 50% increase in customer actions within 90 days. Every day you wait, your competitors take the revenue that belongs to you.'
+
+    [POINT: Ranking Potential]
+    Short prediction string (e.g., "Top 3 in 90 days").
 
     [POINT: Executive Summary]
     Briefly summarize the overall health and main blockers in ${targetLanguage}.
