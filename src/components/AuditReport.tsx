@@ -24,6 +24,15 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
     "4. Competitive Environment": data.factors.filter(f => ['comp_gap'].includes(f.id))
   };
 
+  // Calculate Section specific scores for the summary circles
+  const section1 = sections["1. Google Business Profile Core Signals"];
+  const section1Score = section1.reduce((a,b) => a + b.score, 0);
+  const section1Max = section1.reduce((a,b) => a + b.maxScore, 0) || 1;
+
+  const section3 = sections["3. Website & Local SEO"];
+  const section3Score = section3.reduce((a,b) => a + b.score, 0);
+  const section3Max = section3.reduce((a,b) => a + b.maxScore, 0) || 1;
+
   const overallScore = data.overallScore;
   const scoreColor = overallScore >= 80 ? '#22c55e' : overallScore >= 50 ? '#eab308' : '#ef4444';
 
@@ -136,13 +145,13 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
              <div className="flex justify-center gap-4 w-full">
                 <div className="p-3 bg-slate-50 rounded-lg w-1/2">
                    <div className="text-2xl font-bold text-slate-700">
-                     {Math.round(sections["1. Google Business Profile Core Signals"].reduce((a,b)=>a+b.score,0) / (45 || 1) * 100)}%
+                     {Math.round((section1Score / section1Max) * 100)}%
                    </div>
                    <div className="text-[10px] uppercase font-bold text-slate-400">GBP Health</div>
                 </div>
                 <div className="p-3 bg-slate-50 rounded-lg w-1/2">
                    <div className="text-2xl font-bold text-slate-700">
-                     {Math.round(sections["3. Website & Local SEO"].reduce((a,b)=>a+b.score,0) / (20 || 1) * 100)}%
+                     {Math.round((section3Score / section3Max) * 100)}%
                    </div>
                    <div className="text-[10px] uppercase font-bold text-slate-400">SEO Strength</div>
                 </div>
