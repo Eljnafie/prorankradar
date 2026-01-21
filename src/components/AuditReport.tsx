@@ -12,8 +12,6 @@ interface AuditReportProps {
   content?: SiteContent;
 }
 
-const WHATSAPP_NUMBER = '15550123456'; 
-
 const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = false, content }) => {
   const [expandedFactor, setExpandedFactor] = React.useState<string | null>(null);
   const [showPricing, setShowPricing] = React.useState(false);
@@ -47,6 +45,8 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
       setShowPricing(true);
     }
   };
+
+  const whatsappNumber = content?.contact?.phone?.replace(/[^0-9]/g, '') || '15550123456';
 
   return (
     <div className="w-full max-w-6xl mx-auto space-y-8 pb-12 relative">
@@ -302,7 +302,7 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 print:hidden">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowPricing(false)}></div>
           <div className="relative bg-slate-50 w-full max-w-5xl rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
-            <PricingContent onClose={() => setShowPricing(false)} data={data} content={content} />
+            <PricingContent onClose={() => setShowPricing(false)} data={data} content={content} whatsappNumber={whatsappNumber} />
           </div>
         </div>
       )}
@@ -398,7 +398,7 @@ const FactorRow: React.FC<{
   );
 };
 
-const PricingContent: React.FC<{ onClose: any, data: any, content?: SiteContent }> = ({ onClose, data, content }) => {
+const PricingContent: React.FC<{ onClose: any, data: any, content?: SiteContent, whatsappNumber: string }> = ({ onClose, data, content, whatsappNumber }) => {
   const pricing = content?.pricing || {
     auditOneTime: "30",
     expertOneTime: "150",
@@ -443,7 +443,7 @@ const PricingContent: React.FC<{ onClose: any, data: any, content?: SiteContent 
           </li>
         </ul>
         <a 
-           href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hi, I'd like to purchase the €${pricing.auditOneTime} Full Audit Report for ${data.business.name}.`)}`}
+           href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Hi, I'd like to purchase the €${pricing.auditOneTime} Full Audit Report for ${data.business.name}.`)}`}
            target="_blank"
            rel="noopener noreferrer"
            className="w-full py-3 rounded-lg border-2 border-slate-900 text-slate-900 font-bold hover:bg-slate-900 hover:text-white transition-colors text-center"
@@ -463,7 +463,7 @@ const PricingContent: React.FC<{ onClose: any, data: any, content?: SiteContent 
         </div>
         <div className="mb-6">
           <span className="text-4xl font-extrabold text-slate-900">€{pricing.expertOneTime}</span>
-          <span className="text-slate-400">/one-time</span>
+          <span className="text-slate-400 font-medium">/one-time</span>
         </div>
         <ul className="space-y-3 mb-8 flex-1">
           <li className="flex gap-2 text-sm text-slate-700 font-medium">
@@ -483,7 +483,7 @@ const PricingContent: React.FC<{ onClose: any, data: any, content?: SiteContent 
           </li>
         </ul>
         <a 
-           href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hi, I'm interested in the €${pricing.expertOneTime} Expert Fix Service for ${data.business.name}. Please help me fix my profile.`)}`}
+           href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Hi, I'm interested in the €${pricing.expertOneTime} Expert Fix Service for ${data.business.name}. Please help me fix my profile.`)}`}
            target="_blank"
            rel="noopener noreferrer"
            className="w-full py-3 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30 text-center"
@@ -501,7 +501,7 @@ const PricingContent: React.FC<{ onClose: any, data: any, content?: SiteContent 
         <div className="mb-6">
           <div className="flex items-baseline gap-1">
             <span className="text-4xl font-extrabold text-slate-900">€{pricing.managementSetup}</span>
-            <span className="text-xs text-slate-500 font-medium bg-slate-100 px-2 py-1 rounded">Setup</span>
+            <span className="text-xs font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded">Setup</span>
           </div>
           <div className="text-sm text-slate-500 mt-1">+ €{pricing.managementMonthly}/month</div>
         </div>
@@ -523,7 +523,7 @@ const PricingContent: React.FC<{ onClose: any, data: any, content?: SiteContent 
           </li>
         </ul>
         <a 
-           href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hi, I'm interested in the Full Management Plan (€${pricing.managementSetup}+€${pricing.managementMonthly}/mo) for ${data.business.name}.`)}`}
+           href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Hi, I'm interested in the Full Management Plan (€${pricing.managementSetup}+€${pricing.managementMonthly}/mo) for ${data.business.name}.`)}`}
            target="_blank"
            rel="noopener noreferrer"
            className="w-full py-3 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold hover:opacity-90 transition-opacity shadow-lg text-center"

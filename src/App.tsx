@@ -55,77 +55,7 @@ const PILLAR_POST: BlogPost = {
   language: 'en',
   excerpt: 'A complete 15-point framework for dominating Local SEO in the age of AI Search. Covers Technical SEO, Entity Authority, and SGE Readiness.',
   imageUrl: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80',
-  content: `
-    <h2>1. Technical SEO (The 2026 Foundation)</h2>
-    <p><strong>Server-Side Rendering & Core Web Vitals:</strong> AI Search engines prioritize pages that render instantly. Ensure your audit pages load under 2.5s (LCP) and have Interaction to Next Paint (INP) under 200ms.</p>
-    <ul>
-      <li>Enable self-referencing canonical tags.</li>
-      <li>Ensure <code>sitemap.xml</code> auto-updates with new content.</li>
-      <li>Audit <code>robots.txt</code> to allow GPTBot and Google-Extended.</li>
-    </ul>
-
-    <h2>2. On-Page SEO (Semantic Structure)</h2>
-    <p><strong>Semantic Hierarchy:</strong> Google parses structure, not just keywords. Your H1 must clearly state the entity ("Audit"), and H2s must be questions or sub-topics ("How to fix").</p>
-    <ul>
-      <li>Optimize Title Tags for CTR (e.g., "Free Instant Audit").</li>
-      <li>Use Keyword Clusters (e.g., "GBP Audit" + "Ranking Blockers").</li>
-    </ul>
-
-    <h2>3. Entity-Based SEO (Critical)</h2>
-    <p><strong>Establish Identity:</strong> Google ranks Entities, not websites. Use <code>Organization</code> and <code>SoftwareApplication</code> schema to explicitly tell Google who you are.</p>
-    <ul>
-      <li>Validate JSON-LD Schema on Homepage.</li>
-      <li>Link "SameAs" properties to LinkedIn/Twitter/YouTube.</li>
-    </ul>
-
-    <h2>4. Local SEO & Optimization</h2>
-    <p><strong>Geospatial Relevance:</strong> Infuse content with "Proximity", "Service Area", and "Grid Ranking" terminology to signal topical authority.</p>
-
-    <h2>5. Content Strategy (Answer Engine Optimization)</h2>
-    <p><strong>Answer First:</strong> Every H2 must be followed by a direct 40-60 word bold answer to win Featured Snippets and AI citations.</p>
-    <p><em>Some platforms, such as ProRankRadar, provide a <a href="#" onclick="document.getElementById('audit-tool-anchor').scrollIntoView()">free initial audit</a> to help businesses identify structural issues in their Google Business Profile before implementing changes.</em></p>
-
-    <h2>6. AI Search & SGE Readiness</h2>
-    <p><strong>Conversational Queries:</strong> Target natural language questions like "How do I fix a suspended profile?" rather than just keywords.</p>
-
-    <h2>7. E-E-A-T (Trust & Authority)</h2>
-    <p><strong>Transparency:</strong> Ensure Privacy Policy and Terms are visible. Display security badges (SSL/Stripe) to prevent algorithmic demotion.</p>
-
-    <h2>8. UX & Conversion</h2>
-    <p><strong>Funnel Speed:</strong> Ensure the audit tool feels instant. Use progress bars to reduce bounce rates during analysis.</p>
-
-    <h2>9. Analytics & Tracking</h2>
-    <p><strong>Event Tracking:</strong> configuring GA4 events for "Audit Start" and "Audit Complete" is vital for understanding user drop-off.</p>
-
-    <h2>10. Prioritized Action Plan</h2>
-    <p>Focus on Critical Fixes (Schema/Meta) in Week 1, Content Growth in Month 1, and Authority Scaling in Month 2+.</p>
-
-    <h2>11. Crawl Budget & Indexation Control</h2>
-    <p><strong>Log Monitoring:</strong> Analyze Googlebot behavior. Shield API endpoints via <code>robots.txt</code> to preserve crawl budget for content.</p>
-
-    <h2>12. Structured Data for AI</h2>
-    <p><strong>Beyond Basic Schema:</strong> Implement <code>FAQPage</code> schema on blog posts and <code>Dataset</code> schema for aggregated audit data.</p>
-
-    <h2>13. Programmatic SEO Expansion</h2>
-    <p><strong>Scale Insights:</strong> Generate city-specific insight pages (e.g., "/insights/restaurant-gbp-errors") to capture long-tail local traffic.</p>
-
-    <h2>14. AI Trust Signals</h2>
-    <p><strong>Data Transparency:</strong> AI models prefer sources that disclose methodology. Explicitly state data sources (Google Maps API, Gemini AI).</p>
-
-    <h2>15. International Signals</h2>
-    <p><strong>Global Readiness:</strong> Use <code>hreflang="x-default"</code> and country-neutral phrasing to avoid narrowing your market accidentally.</p>
-    
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "Article",
-      "headline": "The Ultimate Google Maps Ranking & SEO Audit Checklist (2026 Standards)",
-      "author": { "@type": "Organization", "name": "ProRankRadar" },
-      "datePublished": "2026-01-25",
-      "description": "A complete 15-point framework for dominating Local SEO in the age of AI Search."
-    }
-    </script>
-  `
+  content: `<h2>1. Technical SEO (The 2026 Foundation)</h2><p>Server-Side Rendering & Core Web Vitals: AI Search engines prioritize pages that render instantly.</p>` 
 };
 
 const App: React.FC = () => {
@@ -164,7 +94,6 @@ const App: React.FC = () => {
 
     if (storedContent) {
       const parsed = JSON.parse(storedContent);
-      // Ensure backward compatibility with new fields like pricing
       setSiteContent({
         ...DEFAULT_CONTENT,
         ...parsed,
@@ -172,7 +101,6 @@ const App: React.FC = () => {
       });
     }
     
-    // Initialize Blogs with Pillar Post if empty
     if (storedBlogs) {
       setBlogPosts(JSON.parse(storedBlogs));
     } else {
@@ -182,16 +110,14 @@ const App: React.FC = () => {
 
   }, []);
 
-  // Update Unlock state based on Admin Login
   useEffect(() => {
     if (isAdminLoggedIn) {
-      setIsUnlocked(true); // Admin always sees full report
+      setIsUnlocked(true);
     } else {
-      setIsUnlocked(false); // Public sees locked
+      setIsUnlocked(false); 
     }
   }, [isAdminLoggedIn]);
 
-  // Handlers
   const handleSetMapsKey = (key: string) => {
     setMapsKey(key);
     localStorage.setItem('google_maps_api_key', key);
@@ -214,7 +140,6 @@ const App: React.FC = () => {
   };
 
   const handleAddBlogPost = (post: BlogPost) => {
-    // Check if post exists (update) or new (add)
     const exists = blogPosts.find(p => p.id === post.id);
     let newPosts;
     if (exists) {
@@ -247,14 +172,7 @@ const App: React.FC = () => {
     setLoading(true);
     try {
       const competitors: CompetitorData[] = [];
-      if (isMapsLoaded && business.location) {
-         competitors.push(
-            { name: "Competitor A", rating: 4.8, reviewCount: business.user_ratings_total + 50 },
-            { name: "Competitor B", rating: 4.5, reviewCount: Math.max(0, business.user_ratings_total - 10) },
-            { name: "Competitor C", rating: 4.2, reviewCount: Math.max(0, business.user_ratings_total - 50) }
-         );
-      }
-      // Pass Gemini Key
+      // Pass Gemini Key (ensure it's not empty)
       const geminiAnalysis = await analyzeProfileWithGemini(business, inputs, competitors, geminiKey);
       const { score, factors } = calculateScore(business, inputs, competitors, geminiAnalysis);
 
@@ -262,7 +180,7 @@ const App: React.FC = () => {
       setCurrentView('report');
     } catch (error) {
       console.error("Audit failed", error);
-      alert("Audit failed. Ensure Maps and Gemini API Keys are set in Admin.");
+      alert("Audit failed. Please ensure your Gemini API Key is set in Settings.");
     } finally {
       setLoading(false);
     }

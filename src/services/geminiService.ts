@@ -5,6 +5,7 @@ import type { BusinessProfile, AuditInputs, GeminiAnalysis, BlogPost, AuditLangu
 const ANALYSIS_MODEL = 'gemini-3-flash-preview';
 
 const getAI = (apiKey?: string) => {
+  // Use import.meta.env.VITE_API_KEY for Vite compatibility
   const key = apiKey || import.meta.env.VITE_API_KEY || '';
   if (!key) throw new Error("API Key is missing. Please add it in Admin Settings.");
   return new GoogleGenAI({ apiKey: key });
@@ -26,6 +27,9 @@ const getReviewAge = (time?: number) => {
     return date.toLocaleDateString();
 };
 
+// Helper timeout function
+const timeout = (ms: number) => new Promise((_, reject) => setTimeout(() => reject(new Error("Analysis Request Timed Out (25s)")), ms));
+
 export const analyzeProfileWithGemini = async (
   business: BusinessProfile,
   inputs: AuditInputs,
@@ -33,7 +37,9 @@ export const analyzeProfileWithGemini = async (
   apiKey?: string
 ): Promise<GeminiAnalysis> => {
   
+  // 1. Initialize AI (May throw if no key)
   const ai = getAI(apiKey);
+  
   const targetLanguage = LANGUAGE_MAP[inputs.language || 'en'] || 'English';
   
   // Prepare Data for Prompt
@@ -77,35 +83,22 @@ export const analyzeProfileWithGemini = async (
     === ANALYSIS INSTRUCTIONS ===
     For each section, provide:
     1. Score (0-15).
-    2. Analysis: Start with "Impact:". Be specific (e.g., "Your H1 tag '${h1}' does not match keyword '${inputs.targetKeyword}'").
+    2. Analysis: Start with "Impact:". Be specific.
     3. Fix: A numbered list (1. 2. 3.) of actionable technical steps.
 
-    1. PRIMARY CATEGORY
-    - Is "${business.types[0]}" the specific niche category or a broad one?
-    - Compare against "${inputs.targetKeyword}".
+    Sections to Analyze:
+    1. Primary Category Relevance
+    2. Business Title & Branding (Keyword Stuffing?)
+    3. Review Health (Freshness, Rating, Volume)
+    4. Website Optimization (H1, Title Tag matching location/keyword)
+    5. Photos & Visuals
+    6. Competitive Gap
 
-    2. BUSINESS TITLE & BRANDING
-    - Check for Keyword Stuffing in "${business.name}".
-    - Check if branding is consistent.
-
-    3. REVIEW HEALTH (Freshness & Rating)
-    - Check dates of recent reviews. If last review > 30 days ago, penalize Freshness.
-    - Compare rating ${business.rating} vs Leader ${leaderRatingVal}.
-
-    4. WEBSITE OPTIMIZATION
-    - Does H1 ("${h1}") contain "${inputs.targetKeyword}"?
-    - Does Title Tag ("${titleTag}") contain "${inputs.targetCity}"?
-    - If URL is missing or free site, score 0.
-
-    5. PHOTOS & VISUALS
-    - If count < 5, score low. 
-    - Suggest uploading interior, exterior, and team photos.
-
-    6. COMPETITIVE GAP
-    - How far behind is ${business.user_ratings_total} reviews from the leader (assume leader has +50 more)?
-
-    7. ROI FORECAST
-    - Estimate % growth in calls if they fix these issues (e.g. "35% increase").
+    Also provide:
+    - Executive Summary
+    - ROI Forecast (% growth)
+    - 3-Step Fix Plan
+    - Ranking Potential
 
     Return valid JSON matching the schema.
   `;
@@ -173,14 +166,18 @@ export const analyzeProfileWithGemini = async (
   };
 
   try {
-    const response = await ai.models.generateContent({
-      model: ANALYSIS_MODEL,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: schema,
-      },
-    });
+    // 2. Race against timeout to prevent hanging UI
+    const response: any = await Promise.race([
+      ai.models.generateContent({
+        model: ANALYSIS_MODEL,
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: schema,
+        },
+      }),
+      timeout(25000) // 25 seconds timeout
+    ]);
 
     const text = response.text;
     if (!text) throw new Error("Empty response from Gemini");
@@ -193,20 +190,20 @@ export const analyzeProfileWithGemini = async (
 
   } catch (error) {
     console.error("Gemini Analysis Error:", error);
-    // Safe Fallback
+    // Safe Fallback - Return valid structure so app doesn't crash
     return {
-      primaryCategory: { score: 0, analysis: "N/A", fix: "N/A", suggested: [] },
-      businessTitle: { score: 0, analysis: "N/A", fix: "N/A", isSpammy: false },
-      proximity: { score: 0, analysis: "N/A", fix: "N/A" },
-      reviewRating: { score: 0, analysis: "N/A", fix: "N/A" },
-      reviewVolume: { score: 0, analysis: "N/A", fix: "N/A" },
-      reviewFreshness: { score: 0, analysis: "N/A", fix: "N/A" },
-      websiteOptimization: { score: 0, analysis: "N/A", fix: "N/A" },
-      photos: { score: 0, analysis: "N/A", fix: "N/A" },
-      competitorGap: { score: 0, analysis: "N/A", fix: "N/A" },
-      executiveSummary: "Analysis unavailable.",
+      primaryCategory: { score: 5, analysis: "Analysis timed out or failed.", fix: "Check category manually.", suggested: [] },
+      businessTitle: { score: 5, analysis: "N/A", fix: "N/A", isSpammy: false },
+      proximity: { score: 5, analysis: "N/A", fix: "N/A" },
+      reviewRating: { score: 5, analysis: "N/A", fix: "N/A" },
+      reviewVolume: { score: 5, analysis: "N/A", fix: "N/A" },
+      reviewFreshness: { score: 5, analysis: "N/A", fix: "N/A" },
+      websiteOptimization: { score: 5, analysis: "N/A", fix: "N/A" },
+      photos: { score: 5, analysis: "N/A", fix: "N/A" },
+      competitorGap: { score: 5, analysis: "N/A", fix: "N/A" },
+      executiveSummary: "AI Analysis unavailable. Please check API Key or try again.",
       roiForecast: "N/A",
-      fixPlan: { step1: "N/A", step2: "N/A", step3: "N/A", rankingPotential: "N/A" }
+      fixPlan: { step1: "Manual Audit Required", step2: "Check API Settings", step3: "Try again later", rankingPotential: "Unknown" }
     } as GeminiAnalysis;
   }
 };
