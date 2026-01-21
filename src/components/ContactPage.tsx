@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { ArrowLeft, Mail, MapPin, Send, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Mail, MapPin, Send, MessageSquare, ExternalLink } from 'lucide-react';
 import type { SiteContent } from '../types';
 
 interface ContactPageProps {
@@ -15,6 +15,10 @@ const ContactPage: React.FC<ContactPageProps> = ({ onBack, content }) => {
     e.preventDefault();
     setSubmitted(true);
   };
+
+  const email = content.contact.email || 'support@prorankradar.com';
+  const phone = content.contact.phone || '';
+  const cleanPhone = phone.replace(/[^0-9]/g, '');
 
   return (
     <div className="min-h-screen bg-slate-50 py-12">
@@ -36,24 +40,45 @@ const ContactPage: React.FC<ContactPageProps> = ({ onBack, content }) => {
              </div>
 
              <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                {/* Email Section */}
                 <div className="flex items-start gap-4">
                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 flex-shrink-0">
                       <Mail className="w-5 h-5" />
                    </div>
-                   <div>
+                   <div className="flex-1">
                       <h3 className="font-bold text-slate-800">Email</h3>
-                      <p className="text-slate-600">{content.contact.email || 'support@prorankradar.com'}</p>
+                      <a 
+                        href={`mailto:${email}`} 
+                        className="text-blue-600 hover:text-blue-800 hover:underline break-all font-medium transition-colors"
+                      >
+                        {email}
+                      </a>
                    </div>
                 </div>
+
+                {/* Phone/WhatsApp Section */}
                 <div className="flex items-start gap-4">
                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-green-600 flex-shrink-0">
                       <MessageSquare className="w-5 h-5" />
                    </div>
-                   <div>
+                   <div className="flex-1">
                       <h3 className="font-bold text-slate-800">WhatsApp / Phone</h3>
-                      <p className="text-slate-600">{content.contact.phone || 'Not configured'}</p>
+                      {cleanPhone ? (
+                        <a 
+                          href={`https://wa.me/${cleanPhone}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="inline-flex items-center gap-2 px-3 py-1.5 mt-1 bg-green-50 text-green-700 border border-green-200 rounded-lg hover:bg-green-100 hover:border-green-300 transition-all text-sm font-bold"
+                        >
+                          Chat on WhatsApp <ExternalLink className="w-3 h-3" />
+                        </a>
+                      ) : (
+                        <p className="text-slate-400 italic text-sm mt-1">Not configured</p>
+                      )}
                    </div>
                 </div>
+
+                {/* Address Section */}
                 <div className="flex items-start gap-4">
                    <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-600 flex-shrink-0">
                       <MapPin className="w-5 h-5" />

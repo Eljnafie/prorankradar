@@ -2,9 +2,9 @@
 import type { BusinessProfile, AuditInputs, CompetitorData, GeminiAnalysis, ScoringFactor } from "../types";
 
 export const calculateScore = (
-  _business: BusinessProfile,
-  _inputs: AuditInputs,
-  _competitors: CompetitorData[],
+  business: BusinessProfile,
+  inputs: AuditInputs,
+  competitors: CompetitorData[],
   aiAnalysis: GeminiAnalysis
 ): { score: number; factors: ScoringFactor[] } => {
   
@@ -35,12 +35,16 @@ export const calculateScore = (
   // --- 1. GBP CORE SIGNALS ---
   
   // Primary Category (15)
+  // Use inputs.targetKeyword to show context
   addFactor('cat_rel', 'Primary Category Relevance', 15, aiAnalysis.primaryCategory.score, 
-    aiAnalysis.primaryCategory.analysis, aiAnalysis.primaryCategory.fix, 'gbp');
+    `${aiAnalysis.primaryCategory.analysis} (Targeting: "${inputs.targetKeyword}")`, 
+    aiAnalysis.primaryCategory.fix, 'gbp');
 
   // Business Title (15)
+  // Use business.name to validate analysis
   addFactor('title_opt', 'Business Title Optimization', 15, aiAnalysis.businessTitle.score, 
-    aiAnalysis.businessTitle.analysis, aiAnalysis.businessTitle.fix, 'gbp');
+    `${aiAnalysis.businessTitle.analysis} [Analyzed Name: ${business.name}]`, 
+    aiAnalysis.businessTitle.fix, 'gbp');
 
   // Address/Proximity (10)
   addFactor('addr_prox', 'Physical Address & Proximity', 10, aiAnalysis.proximity.score, 
@@ -71,8 +75,13 @@ export const calculateScore = (
     aiAnalysis.websiteOptimization.analysis, aiAnalysis.websiteOptimization.fix, 'seo');
 
   // Competitor Gap (10)
+  // Use competitor data to provide exact context
+  const leaderRating = competitors.length > 0 ? Math.max(...competitors.map(c => c.rating)) : 0;
+  const gapContext = leaderRating > 0 ? ` (Market Leader: ${leaderRating}★)` : '';
+  
   addFactor('comp_gap', 'Market Leader Gap', 10, aiAnalysis.competitorGap.score, 
-    aiAnalysis.competitorGap.analysis, aiAnalysis.competitorGap.fix, 'seo');
+    `${aiAnalysis.competitorGap.analysis}${gapContext}`, 
+    aiAnalysis.competitorGap.fix, 'seo');
 
   // --- TOTAL: 100 POINTS ---
 
