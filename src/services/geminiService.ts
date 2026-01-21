@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import type { BusinessProfile, AuditInputs, GeminiAnalysis, BlogPost } from "../types";
+import type { BusinessProfile, AuditInputs, GeminiAnalysis, BlogPost, AuditLanguage } from "../types";
 
 const ANALYSIS_MODEL = 'gemini-3-flash-preview';
 
@@ -211,14 +211,15 @@ export const analyzeProfileWithGemini = async (
   }
 };
 
-export const generateBlogPost = async (topic: string, apiKey?: string): Promise<Partial<BlogPost>> => {
+export const generateBlogPost = async (topic: string, language: AuditLanguage, apiKey?: string): Promise<Partial<BlogPost>> => {
   const ai = getAI(apiKey);
-  
+  const targetLang = LANGUAGE_MAP[language] || 'English';
+
   const prompt = `
     Role: Senior SEO Content Strategist.
     Topic: "${topic}"
-    Goal: Write an authoritative, formatted HTML blog post.
-    Language: English (US).
+    Target Language: ${targetLang}
+    Goal: Write an authoritative, formatted HTML blog post in the target language.
     Structure: Single H1, multiple H2s, practical tips.
     Output: JSON with title, excerpt, content (HTML), slug.
   `;

@@ -52,6 +52,7 @@ const PILLAR_POST: BlogPost = {
   slug: 'google-maps-ranking-seo-checklist-2026',
   author: 'ProRank Strategy Team',
   date: 'January 25, 2026',
+  language: 'en',
   excerpt: 'A complete 15-point framework for dominating Local SEO in the age of AI Search. Covers Technical SEO, Entity Authority, and SGE Readiness.',
   imageUrl: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80',
   content: `

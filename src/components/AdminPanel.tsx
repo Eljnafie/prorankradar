@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, Key, Lock, Save, Edit, Layout, FileText, Loader2, LogOut, PlusCircle, Trash2, ArrowLeft, RefreshCw, UserCog, Radar, Phone, Mail, MapPin, DollarSign, ShieldCheck } from 'lucide-react';
-import type { SiteContent, BlogPost } from '../types';
+import { X, Key, Lock, Save, Edit, Layout, FileText, Loader2, LogOut, PlusCircle, Trash2, ArrowLeft, RefreshCw, UserCog, Radar, Phone, Mail, MapPin, DollarSign, ShieldCheck, Languages } from 'lucide-react';
+import type { SiteContent, BlogPost, AuditLanguage } from '../types';
 import { generateBlogPost } from '../services/geminiService';
 
 interface AdminPanelProps {
@@ -44,6 +44,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   // Blog Management State
   const [blogView, setBlogView] = useState<'list' | 'edit'>('list');
   const [blogTopic, setBlogTopic] = useState('');
+  const [blogLanguage, setBlogLanguage] = useState<AuditLanguage>('en'); // New State
   const [isGenerating, setIsGenerating] = useState(false);
   
   // The Post being edited (or new)
@@ -55,7 +56,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     slug: '',
     author: 'ProRank Team',
     date: new Date().toLocaleDateString(),
-    imageUrl: ''
+    imageUrl: '',
+    language: 'en'
   };
   const [editingPost, setEditingPost] = useState<BlogPost>(defaultPost);
 
@@ -159,7 +161,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     }
     setIsGenerating(true);
     try {
-      const generated = await generateBlogPost(blogTopic, geminiApiKey);
+      // Pass language to generator
+      const generated = await generateBlogPost(blogTopic, blogLanguage, geminiApiKey);
       const newPost: BlogPost = {
         id: Date.now().toString(),
         title: generated.title || 'Untitled',
@@ -168,7 +171,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         slug: generated.slug || 'untitled-post',
         author: 'ProRank Team',
         date: new Date().toLocaleDateString(),
-        imageUrl: 'https://images.unsplash.com/photo-1432888498266-38ffec3eaf0a?auto=format&fit=crop&w=800&q=80'
+        imageUrl: 'https://images.unsplash.com/photo-1432888498266-38ffec3eaf0a?auto=format&fit=crop&w=800&q=80',
+        language: blogLanguage
       };
       
       // Load generated post into editor
@@ -519,6 +523,22 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                             </h3>
                             <p className="text-sm text-blue-700 mb-4">Enter a topic and our AI Engine will write, format, and prepare an article.</p>
                             <div className="flex gap-2">
+                                <div className="relative">
+                                  <Languages className="absolute left-3 top-3.5 text-blue-400 w-4 h-4" />
+                                  <select 
+                                    value={blogLanguage}
+                                    onChange={(e) => setBlogLanguage(e.target.value as AuditLanguage)}
+                                    className="pl-9 pr-8 py-3 bg-white border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm appearance-none cursor-pointer h-full"
+                                  >
+                                    <option value="en">EN</option>
+                                    <option value="es">ES</option>
+                                    <option value="fr">FR</option>
+                                    <option value="de">DE</option>
+                                    <option value="it">IT</option>
+                                    <option value="pt">PT</option>
+                                  </select>
+                                </div>
+
                                 <input 
                                   type="text" 
                                   value={blogTopic}
@@ -559,8 +579,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                                 {blogPosts.map(post => (
                                   <div key={post.id} className="group bg-white border border-slate-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow flex flex-col">
                                       {post.imageUrl && (
-                                        <div className="h-32 overflow-hidden bg-slate-100">
+                                        <div className="h-32 overflow-hidden bg-slate-100 relative">
                                           <img src={post.imageUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                          <div className="absolute top-2 right-2 bg-black/60 text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase">
+                                            {post.language}
+                                          </div>
                                         </div>
                                       )}
                                       <div className="p-4 flex-1">
@@ -638,6 +661,22 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                                   onChange={e => setEditingPost({...editingPost, slug: e.target.value})}
                                   className="w-full px-3 py-2 border rounded text-sm font-mono text-slate-600"
                                 />
+                              </div>
+
+                              <div className="mb-3">
+                                <label className="block text-xs font-bold text-slate-500 mb-1">Language</label>
+                                <select 
+                                  value={editingPost.language || 'en'}
+                                  onChange={e => setEditingPost({...editingPost, language: e.target.value as AuditLanguage})}
+                                  className="w-full px-3 py-2 border rounded text-sm"
+                                >
+                                  <option value="en">English</option>
+                                  <option value="es">Spanish</option>
+                                  <option value="fr">French</option>
+                                  <option value="de">German</option>
+                                  <option value="it">Italian</option>
+                                  <option value="pt">Portuguese</option>
+                                </select>
                               </div>
 
                               <div className="grid grid-cols-2 gap-2 mb-3">
