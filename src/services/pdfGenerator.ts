@@ -24,7 +24,6 @@ const PDF_TRANSLATIONS: Record<AuditLanguage, Record<string, string>> = {
     detailed_audit: "Detailed Technical Audit",
     step_fix: "Step-by-Step Fix:",
     analysis: "Expert Analysis:",
-    recommendation: "Recommendation:",
     roi_forecast: "PROJECTED ROI FORECAST"
   },
   es: {
@@ -35,7 +34,7 @@ const PDF_TRANSLATIONS: Record<AuditLanguage, Record<string, string>> = {
     gbp_health: "Salud GBP",
     seo_strength: "Fuerza SEO",
     ranking_forecast: "PRONÓSTICO DE CLASIFICACIÓN",
-    geo_grid: "Geo-Grid Visual (Rastreo de Rango)",
+    geo_grid: "Geo-Grid Visual",
     grid_legend: "Leyenda:",
     money_zones: "Zonas de Dinero (Top 3)",
     lost_revenue: "Ingresos Perdidos (> 10)",
@@ -48,7 +47,6 @@ const PDF_TRANSLATIONS: Record<AuditLanguage, Record<string, string>> = {
     detailed_audit: "Auditoría Técnica Detallada",
     step_fix: "Solución Paso a Paso:",
     analysis: "Análisis del Experto:", 
-    recommendation: "Recomendación:",
     roi_forecast: "PRONÓSTICO DE ROI"
   },
   fr: {
@@ -71,8 +69,7 @@ const PDF_TRANSLATIONS: Record<AuditLanguage, Record<string, string>> = {
     review_goal_sub: "avis 5 étoiles de plus pour atteindre 4.3+.",
     detailed_audit: "Audit Technique Détaillé",
     step_fix: "Correction Étape par Étape:",
-    analysis: "Analyse d'Expert:",
-    recommendation: "Recommandation:",
+    analysis: "Analyse:",
     roi_forecast: "PRÉVISIONS ROI"
   },
   de: {
@@ -96,7 +93,6 @@ const PDF_TRANSLATIONS: Record<AuditLanguage, Record<string, string>> = {
     detailed_audit: "Detailliertes Technisches Audit",
     step_fix: "Schritt-für-Schritt Lösung:",
     analysis: "Expertenanalyse:",
-    recommendation: "Empfehlung:",
     roi_forecast: "ROI PROGNOSE"
   },
   it: {
@@ -120,7 +116,6 @@ const PDF_TRANSLATIONS: Record<AuditLanguage, Record<string, string>> = {
     detailed_audit: "Audit Tecnico Dettagliato",
     step_fix: "Soluzione Passo-Passo:",
     analysis: "Analisi dell'Esperto:",
-    recommendation: "Raccomandazione:",
     roi_forecast: "PREVISIONE ROI"
   },
   pt: {
@@ -144,7 +139,6 @@ const PDF_TRANSLATIONS: Record<AuditLanguage, Record<string, string>> = {
     detailed_audit: "Auditoria Técnica Detalhada",
     step_fix: "Correção Passo a Passo:",
     analysis: "Análise do Especialista:",
-    recommendation: "Recomendação:",
     roi_forecast: "PREVISÃO DE ROI"
   }
 };
@@ -184,17 +178,17 @@ export const generateAuditPdf = (data: AuditReportData) => {
   };
 
   // --- Helper: Add Text with wrapping ---
-  const addWrappedText = (text: string, fontSize: number, fontType: string = "normal", color: number[] = COLORS.slate900) => {
+  const addWrappedText = (text: string, fontSize: number, fontType: string = "normal", color: number[] = COLORS.slate900, indent: number = 0) => {
     doc.setFontSize(fontSize);
     doc.setFont("helvetica", fontType);
     doc.setTextColor(color[0], color[1], color[2]);
 
-    const lines = doc.splitTextToSize(text, maxLineWidth);
+    const lines = doc.splitTextToSize(text, maxLineWidth - indent);
     const lineHeight = fontSize * 0.5; 
 
     lines.forEach((line: string) => {
       checkPageBreak(lineHeight + 2);
-      doc.text(line, leftMargin, y);
+      doc.text(line, leftMargin + indent, y);
       y += lineHeight + 2;
     });
     y += 2;
@@ -247,7 +241,7 @@ export const generateAuditPdf = (data: AuditReportData) => {
   doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
   doc.text(t.exec_summary, leftMargin, y);
-  y += 15;
+  y += 20;
 
   // Draw Circles for Scores
   const drawScoreCircle = (label: string, score: number, xPos: number) => {
@@ -313,13 +307,13 @@ export const generateAuditPdf = (data: AuditReportData) => {
   doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
   doc.text(t.geo_grid, leftMargin, y);
-  y += 10;
+  y += 15;
 
   // Draw 7x7 Grid
   const gridSize = 7;
   const circleSize = 3;
-  const gap = 7;
-  const startX = leftMargin + 10;
+  const gap = 8;
+  const startX = leftMargin + 15;
   
   for(let row=0; row<gridSize; row++) {
     for(let col=0; col<gridSize; col++) {
@@ -330,10 +324,13 @@ export const generateAuditPdf = (data: AuditReportData) => {
       const dist = Math.abs(row - 3) + Math.abs(col - 3);
       
       let color = COLORS.red500;
-      if (isCenter) color = COLORS.blue600; // Home
-      else if (dist <= 1) color = COLORS.green500;
-      else if (dist <= 2) color = COLORS.green500; 
-      else if (dist <= 3) color = COLORS.yellow500;
+      // Grid logic based on overall score
+      const greenRadius = data.overallScore > 80 ? 3 : data.overallScore > 60 ? 2 : 1;
+      const yellowRadius = greenRadius + 1;
+
+      if (isCenter) color = COLORS.blue600; 
+      else if (dist <= greenRadius) color = COLORS.green500;
+      else if (dist <= yellowRadius) color = COLORS.yellow500;
       
       doc.setFillColor(color[0], color[1], color[2]);
       doc.circle(cx, cy, circleSize, 'F');
@@ -378,8 +375,6 @@ export const generateAuditPdf = (data: AuditReportData) => {
 
   // Simple Bar Chart
   const clientRating = data.business.rating;
-  
-  // FIX: Calculate competitor rating from competitor data instead of accessing non-existent property
   const competitorRating = data.competitors.length > 0 
     ? Math.max(...data.competitors.map(c => c.rating)) 
     : 4.8;
@@ -403,7 +398,7 @@ export const generateAuditPdf = (data: AuditReportData) => {
   y += 40;
 
   // Review Goal Text
-  // FIX: Calculate review goal based on ratings gap
+  // Calculate review goal based on ratings gap
   let reviewsNeeded = 0;
   if (clientRating < competitorRating) {
       const currentReviews = data.business.user_ratings_total || 1;
@@ -420,7 +415,6 @@ export const generateAuditPdf = (data: AuditReportData) => {
   y += 15;
 
   // --- 5. DETAILED TECHNICAL AUDIT ---
-  checkPageBreak(40);
   doc.addPage(); // Force new page
   y = 20;
   addHeader();
@@ -434,7 +428,7 @@ export const generateAuditPdf = (data: AuditReportData) => {
 
   // Helper for rows
   const addAuditRow = (factor: ScoringFactor) => {
-    checkPageBreak(35);
+    checkPageBreak(45);
     
     // Status Badge
     let statusText = "[PASS]";
@@ -452,14 +446,13 @@ export const generateAuditPdf = (data: AuditReportData) => {
     doc.setTextColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
     doc.text(factor.name, leftMargin + 15, y);
 
-    y += 5;
+    y += 6;
 
     // Analysis
     doc.setFont("helvetica", "bold");
     doc.setTextColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
     doc.text(t.analysis, leftMargin, y);
-    // Dynamic text can be long, so wrap it but start after the label
-    addWrappedText(factor.reason, 10, "normal", COLORS.slate600);
+    addWrappedText(factor.reason, 10, "normal", COLORS.slate600, 0); // starts below title
     
     // Fix (Only for Warn/Fail)
     if (factor.status !== 'good') {
@@ -467,48 +460,26 @@ export const generateAuditPdf = (data: AuditReportData) => {
         doc.setTextColor(COLORS.blue600[0], COLORS.blue600[1], COLORS.blue600[2]);
         doc.text(t.step_fix, leftMargin, y);
         y += 5;
+        // Fix instructions in plain color
         addWrappedText(factor.fixAction, 10, "normal", COLORS.slate900);
     }
     
     y += 4; // Spacing
   };
 
-  // Grouped Rendering
-  const groups: Record<string, ScoringFactor[]> = {
-    "1. Google Business Profile (GBP) Core Signals": [],
-    "2. Reputation & Engagement Metrics": [],
-    "3. External & Local SEO (Website Signals)": [],
-    "4. Competitive Environment": []
+  // Grouped Rendering matching the PDF Sections
+  const groups = {
+    "1. Google Business Profile (GBP) Core Signals": data.factors.filter(f => ['cat_rel', 'title_opt', 'addr_prox', 'prof_photo'].includes(f.id)),
+    "2. Reputation & Engagement Metrics": data.factors.filter(f => ['rev_rate', 'rev_vol', 'rev_fresh'].includes(f.id)),
+    "3. External & Local SEO (Website Signals)": data.factors.filter(f => ['seo_web', 'seo_title'].includes(f.id)),
+    "4. Competitive Environment": data.factors.filter(f => ['comp_gap'].includes(f.id))
   };
-
-  // Sort Factors into Groups based on IDs (need to map localized names if they exist, but grouping is by ID)
-  data.factors.forEach(f => {
-    // Group 1: GBP Core
-    if (["cat_rel", "sec_cat", "title_opt", "addr_pin", "prof_comp", "ver_status", "cat_consist", "clean_profile", "website_link", "addr_city"].includes(f.id) || f.id.startsWith("blocker_")) {
-       groups["1. Google Business Profile (GBP) Core Signals"].push(f);
-    } 
-    // Group 2: Reputation
-    else if (["rev_vol", "rev_rate", "rev_kw", "freshness", "photo_vol"].includes(f.id)) {
-       groups["2. Reputation & Engagement Metrics"].push(f);
-    } 
-    // Group 3: Website/SEO
-    else if (["seo_h1", "seo_title", "seo_nap", "seo_links", "seo_internal", "seo_geo", "seo_auth"].includes(f.id)) {
-       groups["3. External & Local SEO (Website Signals)"].push(f);
-    } 
-    // Group 4: Competitive
-    else if (["seo_spam", "market_leader", "seo_engage"].includes(f.id)) {
-       groups["4. Competitive Environment"].push(f);
-    } 
-    // Fallback logic
-    else {
-       if (f.category === 'gbp') groups["1. Google Business Profile (GBP) Core Signals"].push(f);
-       else groups["3. External & Local SEO (Website Signals)"].push(f);
-    }
-  });
 
   Object.entries(groups).forEach(([groupTitle, factors]) => {
      if (factors.length === 0) return;
-     checkPageBreak(20);
+     checkPageBreak(25);
+     
+     // Section Header Bar
      doc.setFillColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
      doc.rect(leftMargin, y, maxLineWidth, 8, 'F');
      doc.setTextColor(255, 255, 255);
@@ -538,7 +509,6 @@ export const generateAuditPdf = (data: AuditReportData) => {
   doc.setTextColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
   doc.setFontSize(11);
   
-  // Wrap ROI text inside the box
   const splitRoi = doc.splitTextToSize(roiText, maxLineWidth - 10);
   doc.text(splitRoi, leftMargin + 5, y + 18);
 
