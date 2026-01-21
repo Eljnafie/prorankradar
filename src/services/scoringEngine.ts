@@ -17,7 +17,8 @@ export const calculateScore = (
   };
 
   const addFactor = (
-    id: string, name: string, max: number, aiData: { score: number, analysis: string, fix: string }, category: 'gbp' | 'seo'
+    id: string, name: string, max: number, aiData: { score: number, analysis: string, fix: string }, category: 'gbp' | 'seo',
+    context?: string
   ) => {
     const safeEarned = Math.min(aiData.score, max); // Ensure AI doesn't hallucinate > max
     totalScore += safeEarned;
@@ -27,25 +28,31 @@ export const calculateScore = (
     if (percentage < 0.5) status = 'critical';
     else if (percentage < 0.8) status = 'warning';
 
+    // Append context to analysis if provided
+    const reasonText = context ? `${aiData.analysis} [${context}]` : aiData.analysis;
+
     factors.push({
       id, name, maxScore: max, score: safeEarned, 
       status, impact: max > 10 ? 'high' : max > 5 ? 'medium' : 'low',
-      reason: aiData.analysis, fixAction: formatFix(aiData.fix), category
+      reason: reasonText, fixAction: formatFix(aiData.fix), category
     });
   };
 
   // --- 1. GBP CORE SIGNALS (45 pts) ---
-  addFactor('cat_rel', 'Primary Category Relevance', 10, aiAnalysis.primaryCategory, 'gbp');
-  addFactor('title_opt', 'Business Title Optimization', 10, aiAnalysis.businessTitle, 'gbp');
-  addFactor('addr_prox', 'Physical Address in Target City', 5, aiAnalysis.proximity, 'gbp');
+  addFactor('cat_rel', 'Primary Category Relevance', 10, aiAnalysis.primaryCategory, 'gbp', `Target Keyword: ${inputs.targetKeyword}`);
+  addFactor('title_opt', 'Business Title Optimization', 10, aiAnalysis.businessTitle, 'gbp', `Business Name: ${business.name}`);
+  addFactor('addr_prox', 'Physical Address in Target City', 5, aiAnalysis.proximity, 'gbp', `Target City: ${inputs.targetCity}`);
   addFactor('prof_comp', 'Profile Completeness', 5, aiAnalysis.completeness, 'gbp');
   addFactor('ver_status', 'Verification Status', 5, aiAnalysis.verification, 'gbp');
   addFactor('pin_acc', 'Map Pin Accuracy', 5, aiAnalysis.mapPin, 'gbp');
   addFactor('sec_cat', 'Secondary Categories', 5, aiAnalysis.secondaryCategories, 'gbp');
 
   // --- 2. REPUTATION (20 pts) ---
-  addFactor('rev_rate', 'Review Rating Health', 10, aiAnalysis.reviewRating, 'gbp');
-  addFactor('rev_vol', 'Review Volume Competitive Gap', 5, aiAnalysis.reviewVolume, 'gbp');
+  addFactor('rev_rate', 'Review Rating Health', 10, aiAnalysis.reviewRating, 'gbp', `Current Rating: ${business.rating}`);
+  
+  const leaderRating = competitors.length > 0 ? Math.max(...competitors.map(c => c.rating)) : 0;
+  addFactor('rev_vol', 'Review Volume Competitive Gap', 5, aiAnalysis.reviewVolume, 'gbp', leaderRating > 0 ? `Leader: ${leaderRating}★` : undefined);
+  
   addFactor('rev_kw', 'Keywords in Reviews', 5, aiAnalysis.reviewKeywords, 'gbp');
 
   // --- 3. WEBSITE & LOCAL SEO (25 pts) ---
