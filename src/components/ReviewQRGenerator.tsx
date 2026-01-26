@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Download, ShieldCheck, Printer, Check, Star, AlertTriangle, Link as LinkIcon, Building2, ArrowRight, RefreshCw, QrCode } from 'lucide-react';
-import QRCode from 'qrcode';
 
 interface ReviewQRGeneratorProps {
   onNavigateToAudit: () => void;
@@ -172,6 +171,11 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
     // Only generate if forceQr is true OR we already generated it and just redrawing for text updates
     if ((forceQr || hasGenerated) && reviewLink) {
       try {
+        const QRCode = (window as any).QRCode;
+        if (!QRCode) {
+            throw new Error("QRCode library not loaded yet.");
+        }
+
         const qrDataUrl = await QRCode.toDataURL(reviewLink, {
           errorCorrectionLevel: 'H',
           margin: 0,
@@ -195,7 +199,7 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
         console.error("QR Gen Error", e);
         ctx.fillStyle = '#ef4444';
         ctx.font = 'bold 24px sans-serif';
-        ctx.fillText("Error Generating QR", WIDTH / 2, qrY + qrSize / 2);
+        ctx.fillText("Library Error - Reload", WIDTH / 2, qrY + qrSize / 2);
       }
     } else {
       // Placeholder state
@@ -267,7 +271,7 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
     if (!canvas || !reviewLink || !hasGenerated) return;
     
     // Use jspdf
-    const { jsPDF } = (window as any).jspdf;
+    const { jsPDF } = (window as any).jspdf || window.jspdf;
     if (!jsPDF) {
       alert("PDF library not loaded yet. Please try again.");
       return;
