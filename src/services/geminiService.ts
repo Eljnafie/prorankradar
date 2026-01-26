@@ -1,5 +1,5 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import type { BusinessProfile, AuditInputs, GeminiAnalysis, BlogPost, AuditLanguage } from "../types";
 
 const ANALYSIS_MODEL = 'gemini-3-flash-preview';
@@ -7,7 +7,7 @@ const ANALYSIS_MODEL = 'gemini-3-flash-preview';
 // Helper to get AI instance with dynamic key
 const getAI = (apiKey?: string) => {
   // Check both passed key and environment variable (Vite style)
-  const envKey = import.meta.env.VITE_API_KEY || ''; 
+  const envKey = (import.meta as any).env.VITE_API_KEY || ''; 
   const key = (apiKey || envKey).trim();
   
   if (!key) {
@@ -124,9 +124,9 @@ export const analyzeProfileWithGemini = async (
 
       // Core & SEO
       primaryCategory: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING }, suggested: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["score", "analysis", "fix", "suggested"] },
-      completeness: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
-      websiteOptimization: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
-      backlinks: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
+      completeness: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING }, required: ["score", "analysis", "fix"] },
+      websiteOptimization: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING }, required: ["score", "analysis", "fix"] },
+      backlinks: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING }, required: ["score", "analysis", "fix"] },
 
       executiveSummary: { type: Type.STRING },
       roiForecast: { type: Type.STRING },
@@ -218,7 +218,7 @@ export const generateBlogPost = async (topic: string, language: AuditLanguage, a
         responseMimeType: "application/json",
         responseSchema: schema,
       },
-    }));
+    })) as GenerateContentResponse;
 
     const text = response.text;
     if (!text) throw new Error("Empty response");

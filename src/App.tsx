@@ -79,8 +79,8 @@ const App: React.FC = () => {
   // Load key & state from LocalStorage or ENV
   useEffect(() => {
     // VITE USES import.meta.env
-    const envMapsKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
-    const envGeminiKey = import.meta.env.VITE_API_KEY || '';
+    const envMapsKey = (import.meta as any).env.VITE_GOOGLE_MAPS_API_KEY || '';
+    const envGeminiKey = (import.meta as any).env.VITE_API_KEY || '';
 
     const storedMapsKey = localStorage.getItem('google_maps_api_key');
     const storedGeminiKey = localStorage.getItem('gemini_api_key');

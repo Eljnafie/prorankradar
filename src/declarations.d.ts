@@ -18,9 +18,10 @@ interface Window {
   jspdf?: {
     jsPDF: JsPDFConstructor;
   };
-  QRCode?: {
-    toDataURL(text: string, options?: any): Promise<string>;
-  };
   initGoogleMaps?: () => void;
   google?: any;
+}
+
+declare module 'qrcode' {
+  export function toDataURL(text: string, options?: any): Promise<string>;
 }
