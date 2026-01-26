@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Download, ShieldCheck, Printer, Check, Star, AlertTriangle, Link as LinkIcon, Building2, ArrowRight, RefreshCw, QrCode } from 'lucide-react';
+import { Download, ShieldCheck, Printer, Check, Star, AlertTriangle, Link as LinkIcon, Building2, RefreshCw, QrCode, Loader2, ArrowRight } from 'lucide-react';
 
 interface ReviewQRGeneratorProps {
   onNavigateToAudit: () => void;
@@ -14,7 +14,40 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
   const [validationWarning, setValidationWarning] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasGenerated, setHasGenerated] = useState(false);
+  const [isLibLoaded, setIsLibLoaded] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Load QRCode Library Dynamically if missing
+  useEffect(() => {
+    const checkAndLoad = () => {
+      if ((window as any).QRCode) {
+        setIsLibLoaded(true);
+        return;
+      }
+
+      // If check fails, ensure script is injected
+      if (!document.getElementById('qrcode-lib-script')) {
+        const script = document.createElement('script');
+        script.id = 'qrcode-lib-script';
+        script.src = "https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js";
+        script.async = true;
+        script.onload = () => setIsLibLoaded(true);
+        script.onerror = () => console.error("Failed to load QRCode library");
+        document.body.appendChild(script);
+      } else {
+        // Script exists but maybe not loaded yet, wait a bit
+        const interval = setInterval(() => {
+           if ((window as any).QRCode) {
+             setIsLibLoaded(true);
+             clearInterval(interval);
+           }
+        }, 500);
+        return () => clearInterval(interval);
+      }
+    };
+
+    checkAndLoad();
+  }, []);
 
   // JSON-LD Schema
   const schemaData = {
@@ -199,7 +232,7 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
         console.error("QR Gen Error", e);
         ctx.fillStyle = '#ef4444';
         ctx.font = 'bold 24px sans-serif';
-        ctx.fillText("Library Error - Reload", WIDTH / 2, qrY + qrSize / 2);
+        ctx.fillText("Error Generating QR", WIDTH / 2, qrY + qrSize / 2);
       }
     } else {
       // Placeholder state
@@ -248,6 +281,16 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
         alert("Please paste your review link first.");
         return;
     }
+    if (!isLibLoaded) {
+        // Try one more check
+        if ((window as any).QRCode) {
+            setIsLibLoaded(true);
+        } else {
+            alert("QR Code library is still loading. Please check your internet connection or wait a few seconds.");
+            return;
+        }
+    }
+
     setIsGenerating(true);
     // Add artificial delay to make it feel like "work" and ensure UI updates
     await new Promise(r => setTimeout(r, 500));
@@ -374,6 +417,8 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
                    >
                      {isGenerating ? (
                         <>Generating...</>
+                     ) : !isLibLoaded ? (
+                        <><Loader2 className="w-5 h-5 animate-spin" /> Loading Resources...</>
                      ) : (
                         <><QrCode className="w-5 h-5" /> Generate Preview</>
                      )}
