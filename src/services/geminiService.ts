@@ -25,6 +25,23 @@ const LANGUAGE_MAP: Record<string, string> = {
   pt: 'Portuguese'
 };
 
+// Retry helper for 503 errors
+const retryOperation = async <T>(operation: () => Promise<T>, retries = 3, delay = 2000): Promise<T> => {
+  try {
+    return await operation();
+  } catch (error: any) {
+    const msg = error.message || JSON.stringify(error);
+    const isOverloaded = msg.includes('503') || msg.toLowerCase().includes('overloaded');
+    
+    if (retries > 0 && isOverloaded) {
+      console.warn(`Gemini API Overloaded (503). Retrying in ${delay}ms... (${retries} attempts left)`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return retryOperation(operation, retries - 1, delay * 2);
+    }
+    throw error;
+  }
+};
+
 export const analyzeProfileWithGemini = async (
   business: BusinessProfile,
   inputs: AuditInputs,
@@ -142,14 +159,14 @@ export const analyzeProfileWithGemini = async (
   };
 
   try {
-    const response: any = await ai.models.generateContent({
+    const response: any = await retryOperation(() => ai.models.generateContent({
       model: ANALYSIS_MODEL,
       contents: prompt,
       config: {
         responseMimeType: "application/json",
         responseSchema: schema,
       },
-    });
+    }));
 
     const text = response.text;
     if (!text) throw new Error("Empty response from Gemini");
@@ -158,10 +175,30 @@ export const analyzeProfileWithGemini = async (
 
   } catch (error: any) {
     console.error("Gemini Analysis Error:", error);
-    // Propagate API errors to UI
-    if (error.message?.includes('403')) throw new Error("API Key Invalid or insufficient permissions. Please check your key.");
-    if (error.message?.includes('429')) throw new Error("API Quota exceeded. You may be using a free key with rate limits.");
-    throw error;
+    
+    // Parse JSON error message if provided by SDK
+    let errMsg = error.message || '';
+    try {
+        if (errMsg.trim().startsWith('{')) {
+            const parsed = JSON.parse(errMsg);
+            if (parsed.error && parsed.error.message) {
+                errMsg = parsed.error.message;
+            }
+        }
+    } catch(e) {}
+
+    // Map to specific user-friendly messages
+    if (errMsg.includes('403') || errMsg.includes('API key not valid')) {
+        throw new Error("API Key Invalid. Please check your Gemini API Key in Admin Settings.");
+    }
+    if (errMsg.includes('429') || errMsg.toLowerCase().includes('quota')) {
+        throw new Error("API Quota exceeded. You may be using a free key with rate limits. Please try again later.");
+    }
+    if (errMsg.includes('503') || errMsg.toLowerCase().includes('overloaded')) {
+        throw new Error("Google AI Model is currently overloaded. Please wait 30 seconds and try again.");
+    }
+
+    throw new Error(errMsg || "Unknown Gemini API Error");
   }
 };
 
@@ -190,20 +227,23 @@ export const generateBlogPost = async (topic: string, language: AuditLanguage, a
   };
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await retryOperation(() => ai.models.generateContent({
       model: ANALYSIS_MODEL,
       contents: prompt,
       config: {
         responseMimeType: "application/json",
         responseSchema: schema,
       },
-    });
+    }));
 
     const text = response.text;
     if (!text) throw new Error("Empty response");
     return JSON.parse(text) as Partial<BlogPost>;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Blog Gen Error:", error);
-    throw new Error("Failed to generate blog post");
+    // Reuse specific error parsing if needed, or generic
+    const msg = error.message || '';
+    if (msg.includes('503')) throw new Error("AI Service Overloaded. Try again.");
+    throw new Error("Failed to generate blog post: " + msg);
   }
 };

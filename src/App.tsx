@@ -181,8 +181,15 @@ const App: React.FC = () => {
     } catch (error: any) {
       console.error("Audit failed", error);
       const msg = error?.message || "Unknown error";
-      // This alert now shows specific API errors (e.g., 403, 429)
-      alert(`Audit failed: ${msg}\n\nPlease verify your Gemini API Key in Admin Settings.`);
+      
+      // Determine if it is a key issue to offer helpful hint, otherwise just show message
+      const isKeyError = msg.toLowerCase().includes("key") || msg.includes("403");
+      
+      if (isKeyError) {
+         alert(`Audit failed: ${msg}\n\nPlease verify your Gemini API Key in Admin Settings.`);
+      } else {
+         alert(`Audit failed: ${msg}`);
+      }
     } finally {
       setLoading(false);
     }
