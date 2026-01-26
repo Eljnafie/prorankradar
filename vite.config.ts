@@ -4,18 +4,13 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
-  optimizeDeps: {
-    exclude: ['react', 'react-dom', 'react-router-dom']
-  },
+  // Removed optimizeDeps.exclude and build.rollupOptions.external
+  // to force Vite to bundle React, ReactDOM, and Router.
+  // This ensures a single React instance and fixes the "Objects are not valid as a React child" error.
   build: {
     rollupOptions: {
       external: [
-        'react',
-        'react-dom',
-        'react-dom/client',
-        'react-router-dom',
-        'lucide-react',
-        'recharts',
+        // Keep Google GenAI external as it's loaded via importmap/CDN to save bundle size
         '@google/genai'
       ]
     }
