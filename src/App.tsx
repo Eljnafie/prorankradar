@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect } from 'react';
-// @ts-ignore
 import { BrowserRouter, Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import AuditForm from './components/AuditForm';
 import AuditReport from './components/AuditReport';

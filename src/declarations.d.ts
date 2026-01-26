@@ -20,5 +20,7 @@ interface Window {
   };
   initGoogleMaps?: () => void;
   google?: any;
-  QRCode?: any; // Add QRCode to window interface
+  QRCode?: any; 
 }
+
+declare module 'react-router-dom';
