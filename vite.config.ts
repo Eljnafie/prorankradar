@@ -9,6 +9,7 @@ export default defineConfig({
       external: [
         'react',
         'react-dom',
+        'react-dom/client',
         'react-router-dom',
         'lucide-react',
         'recharts',
