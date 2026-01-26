@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Download, ShieldCheck, Printer, Check, Star, QrCode as QrIcon, AlertTriangle, Link as LinkIcon, Building2, ArrowRight, RefreshCw } from 'lucide-react';
+import { Download, ShieldCheck, Printer, Check, Star, AlertTriangle, Link as LinkIcon, Building2, ArrowRight, RefreshCw } from 'lucide-react';
 
 interface ReviewQRGeneratorProps {
   onNavigateToAudit: () => void;
