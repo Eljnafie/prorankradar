@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+// @ts-ignore
 import { BrowserRouter, Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import AuditForm from './components/AuditForm';
 import AuditReport from './components/AuditReport';
@@ -77,9 +78,9 @@ const AppContent: React.FC = () => {
 
   // Load key & state from LocalStorage or ENV
   useEffect(() => {
-    // VITE USES import.meta.env
-    const envMapsKey = (import.meta as any).env.VITE_GOOGLE_MAPS_API_KEY || '';
-    const envGeminiKey = (import.meta as any).env.VITE_API_KEY || '';
+    // Check various env patterns
+    const envMapsKey = (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY || (window as any).process?.env?.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
+    const envGeminiKey = (import.meta as any).env?.VITE_API_KEY || (window as any).process?.env?.API_KEY || '';
 
     const storedMapsKey = localStorage.getItem('google_maps_api_key');
     const storedGeminiKey = localStorage.getItem('gemini_api_key');
@@ -93,16 +94,24 @@ const AppContent: React.FC = () => {
     else if (storedGeminiKey) setGeminiKey(storedGeminiKey);
 
     if (storedContent) {
-      const parsed = JSON.parse(storedContent);
-      setSiteContent({
-        ...DEFAULT_CONTENT,
-        ...parsed,
-        pricing: parsed.pricing || DEFAULT_CONTENT.pricing
-      });
+      try {
+        const parsed = JSON.parse(storedContent);
+        setSiteContent({
+          ...DEFAULT_CONTENT,
+          ...parsed,
+          pricing: parsed.pricing || DEFAULT_CONTENT.pricing
+        });
+      } catch(e) {
+        console.error("Content Parse Error", e);
+      }
     }
     
     if (storedBlogs) {
-      setBlogPosts(JSON.parse(storedBlogs));
+      try {
+        setBlogPosts(JSON.parse(storedBlogs));
+      } catch(e) {
+        setBlogPosts([PILLAR_POST]);
+      }
     } else {
       setBlogPosts([PILLAR_POST]);
       localStorage.setItem('blog_posts', JSON.stringify([PILLAR_POST]));
@@ -174,7 +183,6 @@ const AppContent: React.FC = () => {
     } catch (error: any) {
       console.error("Audit failed", error);
       const msg = error?.message || "Unknown error";
-      
       const isKeyError = msg.toLowerCase().includes("key") || msg.includes("403");
       
       if (isKeyError) {
