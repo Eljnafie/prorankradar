@@ -15,7 +15,6 @@ const PDF_TRANSLATIONS: Record<AuditLanguage, Record<string, string>> = {
     grid_legend: "Grid Legend:",
     money_zones: "Money Zones (Top 3)",
     lost_revenue: "Lost Revenue (Ranking > 10)",
-    your_loc: "Your Location",
     comp_gap: "Competitive Gap Analysis",
     you: "You",
     leader: "Leader",
@@ -38,7 +37,6 @@ const PDF_TRANSLATIONS: Record<AuditLanguage, Record<string, string>> = {
     grid_legend: "Leyenda:",
     money_zones: "Zonas de Dinero (Top 3)",
     lost_revenue: "Ingresos Perdidos (> 10)",
-    your_loc: "Tu Ubicación",
     comp_gap: "Análisis de Brecha Competitiva",
     you: "Tú",
     leader: "Líder",
@@ -61,7 +59,6 @@ const PDF_TRANSLATIONS: Record<AuditLanguage, Record<string, string>> = {
     grid_legend: "Légende:",
     money_zones: "Zones Rentables (Top 3)",
     lost_revenue: "Revenus Perdus (> 10)",
-    your_loc: "Votre Emplacement",
     comp_gap: "Analyse de l'Écart Concurrentiel",
     you: "Vous",
     leader: "Leader",
@@ -84,7 +81,6 @@ const PDF_TRANSLATIONS: Record<AuditLanguage, Record<string, string>> = {
     grid_legend: "Legende:",
     money_zones: "Geldzonen (Top 3)",
     lost_revenue: "Verlorener Umsatz (> 10)",
-    your_loc: "Ihr Standort",
     comp_gap: "Wettbewerbsanalyse",
     you: "Sie",
     leader: "Führer",
@@ -107,7 +103,6 @@ const PDF_TRANSLATIONS: Record<AuditLanguage, Record<string, string>> = {
     grid_legend: "Legenda:",
     money_zones: "Zone Redditizie (Top 3)",
     lost_revenue: "Ricavi Persi (> 10)",
-    your_loc: "Tua Posizione",
     comp_gap: "Analisi Competitiva",
     you: "Tu",
     leader: "Leader",
@@ -130,7 +125,6 @@ const PDF_TRANSLATIONS: Record<AuditLanguage, Record<string, string>> = {
     grid_legend: "Legenda:",
     money_zones: "Zonas de Lucro (Top 3)",
     lost_revenue: "Receita Perdida (> 10)",
-    your_loc: "Sua Localização",
     comp_gap: "Análise Competitiva",
     you: "Você",
     leader: "Líder",
@@ -191,7 +185,7 @@ export const generateAuditPdf = (data: AuditReportData) => {
       doc.text(line, leftMargin + indent, y);
       y += lineHeight + 2;
     });
-    y += 2;
+    // Do not double increment y here, leave it to the loop or caller for spacing
   };
 
   // --- Header Function (Applied to subsequent pages) ---
@@ -237,11 +231,21 @@ export const generateAuditPdf = (data: AuditReportData) => {
   y = 90;
 
   // --- 2. EXECUTIVE VISUALS ---
+  
+  // Title
   doc.setTextColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
   doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
   doc.text(t.exec_summary, leftMargin, y);
-  y += 20;
+  y += 10;
+
+  // Actual Executive Summary Text from Gemini
+  if (data.geminiAnalysis.executiveSummary) {
+    addWrappedText(data.geminiAnalysis.executiveSummary, 10, "normal", COLORS.slate600);
+    y += 10; // Extra space after text
+  } else {
+    y += 5;
+  }
 
   // Draw Circles for Scores
   const drawScoreCircle = (label: string, score: number, xPos: number) => {
@@ -267,9 +271,6 @@ export const generateAuditPdf = (data: AuditReportData) => {
   };
 
   // --- SCORE CALCULATION ALIGNMENT ---
-  // To match Web UI exactly:
-  // "GBP Health" = Section 1 only (Core Signals)
-  // "SEO Strength" = Section 3 only (Website & Local SEO)
   const gbpSectionFactors = data.factors.filter(f => 
     ['cat_rel', 'title_opt', 'addr_prox', 'prof_comp', 'ver_status', 'pin_acc', 'sec_cat'].includes(f.id)
   );
@@ -285,14 +286,14 @@ export const generateAuditPdf = (data: AuditReportData) => {
   const gbpPercent = Math.round((gbpSectionScore / (gbpSectionMax || 1)) * 100);
   const seoPercent = Math.round((seoSectionScore / (seoSectionMax || 1)) * 100);
 
-  // Position circles nicely
   drawScoreCircle(t.overall, data.overallScore, leftMargin + 30);
   drawScoreCircle(t.gbp_health, gbpPercent, leftMargin + 85);
   drawScoreCircle(t.seo_strength, seoPercent, leftMargin + 140);
 
   y += 55;
 
-  // Ranking Potential Forecast Box (Blue Box from screenshot)
+  // Ranking Potential Forecast Box (Blue Box)
+  checkPageBreak(30);
   doc.setFillColor(COLORS.blue600[0], COLORS.blue600[1], COLORS.blue600[2]);
   doc.rect(leftMargin, y, maxLineWidth, 25, 'F');
   
@@ -303,7 +304,6 @@ export const generateAuditPdf = (data: AuditReportData) => {
   
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  // Use the short ranking potential string
   const potentialText = data.geminiAnalysis.fixPlan.rankingPotential || "Fixing critical issues can push this profile to the Top 5.";
   doc.text(potentialText, leftMargin + 5, y + 16);
   
@@ -342,13 +342,6 @@ export const generateAuditPdf = (data: AuditReportData) => {
       
       doc.setFillColor(color[0], color[1], color[2]);
       doc.circle(cx, cy, circleSize, 'F');
-
-      // Add 'You' label to center
-      if (isCenter) {
-         doc.setTextColor(255, 255, 255);
-         doc.setFontSize(4);
-         doc.text("YOU", cx, cy+0.5, {align:'center'});
-      }
     }
   }
 
@@ -359,17 +352,24 @@ export const generateAuditPdf = (data: AuditReportData) => {
   doc.text(t.grid_legend, legendX, y + 10);
   
   // Legend Dots
+  // 1. Top 3 (Green)
   doc.setFillColor(COLORS.green500[0], COLORS.green500[1], COLORS.green500[2]);
   doc.circle(legendX + 2, y + 18, 2, 'F');
   doc.text(t.money_zones, legendX + 6, y + 20);
 
+  // 2. Lost Revenue (Red)
   doc.setFillColor(COLORS.red500[0], COLORS.red500[1], COLORS.red500[2]);
   doc.circle(legendX + 2, y + 28, 2, 'F');
   doc.text(t.lost_revenue, legendX + 6, y + 30);
 
-  doc.setFillColor(COLORS.blue600[0], COLORS.blue600[1], COLORS.blue600[2]);
+  // 3. Client Name (Color based on Score)
+  const myScoreColor = data.overallScore >= 80 ? COLORS.green500 : data.overallScore >= 50 ? COLORS.yellow500 : COLORS.red500;
+  doc.setFillColor(myScoreColor[0], myScoreColor[1], myScoreColor[2]);
   doc.circle(legendX + 2, y + 38, 2, 'F');
-  doc.text(t.your_loc, legendX + 6, y + 40);
+  // Truncate name if too long to avoid overflow
+  let displayName = data.business.name;
+  if(displayName.length > 25) displayName = displayName.substring(0, 22) + "...";
+  doc.text(displayName, legendX + 6, y + 40);
 
   y += (gridSize * gap) + 15;
 
@@ -406,12 +406,10 @@ export const generateAuditPdf = (data: AuditReportData) => {
   y += 40;
 
   // Review Goal Text
-  // Calculate review goal based on ratings gap
   let reviewsNeeded = 0;
   if (clientRating < competitorRating) {
       const currentReviews = data.business.user_ratings_total || 1;
       const safeTarget = Math.min(competitorRating, 4.9);
-      // X = N * (Target - Current) / (5 - Target)
       reviewsNeeded = Math.ceil((currentReviews * (safeTarget - clientRating)) / (5 - safeTarget));
       if (reviewsNeeded < 5) reviewsNeeded = 5;
       if (reviewsNeeded > 1000) reviewsNeeded = 999;
@@ -435,9 +433,10 @@ export const generateAuditPdf = (data: AuditReportData) => {
   doc.text(t.detailed_audit, leftMargin, y);
   y += 15;
 
-  // Helper for rows
+  // Helper for rows with FIXED spacing logic to avoid overlaps
   const addAuditRow = (factor: ScoringFactor) => {
-    checkPageBreak(45);
+    // Ensure we have space for at least title + one line of text + fix
+    checkPageBreak(50);
     
     // Status Badge
     let statusText = "[PASS]";
@@ -455,25 +454,31 @@ export const generateAuditPdf = (data: AuditReportData) => {
     doc.setTextColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
     doc.text(factor.name, leftMargin + 15, y);
 
-    y += 6;
+    y += 6; // Move down after title
 
-    // Analysis
+    // Analysis Header
     doc.setFont("helvetica", "bold");
     doc.setTextColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
     doc.text(t.analysis, leftMargin, y);
-    addWrappedText(factor.reason, 10, "normal", COLORS.slate600, 0); // starts below title
+    y += 5; // Move down for analysis text
     
+    // Analysis Body
+    addWrappedText(factor.reason, 10, "normal", COLORS.slate600, 0);
+    
+    y += 4; // Buffer after analysis block
+
     // Fix (Only for Warn/Fail)
     if (factor.status !== 'good') {
         doc.setFont("helvetica", "bold");
         doc.setTextColor(COLORS.blue600[0], COLORS.blue600[1], COLORS.blue600[2]);
         doc.text(t.step_fix, leftMargin, y);
-        y += 5;
+        y += 5; // Move down for fix text
         // Fix instructions in plain color
         addWrappedText(factor.fixAction, 10, "normal", COLORS.slate900);
+        y += 4; // Buffer after fix block
     }
     
-    y += 4; // Spacing
+    y += 4; // Spacing between rows
   };
 
   // Grouped Rendering matching exactly the Web UI Sections
@@ -493,7 +498,7 @@ export const generateAuditPdf = (data: AuditReportData) => {
 
   Object.entries(groups).forEach(([groupTitle, factors]) => {
      if (factors.length === 0) return;
-     checkPageBreak(25);
+     checkPageBreak(30);
      
      // Section Header Bar
      doc.setFillColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
