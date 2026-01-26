@@ -1,9 +1,11 @@
 
 import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
 
 export default defineConfig({
-  plugins: [react()],
+  // Removed react() plugin to avoid conflict with CDN React instance
+  esbuild: {
+    jsxInject: `import React from 'react'`, // Auto-inject React for JSX
+  },
   build: {
     rollupOptions: {
       external: [
@@ -16,5 +18,9 @@ export default defineConfig({
         '@google/genai'
       ]
     }
+  },
+  define: {
+    // Prevent crashes if code accesses process.env
+    'process.env': {} 
   }
 });
