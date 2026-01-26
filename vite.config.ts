@@ -1,8 +1,9 @@
+
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  // Force classic JSX to use the global 'React' identifier from importmap
-  // This prevents 'Minified React error #31' caused by dual-react instances (runtime vs bundled)
+  // Force esbuild to transform JSX to React.createElement
+  // This is compatible with importing 'React' from esm.sh
   esbuild: {
     jsx: 'transform',
   },
