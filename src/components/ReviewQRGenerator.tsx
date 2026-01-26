@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Download, ShieldCheck, Printer, Check, Star, AlertTriangle, Link as LinkIcon, Building2, ArrowRight, RefreshCw, QrCode } from 'lucide-react';
+import QRCode from 'qrcode';
 
 interface ReviewQRGeneratorProps {
   onNavigateToAudit: () => void;
@@ -14,7 +15,6 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
   const [validationWarning, setValidationWarning] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasGenerated, setHasGenerated] = useState(false);
-  const [libReady, setLibReady] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // JSON-LD Schema
@@ -26,52 +26,6 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
     "operatingSystem": "Web",
     "description": "Generate a high-conversion Google Review QR code stand for your business."
   };
-
-  // Robust Library Loading
-  useEffect(() => {
-    let interval: any;
-    const MAX_RETRIES = 50; // 5 seconds
-    let retries = 0;
-
-    const loadScript = (src: string) => {
-        const script = document.createElement('script');
-        script.src = src;
-        script.async = true;
-        script.onload = () => setLibReady(true);
-        script.onerror = () => console.warn("Failed to load QR lib from", src);
-        document.body.appendChild(script);
-    };
-
-    // 1. Check if already loaded
-    if ((window as any).QRCode) {
-      setLibReady(true);
-    } else {
-      // 2. Poll for it (maybe index.html script is slow)
-      interval = setInterval(() => {
-        if ((window as any).QRCode) {
-          setLibReady(true);
-          clearInterval(interval);
-        } else {
-          retries++;
-          // 3. If not found after 1.5 seconds, force inject main CDN
-          if (retries === 15) { 
-             console.log("QR Lib slow, injecting explicit loader...");
-             loadScript("https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js");
-          }
-          // 4. If not found after 4 seconds, try backup CDN
-          if (retries === 40) {
-             console.log("QR Lib main CDN failed, trying backup...");
-             loadScript("https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js");
-          }
-          if (retries > MAX_RETRIES) {
-             clearInterval(interval);
-          }
-        }
-      }, 100);
-    }
-
-    return () => clearInterval(interval);
-  }, []);
 
   const validateLink = (url: string) => {
     if (!url) return true;
@@ -131,8 +85,6 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const QRCodeLib = (window as any).QRCode;
-    
     // Standard 4x6 inch ratio @ 300 DPI approx
     const WIDTH = 1200;
     const HEIGHT = 1800;
@@ -218,9 +170,9 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
 
     // GENERATE QR
     // Only generate if forceQr is true OR we already generated it and just redrawing for text updates
-    if ((forceQr || hasGenerated) && reviewLink && QRCodeLib) {
+    if ((forceQr || hasGenerated) && reviewLink) {
       try {
-        const qrDataUrl = await QRCodeLib.toDataURL(reviewLink, {
+        const qrDataUrl = await QRCode.toDataURL(reviewLink, {
           errorCorrectionLevel: 'H',
           margin: 0,
           width: qrSize,
@@ -254,16 +206,9 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
       ctx.font = 'bold 32px sans-serif';
       
       let msg = "Click 'Generate Preview'";
-      if (!QRCodeLib) msg = "Loading Library...";
       if (hasGenerated) msg = "Generating...";
       
       ctx.fillText(msg, WIDTH / 2, qrY + qrSize / 2);
-      
-      if (!QRCodeLib) {
-         ctx.font = 'normal 18px sans-serif';
-         ctx.fillStyle = '#cbd5e1';
-         ctx.fillText("Please check connection", WIDTH / 2, qrY + qrSize / 2 + 40);
-      }
     }
 
     // 6. Footer Text (Business Name & CTA)
@@ -292,7 +237,7 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
   // Redraw when text changes, but don't force QR regen unless explicitly triggered
   useEffect(() => {
     drawCanvas(false);
-  }, [businessName, libReady]); 
+  }, [businessName]); 
 
   const handleGenerate = async () => {
     if (!reviewLink) {

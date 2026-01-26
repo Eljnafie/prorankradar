@@ -9,8 +9,9 @@ interface QRCodeOptions {
   };
 }
 
-interface QRCodeLib {
-  toDataURL(text: string, options?: QRCodeOptions): Promise<string>;
+// Declare the module for import
+declare module 'qrcode' {
+  export function toDataURL(text: string, options?: QRCodeOptions): Promise<string>;
 }
 
 interface JsPDFInstance {
@@ -29,7 +30,6 @@ interface JsPDFConstructor {
 }
 
 interface Window {
-  QRCode?: QRCodeLib;
   jspdf?: {
     jsPDF: JsPDFConstructor;
   };
