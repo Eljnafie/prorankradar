@@ -15,39 +15,53 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasGenerated, setHasGenerated] = useState(false);
   const [isLibLoaded, setIsLibLoaded] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Load QRCode Library Dynamically if missing
   useEffect(() => {
-    const checkAndLoad = () => {
+    let interval: any;
+    let attempts = 0;
+
+    const checkLibrary = () => {
       if ((window as any).QRCode) {
         setIsLibLoaded(true);
-        return;
+        if (interval) clearInterval(interval);
+        return true;
       }
-
-      // If check fails, ensure script is injected
-      if (!document.getElementById('qrcode-lib-script')) {
-        const script = document.createElement('script');
-        script.id = 'qrcode-lib-script';
-        script.src = "https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js";
-        script.async = true;
-        script.onload = () => setIsLibLoaded(true);
-        script.onerror = () => console.error("Failed to load QRCode library");
-        document.body.appendChild(script);
-      } else {
-        // Script exists but maybe not loaded yet, wait a bit
-        const interval = setInterval(() => {
-           if ((window as any).QRCode) {
-             setIsLibLoaded(true);
-             clearInterval(interval);
-           }
-        }, 500);
-        return () => clearInterval(interval);
-      }
+      return false;
     };
 
-    checkAndLoad();
-  }, []);
+    // Immediate check
+    if (checkLibrary()) return;
+
+    // Poll for library
+    interval = setInterval(() => {
+      attempts++;
+      if (checkLibrary()) return;
+
+      // If not loaded after 5 seconds, try injecting fallback
+      if (attempts === 10) { // 500ms * 10 = 5s
+         if (!document.getElementById('qrcode-lib-fallback')) {
+            console.warn("QR Code lib slow to load, trying unpkg fallback...");
+            const script = document.createElement('script');
+            script.id = 'qrcode-lib-fallback';
+            script.src = "https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js";
+            script.async = true;
+            script.onload = () => setIsLibLoaded(true);
+            document.body.appendChild(script);
+         }
+      }
+
+      // Timeout after 15 seconds
+      if (attempts > 30) {
+        clearInterval(interval);
+        if (!isLibLoaded) setLoadError(true);
+      }
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, [isLibLoaded]);
 
   // JSON-LD Schema
   const schemaData = {
@@ -282,13 +296,13 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
         return;
     }
     if (!isLibLoaded) {
-        // Try one more check
-        if ((window as any).QRCode) {
-            setIsLibLoaded(true);
-        } else {
-            alert("QR Code library is still loading. Please check your internet connection or wait a few seconds.");
-            return;
+        // Try to force reload via fallback if not loaded
+        if (loadError) {
+           window.location.reload();
+           return;
         }
+        alert("Resources are still loading. Please wait a moment.");
+        return;
     }
 
     setIsGenerating(true);
@@ -412,11 +426,14 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
                 <div className="pt-2">
                    <button 
                      onClick={handleGenerate}
-                     disabled={!reviewLink || isGenerating}
-                     className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                     disabled={!reviewLink || isGenerating || (!isLibLoaded && !loadError)}
+                     className={`w-full py-4 font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed
+                        ${loadError ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/30'}`}
                    >
                      {isGenerating ? (
                         <>Generating...</>
+                     ) : loadError ? (
+                        <>Network Error - Refresh Page</>
                      ) : !isLibLoaded ? (
                         <><Loader2 className="w-5 h-5 animate-spin" /> Loading Resources...</>
                      ) : (
