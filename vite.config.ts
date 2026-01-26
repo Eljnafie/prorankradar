@@ -1,8 +1,12 @@
-
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  // Force Vite to exclude these from pre-bundling, so they resolve via importmap in dev
+  // Force classic JSX to use the global 'React' identifier from importmap
+  // This prevents 'Minified React error #31' caused by dual-react instances (runtime vs bundled)
+  esbuild: {
+    jsx: 'transform',
+  },
+  // Prevent Vite from bundling these dependencies in dev mode
   optimizeDeps: {
     exclude: [
       'react',
@@ -15,8 +19,8 @@ export default defineConfig({
     ]
   },
   build: {
+    // Treat these as external in production bundle
     rollupOptions: {
-      // Ensure these are treated as external in the final bundle
       external: [
         'react',
         'react-dom',
@@ -29,7 +33,6 @@ export default defineConfig({
     }
   },
   define: {
-    // Polyfill process.env for browser compatibility if libs require it
     'process.env': {} 
   }
 });
