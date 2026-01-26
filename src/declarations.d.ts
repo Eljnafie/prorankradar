@@ -1,19 +1,4 @@
 
-interface QRCodeOptions {
-  errorCorrectionLevel?: 'L' | 'M' | 'Q' | 'H';
-  margin?: number;
-  width?: number;
-  color?: {
-    dark?: string;
-    light?: string;
-  };
-}
-
-// Declare the module for import
-declare module 'qrcode' {
-  export function toDataURL(text: string, options?: QRCodeOptions): Promise<string>;
-}
-
 interface JsPDFInstance {
   internal: {
     pageSize: {
@@ -32,6 +17,9 @@ interface JsPDFConstructor {
 interface Window {
   jspdf?: {
     jsPDF: JsPDFConstructor;
+  };
+  QRCode?: {
+    toDataURL(text: string, options?: any): Promise<string>;
   };
   initGoogleMaps?: () => void;
   google?: any;

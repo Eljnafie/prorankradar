@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Download, ShieldCheck, Printer, Check, Star, AlertTriangle, Link as LinkIcon, Building2, ArrowRight, RefreshCw, QrCode } from 'lucide-react';
-import QRCode from 'qrcode';
 
 interface ReviewQRGeneratorProps {
   onNavigateToAudit: () => void;
@@ -15,6 +14,8 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
   const [validationWarning, setValidationWarning] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasGenerated, setHasGenerated] = useState(false);
+  const [libReady, setLibReady] = useState(false);
+  const [libError, setLibError] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // JSON-LD Schema
@@ -26,6 +27,28 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
     "operatingSystem": "Web",
     "description": "Generate a high-conversion Google Review QR code stand for your business."
   };
+
+  // Robust Library Check
+  useEffect(() => {
+    let attempts = 0;
+    const maxAttempts = 30; // 3 seconds total
+    
+    const checkLib = () => {
+      if (window.QRCode) {
+        setLibReady(true);
+        setLibError(false);
+      } else {
+        attempts++;
+        if (attempts >= maxAttempts) {
+          setLibError(true);
+        } else {
+          setTimeout(checkLib, 100);
+        }
+      }
+    };
+    
+    checkLib();
+  }, []);
 
   const validateLink = (url: string) => {
     if (!url) return true;
@@ -170,9 +193,9 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
 
     // GENERATE QR
     // Only generate if forceQr is true OR we already generated it and just redrawing for text updates
-    if ((forceQr || hasGenerated) && reviewLink) {
+    if ((forceQr || hasGenerated) && reviewLink && window.QRCode) {
       try {
-        const qrDataUrl = await QRCode.toDataURL(reviewLink, {
+        const qrDataUrl = await window.QRCode.toDataURL(reviewLink, {
           errorCorrectionLevel: 'H',
           margin: 0,
           width: qrSize,
@@ -209,6 +232,12 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
       if (hasGenerated) msg = "Generating...";
       
       ctx.fillText(msg, WIDTH / 2, qrY + qrSize / 2);
+      
+      if (!window.QRCode) {
+         ctx.font = 'normal 18px sans-serif';
+         ctx.fillStyle = '#cbd5e1';
+         ctx.fillText("Loading Library...", WIDTH / 2, qrY + qrSize / 2 + 40);
+      }
     }
 
     // 6. Footer Text (Business Name & CTA)
@@ -237,7 +266,7 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
   // Redraw when text changes, but don't force QR regen unless explicitly triggered
   useEffect(() => {
     drawCanvas(false);
-  }, [businessName]); 
+  }, [businessName, libReady]); // Re-draw when lib becomes ready
 
   const handleGenerate = async () => {
     if (!reviewLink) {
@@ -250,6 +279,10 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
     await drawCanvas(true);
     setHasGenerated(true);
     setIsGenerating(false);
+  };
+
+  const retryLoadLib = () => {
+    window.location.reload();
   };
 
   // Download Handlers
@@ -365,15 +398,22 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
                 <div className="pt-2">
                    <button 
                      onClick={handleGenerate}
-                     disabled={!reviewLink || isGenerating}
+                     disabled={!reviewLink || isGenerating || !libReady}
                      className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                    >
                      {isGenerating ? (
                         <>Generating...</>
+                     ) : !libReady ? (
+                        libError ? "Library Failed (Reload Page)" : "Loading Library..."
                      ) : (
                         <><QrCode className="w-5 h-5" /> Generate Preview</>
                      )}
                    </button>
+                   {libError && (
+                     <button onClick={retryLoadLib} className="text-xs text-red-500 underline mt-2 w-full text-center">
+                       Click here to reload page if library is stuck
+                     </button>
+                   )}
                 </div>
 
                 {/* Downloads - Only active after generation */}
