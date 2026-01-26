@@ -11,7 +11,7 @@ const GOOGLE_G_LOGO_SVG = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/20
 const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit }) => {
   const [businessName, setBusinessName] = useState('');
   const [reviewLink, setReviewLink] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [validationWarning, setValidationWarning] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [libReady, setLibReady] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -54,10 +54,12 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
   const handleLinkChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setReviewLink(val);
+    
+    // Warn but do not block generation
     if (val && !validateLink(val)) {
-      setError("Please enter a valid Google Review link (e.g., g.page/...).");
+      setValidationWarning("Link doesn't look like a standard Google Review URL, but we'll generate it anyway.");
     } else {
-      setError(null);
+      setValidationWarning(null);
     }
   };
 
@@ -112,10 +114,19 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
       const logoY = 180;
       const logoX = (WIDTH - logoSize) / 2;
       
-      const logoImg = new Image();
-      logoImg.src = GOOGLE_G_LOGO_SVG;
-      await new Promise(r => { logoImg.onload = r; if(logoImg.complete) r(null); });
-      ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize);
+      try {
+        const logoImg = new Image();
+        logoImg.crossOrigin = "Anonymous";
+        logoImg.src = GOOGLE_G_LOGO_SVG;
+        await new Promise((resolve, reject) => { 
+            logoImg.onload = resolve; 
+            logoImg.onerror = resolve; // Continue even if logo fails
+            if(logoImg.complete) resolve(null); 
+        });
+        ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize);
+      } catch (e) {
+        console.warn("Logo load failed", e);
+      }
 
       // 3. Header Text
       ctx.textAlign = 'center';
@@ -145,13 +156,12 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
       const qrX = (WIDTH - qrSize) / 2;
 
       // QR Container Box (Subtle Shadow/Border effect)
-      // Shadow
+      ctx.save();
       ctx.shadowColor = "rgba(0, 0, 0, 0.1)";
       ctx.shadowBlur = 30;
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 10;
       
-      // Box
       ctx.fillStyle = '#FFFFFF';
       ctx.strokeStyle = '#e2e8f0';
       ctx.lineWidth = 2;
@@ -164,16 +174,18 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
       const boxY = qrY - p;
       
       ctx.beginPath();
-      ctx.roundRect(boxX, boxY, boxSize, boxSize, r);
+      if ((ctx as any).roundRect) {
+        (ctx as any).roundRect(boxX, boxY, boxSize, boxSize, r);
+      } else {
+        ctx.rect(boxX, boxY, boxSize, boxSize); // Fallback
+      }
       ctx.fill();
       ctx.stroke();
-      
-      // Reset Shadow
-      ctx.shadowColor = "transparent";
-      ctx.shadowBlur = 0;
-      ctx.shadowOffsetY = 0;
+      ctx.restore();
 
-      if (reviewLink && !error && QRCodeLib) {
+      // GENERATE QR
+      // We generate even if there is a validation warning, as long as there is text
+      if (reviewLink && QRCodeLib) {
         try {
           const qrDataUrl = await QRCodeLib.toDataURL(reviewLink, {
             errorCorrectionLevel: 'H',
@@ -187,11 +199,18 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
 
           const qrImage = new Image();
           qrImage.src = qrDataUrl;
-          await new Promise(r => { qrImage.onload = r; if(qrImage.complete) r(null); });
+          await new Promise((resolve) => { 
+              qrImage.onload = resolve; 
+              qrImage.onerror = resolve; 
+              if(qrImage.complete) resolve(null);
+          });
           ctx.drawImage(qrImage, qrX, qrY, qrSize, qrSize);
 
         } catch (e) {
           console.error("QR Gen Error", e);
+          ctx.fillStyle = '#ef4444';
+          ctx.font = 'bold 24px sans-serif';
+          ctx.fillText("Error Generating QR", WIDTH / 2, qrY + qrSize / 2);
         }
       } else {
         // Placeholder state
@@ -228,14 +247,14 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
     };
 
     // Debounce drawing
-    const timeout = setTimeout(drawCanvas, 200);
+    const timeout = setTimeout(drawCanvas, 150);
     return () => clearTimeout(timeout);
-  }, [businessName, reviewLink, error, libReady]);
+  }, [businessName, reviewLink, validationWarning, libReady]);
 
   // Download Handlers
   const handleDownloadPNG = () => {
     const canvas = canvasRef.current;
-    if (!canvas || error || !reviewLink) {
+    if (!canvas || !reviewLink) {
         if(!reviewLink) alert("Please paste your review link first.");
         return;
     }
@@ -247,7 +266,7 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
 
   const handleDownloadPDF = () => {
     const canvas = canvasRef.current;
-    if (!canvas || error || !reviewLink) {
+    if (!canvas || !reviewLink) {
         if(!reviewLink) alert("Please paste your review link first.");
         return;
     }
@@ -333,7 +352,7 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
                        placeholder="https://g.page/r/..."
                        value={reviewLink}
                        onChange={handleLinkChange}
-                       className={`w-full px-4 py-3 border rounded-lg focus:ring-2 outline-none transition-all ${error ? 'border-red-300 focus:ring-red-200' : 'border-slate-200 focus:ring-blue-500'}`}
+                       className={`w-full px-4 py-3 border rounded-lg focus:ring-2 outline-none transition-all ${validationWarning ? 'border-yellow-300 focus:ring-yellow-200' : 'border-slate-200 focus:ring-blue-500'}`}
                      />
                      {!reviewLink && (
                        <div className="absolute right-3 top-3.5 text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded">
@@ -341,9 +360,9 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
                        </div>
                      )}
                    </div>
-                   {error ? (
-                     <p className="text-xs text-red-500 mt-2 flex items-center gap-1">
-                        <AlertTriangle className="w-3 h-3" /> {error}
+                   {validationWarning ? (
+                     <p className="text-xs text-yellow-600 mt-2 flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" /> {validationWarning}
                      </p>
                    ) : (
                      <p className="text-xs text-slate-500 mt-2">Paste your "Get more reviews" link from your Google Business Profile.</p>
@@ -355,7 +374,7 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
                    <div className="grid grid-cols-2 gap-4">
                       <button 
                         onClick={handleDownloadPDF}
-                        disabled={!reviewLink || !!error || isGenerating}
+                        disabled={!reviewLink || isGenerating}
                         className="flex flex-col items-center justify-center p-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed group shadow-lg shadow-slate-900/20"
                       >
                          <Printer className="w-6 h-6 mb-2 group-hover:scale-110 transition-transform" />
@@ -364,7 +383,7 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
                       </button>
                       <button 
                         onClick={handleDownloadPNG}
-                        disabled={!reviewLink || !!error}
+                        disabled={!reviewLink}
                         className="flex flex-col items-center justify-center p-4 bg-white border-2 border-slate-200 hover:border-blue-500 hover:bg-blue-50 text-slate-700 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
                       >
                          <Download className="w-6 h-6 mb-2 group-hover:text-blue-600 transition-colors" />
