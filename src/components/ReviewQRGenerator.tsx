@@ -24,7 +24,9 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
     let attempts = 0;
 
     const checkLibrary = () => {
-      if ((window as any).QRCode) {
+      // Specifically check for toDataURL to ensure we have the correct library (node-qrcode),
+      // not the legacy qrcodejs which doesn't support canvas generation this way.
+      if ((window as any).QRCode && (window as any).QRCode.toDataURL) {
         setIsLibLoaded(true);
         if (interval) clearInterval(interval);
         return true;
@@ -48,16 +50,18 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
             script.id = 'qrcode-lib-fallback';
             script.src = "https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js";
             script.async = true;
-            script.onload = () => setIsLibLoaded(true);
+            script.onload = () => {
+              // Wait slightly for execution
+              setTimeout(checkLibrary, 200);
+            };
             document.body.appendChild(script);
          }
       }
 
-      // Timeout after 10 seconds (reduce from 15 to make fallback active faster)
+      // Timeout after 10 seconds
       if (attempts > 20) {
         clearInterval(interval);
-        // Only set error if still not loaded
-        if (!(window as any).QRCode) {
+        if (!checkLibrary()) {
             setLoadError(true);
         }
       }
@@ -224,8 +228,8 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
         const QRCode = (window as any).QRCode;
         let qrImageSrc = '';
 
-        if (QRCode) {
-            // STRATEGY A: Local Library
+        if (QRCode && QRCode.toDataURL) {
+            // STRATEGY A: Local Library (Correct one loaded)
             qrImageSrc = await QRCode.toDataURL(reviewLink, {
                 errorCorrectionLevel: 'H',
                 margin: 0,
