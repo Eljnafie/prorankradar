@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import AuditForm from './components/AuditForm';
 import AuditReport from './components/AuditReport';
@@ -16,7 +15,7 @@ import { calculateScore } from './services/scoringEngine';
 import type { BusinessProfile, AuditInputs, AuditReportData, CompetitorData, SiteContent, BlogPost } from './types';
 import { Radar, QrCode } from 'lucide-react';
 
-type ViewState = 'landing' | 'audit' | 'report' | 'blog' | 'pricing' | 'privacy' | 'terms' | 'cookies' | 'contact' | 'qr-tool';
+type ViewState = 'landing' | 'audit' | 'report' | 'blog' | 'pricing' | 'contact' | 'qr-tool' | 'privacy' | 'terms' | 'cookies';
 
 // Default Content
 const DEFAULT_CONTENT: SiteContent = {
@@ -60,6 +59,8 @@ const PILLAR_POST: BlogPost = {
 };
 
 const App: React.FC = () => {
+  const [currentView, setCurrentView] = useState<ViewState>('landing');
+
   const [mapsKey, setMapsKey] = useState<string>('');
   const [geminiKey, setGeminiKey] = useState<string>('');
   const [isMapsLoaded, setIsMapsLoaded] = useState(false);
@@ -72,9 +73,6 @@ const App: React.FC = () => {
   const [isUnlocked, setIsUnlocked] = useState(false); 
   const [siteContent, setSiteContent] = useState<SiteContent>(DEFAULT_CONTENT);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
-
-  // View State Management
-  const [currentView, setCurrentView] = useState<ViewState>('landing');
 
   // Load key & state from LocalStorage or ENV
   useEffect(() => {
@@ -129,12 +127,6 @@ const App: React.FC = () => {
     localStorage.setItem('gemini_api_key', key);
   };
 
-  const handleResetKey = () => {
-    setMapsKey('');
-    localStorage.removeItem('google_maps_api_key');
-    window.location.reload(); 
-  };
-
   const handleUpdateContent = (newContent: SiteContent) => {
     setSiteContent(newContent);
     localStorage.setItem('site_content', JSON.stringify(newContent));
@@ -164,10 +156,40 @@ const App: React.FC = () => {
         .then(() => setIsMapsLoaded(true))
         .catch((err) => {
           console.error("Maps Load Error", err);
-          handleResetKey();
+          // Only reset if it fails, but retry logic or manual update is better
         });
     }
   }, [mapsKey, isMapsLoaded]);
+
+  const handleAppNavigation = (view: string) => {
+    // Map legacy paths if any, or just set view
+    const viewMap: Record<string, ViewState> = {
+      'landing': 'landing',
+      '/': 'landing',
+      'audit': 'audit',
+      '/audit': 'audit',
+      'report': 'report',
+      '/report': 'report',
+      'pricing': 'pricing',
+      '/pricing': 'pricing',
+      'blog': 'blog',
+      'insights': 'blog',
+      '/insights': 'blog',
+      'contact': 'contact',
+      '/contact': 'contact',
+      'qr-tool': 'qr-tool',
+      '/free-qr': 'qr-tool',
+      'privacy': 'privacy',
+      'terms': 'terms',
+      'cookies': 'cookies'
+    };
+    
+    const target = viewMap[view] || (view as ViewState);
+    if (target) {
+        setCurrentView(target);
+        window.scrollTo(0, 0);
+    }
+  };
 
   const handleRunAudit = async (business: BusinessProfile, inputs: AuditInputs) => {
     setLoading(true);
@@ -178,12 +200,11 @@ const App: React.FC = () => {
       const { score, factors } = calculateScore(business, inputs, competitors, geminiAnalysis);
 
       setReport({ business, inputs, overallScore: score, factors, geminiAnalysis, competitors });
-      setCurrentView('report');
+      handleAppNavigation('report');
     } catch (error: any) {
       console.error("Audit failed", error);
       const msg = error?.message || "Unknown error";
       
-      // Determine if it is a key issue to offer helpful hint, otherwise just show message
       const isKeyError = msg.toLowerCase().includes("key") || msg.includes("403");
       
       if (isKeyError) {
@@ -196,105 +217,113 @@ const App: React.FC = () => {
     }
   };
 
-  // Render Logic
   const renderView = () => {
-    switch (currentView) {
-      case 'landing':
-        return (
-           <div className="animate-in fade-in duration-500">
-             <LandingPage 
-               onStart={() => { setCurrentView('audit'); window.scrollTo(0, 0); }} 
-               onOpenAdmin={() => setShowAdmin(true)}
-               content={siteContent}
-               onViewBlog={() => { setCurrentView('blog'); window.scrollTo(0, 0); }}
-               recentPosts={blogPosts.slice(0, 3)}
-               onRunAudit={handleRunAudit}
-               isLoading={loading}
-               mapsApiKey={mapsKey}
-               setMapsApiKey={handleSetMapsKey}
-               isMapsLoaded={isMapsLoaded}
-             />
-           </div>
-        );
-      case 'pricing':
-        return (
-           <div className="animate-in fade-in duration-500">
-              <PricingPage 
-                onNavigateToAudit={() => { setCurrentView('audit'); window.scrollTo(0, 0); }}
-                content={siteContent}
-              />
-           </div>
-        );
-      case 'blog':
-        return (
-           <div className="animate-in fade-in duration-500">
-              <BlogView 
-                posts={blogPosts}
-                onBack={() => setCurrentView('landing')}
-              />
-           </div>
-        );
-      case 'contact':
-        return (
-           <div className="animate-in fade-in duration-500">
-             <ContactPage 
-               onBack={() => setCurrentView('landing')} 
-               content={siteContent}
-             />
-           </div>
-        );
-      case 'privacy':
-      case 'terms':
-      case 'cookies':
-        return (
-           <div className="animate-in fade-in duration-500">
-             <LegalPage type={currentView} onBack={() => setCurrentView('landing')} />
-           </div>
-        );
-      case 'qr-tool':
-        return (
-          <div className="animate-in fade-in duration-500">
-            <ReviewQRGenerator 
-              onNavigateToAudit={() => { setCurrentView('audit'); window.scrollTo(0, 0); }}
-            />
-          </div>
-        );
-      case 'audit':
-        return (
-          <div className="p-6">
-             <div className="flex flex-col items-center justify-center min-h-[80vh] py-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="text-center mb-10 max-w-2xl mx-auto">
-                  <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4 tracking-tight">
-                    Audit Your Business Profile
-                  </h1>
-                  <p className="text-lg text-slate-500">
-                    Enter your business details below to generate your 100-point ranking score.
-                  </p>
+    switch(currentView) {
+        case 'landing':
+            return (
+                <div className="animate-in fade-in duration-500">
+                    <LandingPage 
+                        onStart={() => handleAppNavigation('audit')} 
+                        onOpenAdmin={() => setShowAdmin(true)}
+                        content={siteContent}
+                        onViewBlog={() => handleAppNavigation('blog')}
+                        recentPosts={blogPosts.slice(0, 3)}
+                        onRunAudit={handleRunAudit}
+                        isLoading={loading}
+                        mapsApiKey={mapsKey}
+                        setMapsApiKey={handleSetMapsKey}
+                        isMapsLoaded={isMapsLoaded}
+                    />
                 </div>
-                
-                <AuditForm 
-                  onRunAudit={handleRunAudit} 
-                  isLoading={loading} 
-                  mapsApiKey={mapsKey}
-                  setMapsApiKey={handleSetMapsKey}
-                  isMapsLoaded={isMapsLoaded}
-                />
-             </div>
-          </div>
-        );
-      case 'report':
-        return report ? (
-          <div className="p-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <AuditReport 
-              data={report} 
-              onReset={() => { setReport(null); setCurrentView('audit'); }}
-              isUnlocked={isUnlocked}
-              content={siteContent}
-            />
-          </div>
-        ) : null;
-      default:
-        return null;
+            );
+        case 'audit':
+            return (
+                <div className="p-6">
+                   <div className="flex flex-col items-center justify-center min-h-[80vh] py-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                      <div className="text-center mb-10 max-w-2xl mx-auto">
+                        <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4 tracking-tight">
+                          Audit Your Business Profile
+                        </h1>
+                        <p className="text-lg text-slate-500">
+                          Enter your business details below to generate your 100-point ranking score.
+                        </p>
+                      </div>
+                      
+                      <AuditForm 
+                        onRunAudit={handleRunAudit} 
+                        isLoading={loading} 
+                        mapsApiKey={mapsKey}
+                        setMapsApiKey={handleSetMapsKey}
+                        isMapsLoaded={isMapsLoaded}
+                      />
+                   </div>
+                </div>
+            );
+        case 'report':
+            return report ? (
+                <div className="p-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <AuditReport 
+                    data={report} 
+                    onReset={() => { setReport(null); handleAppNavigation('audit'); }}
+                    isUnlocked={isUnlocked}
+                    content={siteContent}
+                  />
+                </div>
+              ) : (
+                // Redirect if no report
+                (() => {
+                    setTimeout(() => handleAppNavigation('audit'), 0);
+                    return null;
+                })()
+              );
+        case 'pricing':
+            return (
+                 <div className="animate-in fade-in duration-500">
+                    <PricingPage 
+                      onNavigateToAudit={() => handleAppNavigation('audit')}
+                      content={siteContent}
+                    />
+                 </div>
+            );
+        case 'blog':
+            return (
+                 <div className="animate-in fade-in duration-500">
+                    <BlogView 
+                      posts={blogPosts}
+                      onBack={() => handleAppNavigation('landing')}
+                    />
+                 </div>
+            );
+        case 'contact':
+            return (
+                 <div className="animate-in fade-in duration-500">
+                   <ContactPage 
+                     onBack={() => handleAppNavigation('landing')} 
+                     content={siteContent}
+                   />
+                 </div>
+            );
+        case 'qr-tool':
+            return (
+                <div className="animate-in fade-in duration-500">
+                  <ReviewQRGenerator 
+                    onNavigateToAudit={() => handleAppNavigation('audit')}
+                  />
+                </div>
+            );
+        case 'privacy':
+            return <div className="animate-in fade-in duration-500"><LegalPage type="privacy" onBack={() => handleAppNavigation('landing')} /></div>;
+        case 'terms':
+            return <div className="animate-in fade-in duration-500"><LegalPage type="terms" onBack={() => handleAppNavigation('landing')} /></div>;
+        case 'cookies':
+            return <div className="animate-in fade-in duration-500"><LegalPage type="cookies" onBack={() => handleAppNavigation('landing')} /></div>;
+        default:
+            return (
+                <div className="p-10 text-center">
+                    <h2 className="text-2xl font-bold">404 - Page Not Found</h2>
+                    <button onClick={() => handleAppNavigation('landing')} className="text-blue-600 mt-4 underline">Go Home</button>
+                </div>
+            );
     }
   };
 
@@ -305,7 +334,7 @@ const App: React.FC = () => {
       <nav className="bg-white border-b border-slate-200 sticky top-0 z-50 print:hidden">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <button 
-            onClick={() => setCurrentView('landing')}
+            onClick={() => handleAppNavigation('landing')}
             className="flex items-center gap-2 text-blue-700 hover:opacity-80 transition-opacity"
           >
             <Radar className="w-8 h-8" />
@@ -313,14 +342,42 @@ const App: React.FC = () => {
           </button>
           
           <div className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
-            <button onClick={() => setCurrentView('landing')} className={`transition-colors ${currentView === 'landing' ? 'text-blue-600 font-bold' : 'hover:text-blue-600'}`}>Home</button>
-            <button onClick={() => setCurrentView('audit')} className={`transition-colors ${currentView === 'audit' ? 'text-blue-600 font-bold' : 'hover:text-blue-600'}`}>Run Audit</button>
-            <button onClick={() => setCurrentView('qr-tool')} className={`flex items-center gap-1 transition-colors ${currentView === 'qr-tool' ? 'text-blue-600 font-bold' : 'hover:text-blue-600'}`}>
+            <button 
+              onClick={() => handleAppNavigation('landing')} 
+              className={`transition-colors ${currentView === 'landing' ? 'text-blue-600 font-bold' : 'hover:text-blue-600'}`}
+            >
+              Home
+            </button>
+            <button 
+              onClick={() => handleAppNavigation('audit')} 
+              className={`transition-colors ${currentView === 'audit' ? 'text-blue-600 font-bold' : 'hover:text-blue-600'}`}
+            >
+              Run Audit
+            </button>
+            <button 
+              onClick={() => handleAppNavigation('qr-tool')} 
+              className={`flex items-center gap-1 transition-colors ${currentView === 'qr-tool' ? 'text-blue-600 font-bold' : 'hover:text-blue-600'}`}
+            >
               <QrCode className="w-3 h-3" /> Free QR Tool
             </button>
-            <button onClick={() => setCurrentView('pricing')} className={`transition-colors ${currentView === 'pricing' ? 'text-blue-600 font-bold' : 'hover:text-blue-600'}`}>Services & Pricing</button>
-            <button onClick={() => setCurrentView('blog')} className={`transition-colors ${currentView === 'blog' ? 'text-blue-600 font-bold' : 'hover:text-blue-600'}`}>Insights</button>
-            <button onClick={() => setCurrentView('contact')} className={`transition-colors ${currentView === 'contact' ? 'text-blue-600 font-bold' : 'hover:text-blue-600'}`}>Contact</button>
+            <button 
+              onClick={() => handleAppNavigation('pricing')} 
+              className={`transition-colors ${currentView === 'pricing' ? 'text-blue-600 font-bold' : 'hover:text-blue-600'}`}
+            >
+              Services & Pricing
+            </button>
+            <button 
+              onClick={() => handleAppNavigation('blog')} 
+              className={`transition-colors ${currentView === 'blog' ? 'text-blue-600 font-bold' : 'hover:text-blue-600'}`}
+            >
+              Insights
+            </button>
+            <button 
+              onClick={() => handleAppNavigation('contact')} 
+              className={`transition-colors ${currentView === 'contact' ? 'text-blue-600 font-bold' : 'hover:text-blue-600'}`}
+            >
+              Contact
+            </button>
           </div>
         </div>
       </nav>
@@ -331,7 +388,7 @@ const App: React.FC = () => {
 
       {/* Global Footer */}
       <Footer 
-        onNavigate={(page) => { setCurrentView(page); window.scrollTo(0, 0); }}
+        onNavigate={(page) => handleAppNavigation(page)}
         onOpenAdmin={() => setShowAdmin(true)}
       />
 
@@ -349,7 +406,7 @@ const App: React.FC = () => {
         blogPosts={blogPosts}
         onAddPost={handleAddBlogPost}
         onDeletePost={handleDeletePost}
-        onNavigateToAudit={() => { setShowAdmin(false); setCurrentView('audit'); }}
+        onNavigateToAudit={() => { setShowAdmin(false); handleAppNavigation('audit'); }}
       />
     </div>
   );
