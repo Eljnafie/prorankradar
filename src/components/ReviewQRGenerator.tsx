@@ -27,15 +27,50 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
     "description": "Generate a high-conversion Google Review QR code stand for your business."
   };
 
-  // Check for library availability
+  // Robust Library Loading
   useEffect(() => {
-    const checkLib = setInterval(() => {
-      if ((window as any).QRCode) {
-        setLibReady(true);
-        clearInterval(checkLib);
-      }
-    }, 500);
-    return () => clearInterval(checkLib);
+    let interval: any;
+    const MAX_RETRIES = 50; // 5 seconds
+    let retries = 0;
+
+    const loadScript = (src: string) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.async = true;
+        script.onload = () => setLibReady(true);
+        script.onerror = () => console.warn("Failed to load QR lib from", src);
+        document.body.appendChild(script);
+    };
+
+    // 1. Check if already loaded
+    if ((window as any).QRCode) {
+      setLibReady(true);
+    } else {
+      // 2. Poll for it (maybe index.html script is slow)
+      interval = setInterval(() => {
+        if ((window as any).QRCode) {
+          setLibReady(true);
+          clearInterval(interval);
+        } else {
+          retries++;
+          // 3. If not found after 1.5 seconds, force inject main CDN
+          if (retries === 15) { 
+             console.log("QR Lib slow, injecting explicit loader...");
+             loadScript("https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js");
+          }
+          // 4. If not found after 4 seconds, try backup CDN
+          if (retries === 40) {
+             console.log("QR Lib main CDN failed, trying backup...");
+             loadScript("https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js");
+          }
+          if (retries > MAX_RETRIES) {
+             clearInterval(interval);
+          }
+        }
+      }, 100);
+    }
+
+    return () => clearInterval(interval);
   }, []);
 
   const validateLink = (url: string) => {
@@ -217,10 +252,18 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
       
       ctx.fillStyle = '#94a3b8';
       ctx.font = 'bold 32px sans-serif';
-      const msg = !QRCodeLib 
-        ? "Loading Library..." 
-        : hasGenerated ? "Generating..." : "Click 'Generate Preview'";
+      
+      let msg = "Click 'Generate Preview'";
+      if (!QRCodeLib) msg = "Loading Library...";
+      if (hasGenerated) msg = "Generating...";
+      
       ctx.fillText(msg, WIDTH / 2, qrY + qrSize / 2);
+      
+      if (!QRCodeLib) {
+         ctx.font = 'normal 18px sans-serif';
+         ctx.fillStyle = '#cbd5e1';
+         ctx.fillText("Please check connection", WIDTH / 2, qrY + qrSize / 2 + 40);
+      }
     }
 
     // 6. Footer Text (Business Name & CTA)
