@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Download, ShieldCheck, Printer, Check, Star, AlertTriangle, Link as LinkIcon, Building2, ArrowRight, RefreshCw } from 'lucide-react';
+import { Download, ShieldCheck, Printer, Check, Star, AlertTriangle, Link as LinkIcon, Building2, ArrowRight, RefreshCw, QrCode } from 'lucide-react';
 
 interface ReviewQRGeneratorProps {
   onNavigateToAudit: () => void;
@@ -13,6 +13,7 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
   const [reviewLink, setReviewLink] = useState('');
   const [validationWarning, setValidationWarning] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [hasGenerated, setHasGenerated] = useState(false);
   const [libReady, setLibReady] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -54,8 +55,8 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
   const handleLinkChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setReviewLink(val);
+    setHasGenerated(false); // Reset generated state on change
     
-    // Warn but do not block generation
     if (val && !validateLink(val)) {
       setValidationWarning("Link doesn't look like a standard Google Review URL, but we'll generate it anyway.");
     } else {
@@ -89,175 +90,184 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
     ctx.fill();
   };
 
-  // Main Drawing Function
-  useEffect(() => {
-    const drawCanvas = async () => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
+  const drawCanvas = async (forceQr: boolean = false) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-      const QRCodeLib = (window as any).QRCode;
-      
-      // Standard 4x6 inch ratio @ 300 DPI approx
-      const WIDTH = 1200;
-      const HEIGHT = 1800;
-      canvas.width = WIDTH;
-      canvas.height = HEIGHT;
+    const QRCodeLib = (window as any).QRCode;
+    
+    // Standard 4x6 inch ratio @ 300 DPI approx
+    const WIDTH = 1200;
+    const HEIGHT = 1800;
+    canvas.width = WIDTH;
+    canvas.height = HEIGHT;
 
-      // 1. Background (Clean White)
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    // 1. Background (Clean White)
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-      // 2. Google Logo (Top Center)
-      const logoSize = 180;
-      const logoY = 180;
-      const logoX = (WIDTH - logoSize) / 2;
-      
+    // 2. Google Logo (Top Center)
+    const logoSize = 180;
+    const logoY = 180;
+    const logoX = (WIDTH - logoSize) / 2;
+    
+    try {
+      const logoImg = new Image();
+      logoImg.crossOrigin = "Anonymous";
+      logoImg.src = GOOGLE_G_LOGO_SVG;
+      await new Promise((resolve) => { 
+          logoImg.onload = resolve; 
+          logoImg.onerror = resolve; 
+          if(logoImg.complete) resolve(null); 
+      });
+      ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize);
+    } catch (e) {
+      console.warn("Logo load failed", e);
+    }
+
+    // 3. Header Text
+    ctx.textAlign = 'center';
+    
+    // "review us on"
+    ctx.font = '500 48px Inter, system-ui, sans-serif';
+    ctx.fillStyle = '#64748b'; // Slate 500
+    ctx.fillText("review us on", WIDTH / 2, logoY + logoSize + 80);
+
+    // "Google"
+    ctx.font = 'bold 96px Inter, system-ui, sans-serif';
+    ctx.fillStyle = '#1e293b'; // Slate 800
+    ctx.fillText("Google", WIDTH / 2, logoY + logoSize + 190);
+
+    // 4. Five Stars
+    const starY = logoY + logoSize + 260;
+    const starGap = 90;
+    const startX = (WIDTH - (starGap * 4)) / 2;
+    
+    for(let i=0; i<5; i++) {
+      drawStar(ctx, startX + (i * starGap), starY, 5, 35, 16);
+    }
+
+    // 5. QR Code Area
+    const qrSize = 650;
+    const qrY = starY + 120;
+    const qrX = (WIDTH - qrSize) / 2;
+
+    // QR Container Box
+    ctx.save();
+    ctx.shadowColor = "rgba(0, 0, 0, 0.1)";
+    ctx.shadowBlur = 30;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 10;
+    
+    ctx.fillStyle = '#FFFFFF';
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 2;
+    
+    const r = 40;
+    const p = 40; // padding inside box
+    const boxSize = qrSize + (p*2);
+    const boxX = (WIDTH - boxSize) / 2;
+    const boxY = qrY - p;
+    
+    ctx.beginPath();
+    if ((ctx as any).roundRect) {
+      (ctx as any).roundRect(boxX, boxY, boxSize, boxSize, r);
+    } else {
+      ctx.rect(boxX, boxY, boxSize, boxSize);
+    }
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+
+    // GENERATE QR
+    // Only generate if forceQr is true OR we already generated it and just redrawing for text updates
+    if ((forceQr || hasGenerated) && reviewLink && QRCodeLib) {
       try {
-        const logoImg = new Image();
-        logoImg.crossOrigin = "Anonymous";
-        logoImg.src = GOOGLE_G_LOGO_SVG;
-        await new Promise((resolve) => { 
-            logoImg.onload = resolve; 
-            logoImg.onerror = resolve; // Continue even if logo fails
-            if(logoImg.complete) resolve(null); 
+        const qrDataUrl = await QRCodeLib.toDataURL(reviewLink, {
+          errorCorrectionLevel: 'H',
+          margin: 0,
+          width: qrSize,
+          color: {
+            dark: '#1e293b',
+            light: '#ffffff'
+          }
         });
-        ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize);
+
+        const qrImage = new Image();
+        qrImage.src = qrDataUrl;
+        await new Promise((resolve) => { 
+            qrImage.onload = resolve; 
+            qrImage.onerror = resolve; 
+            if(qrImage.complete) resolve(null);
+        });
+        ctx.drawImage(qrImage, qrX, qrY, qrSize, qrSize);
+
       } catch (e) {
-        console.warn("Logo load failed", e);
+        console.error("QR Gen Error", e);
+        ctx.fillStyle = '#ef4444';
+        ctx.font = 'bold 24px sans-serif';
+        ctx.fillText("Error Generating QR", WIDTH / 2, qrY + qrSize / 2);
       }
-
-      // 3. Header Text
-      ctx.textAlign = 'center';
+    } else {
+      // Placeholder state
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(qrX, qrY, qrSize, qrSize);
       
-      // "review us on"
-      ctx.font = '500 48px Inter, system-ui, sans-serif';
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = 'bold 32px sans-serif';
+      const msg = !QRCodeLib 
+        ? "Loading Library..." 
+        : hasGenerated ? "Generating..." : "Click 'Generate Preview'";
+      ctx.fillText(msg, WIDTH / 2, qrY + qrSize / 2);
+    }
+
+    // 6. Footer Text (Business Name & CTA)
+    const footerY = boxY + boxSize + 120;
+    
+    if (businessName) {
+      ctx.font = 'bold 56px Inter, system-ui, sans-serif';
+      ctx.fillStyle = '#0f172a'; // Slate 900
+      ctx.fillText(businessName, WIDTH / 2, footerY);
+      
+      ctx.font = 'normal 36px Inter, system-ui, sans-serif';
       ctx.fillStyle = '#64748b'; // Slate 500
-      ctx.fillText("review us on", WIDTH / 2, logoY + logoSize + 80);
+      ctx.fillText("Scan to share your experience", WIDTH / 2, footerY + 70);
+    } else {
+      ctx.font = 'bold 48px Inter, system-ui, sans-serif';
+      ctx.fillStyle = '#0f172a';
+      ctx.fillText("Scan to share your experience", WIDTH / 2, footerY + 30);
+    }
 
-      // "Google"
-      ctx.font = 'bold 96px Inter, system-ui, sans-serif';
-      ctx.fillStyle = '#1e293b'; // Slate 800
-      ctx.fillText("Google", WIDTH / 2, logoY + logoSize + 190);
+    // 7. Branding
+    ctx.font = 'normal 20px Inter, system-ui, sans-serif';
+    ctx.fillStyle = '#cbd5e1'; 
+    ctx.fillText("Generated by ProRankRadar", WIDTH / 2, HEIGHT - 40);
+  };
 
-      // 4. Five Stars
-      const starY = logoY + logoSize + 260;
-      const starGap = 90;
-      const startX = (WIDTH - (starGap * 4)) / 2;
-      
-      for(let i=0; i<5; i++) {
-        drawStar(ctx, startX + (i * starGap), starY, 5, 35, 16);
-      }
+  // Redraw when text changes, but don't force QR regen unless explicitly triggered
+  useEffect(() => {
+    drawCanvas(false);
+  }, [businessName, libReady]); 
 
-      // 5. QR Code Area
-      const qrSize = 650;
-      const qrY = starY + 120;
-      const qrX = (WIDTH - qrSize) / 2;
-
-      // QR Container Box (Subtle Shadow/Border effect)
-      ctx.save();
-      ctx.shadowColor = "rgba(0, 0, 0, 0.1)";
-      ctx.shadowBlur = 30;
-      ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 10;
-      
-      ctx.fillStyle = '#FFFFFF';
-      ctx.strokeStyle = '#e2e8f0';
-      ctx.lineWidth = 2;
-      
-      // Draw rounded rect for QR container
-      const r = 40;
-      const p = 40; // padding inside box
-      const boxSize = qrSize + (p*2);
-      const boxX = (WIDTH - boxSize) / 2;
-      const boxY = qrY - p;
-      
-      ctx.beginPath();
-      if ((ctx as any).roundRect) {
-        (ctx as any).roundRect(boxX, boxY, boxSize, boxSize, r);
-      } else {
-        ctx.rect(boxX, boxY, boxSize, boxSize); // Fallback
-      }
-      ctx.fill();
-      ctx.stroke();
-      ctx.restore();
-
-      // GENERATE QR
-      // We generate even if there is a validation warning, as long as there is text
-      if (reviewLink && QRCodeLib) {
-        try {
-          const qrDataUrl = await QRCodeLib.toDataURL(reviewLink, {
-            errorCorrectionLevel: 'H',
-            margin: 0,
-            width: qrSize,
-            color: {
-              dark: '#1e293b',
-              light: '#ffffff'
-            }
-          });
-
-          const qrImage = new Image();
-          qrImage.src = qrDataUrl;
-          await new Promise((resolve) => { 
-              qrImage.onload = resolve; 
-              qrImage.onerror = resolve; 
-              if(qrImage.complete) resolve(null);
-          });
-          ctx.drawImage(qrImage, qrX, qrY, qrSize, qrSize);
-
-        } catch (e) {
-          console.error("QR Gen Error", e);
-          ctx.fillStyle = '#ef4444';
-          ctx.font = 'bold 24px sans-serif';
-          ctx.fillText("Error Generating QR", WIDTH / 2, qrY + qrSize / 2);
-        }
-      } else {
-        // Placeholder state
-        ctx.fillStyle = '#f8fafc';
-        ctx.fillRect(qrX, qrY, qrSize, qrSize);
-        
-        ctx.fillStyle = '#94a3b8';
-        ctx.font = 'bold 32px sans-serif';
-        const msg = !QRCodeLib ? "Loading Library..." : "Paste Link to Generate";
-        ctx.fillText(msg, WIDTH / 2, qrY + qrSize / 2);
-      }
-
-      // 6. Footer Text (Business Name & CTA)
-      const footerY = boxY + boxSize + 120;
-      
-      if (businessName) {
-        ctx.font = 'bold 56px Inter, system-ui, sans-serif';
-        ctx.fillStyle = '#0f172a'; // Slate 900
-        ctx.fillText(businessName, WIDTH / 2, footerY);
-        
-        ctx.font = 'normal 36px Inter, system-ui, sans-serif';
-        ctx.fillStyle = '#64748b'; // Slate 500
-        ctx.fillText("Scan to share your experience", WIDTH / 2, footerY + 70);
-      } else {
-        ctx.font = 'bold 48px Inter, system-ui, sans-serif';
-        ctx.fillStyle = '#0f172a';
-        ctx.fillText("Scan to share your experience", WIDTH / 2, footerY + 30);
-      }
-
-      // 7. Branding (Very subtle)
-      ctx.font = 'normal 20px Inter, system-ui, sans-serif';
-      ctx.fillStyle = '#cbd5e1'; 
-      ctx.fillText("Generated by ProRankRadar", WIDTH / 2, HEIGHT - 40);
-    };
-
-    // Debounce drawing
-    const timeout = setTimeout(drawCanvas, 150);
-    return () => clearTimeout(timeout);
-  }, [businessName, reviewLink, validationWarning, libReady]);
+  const handleGenerate = async () => {
+    if (!reviewLink) {
+        alert("Please paste your review link first.");
+        return;
+    }
+    setIsGenerating(true);
+    // Add artificial delay to make it feel like "work" and ensure UI updates
+    await new Promise(r => setTimeout(r, 500));
+    await drawCanvas(true);
+    setHasGenerated(true);
+    setIsGenerating(false);
+  };
 
   // Download Handlers
   const handleDownloadPNG = () => {
     const canvas = canvasRef.current;
-    if (!canvas || !reviewLink) {
-        if(!reviewLink) alert("Please paste your review link first.");
-        return;
-    }
+    if (!canvas || !reviewLink || !hasGenerated) return;
     const link = document.createElement('a');
     link.download = `Google_Review_Stand_${businessName.replace(/\s+/g, '_') || 'ProRankRadar'}.png`;
     link.href = canvas.toDataURL('image/png');
@@ -266,21 +276,16 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
 
   const handleDownloadPDF = () => {
     const canvas = canvasRef.current;
-    if (!canvas || !reviewLink) {
-        if(!reviewLink) alert("Please paste your review link first.");
-        return;
-    }
+    if (!canvas || !reviewLink || !hasGenerated) return;
     
-    setIsGenerating(true);
     // Use jspdf
     const { jsPDF } = window.jspdf || (window as any).jspdf;
     if (!jsPDF) {
       alert("PDF library not loaded yet. Please try again.");
-      setIsGenerating(false);
       return;
     }
 
-    const doc = new jsPDF('p', 'mm', 'a6'); // A6 is closer to table tent size
+    const doc = new jsPDF('p', 'mm', 'a6');
     const imgData = canvas.toDataURL('image/png');
     
     const pdfWidth = doc.internal.pageSize.getWidth();
@@ -288,7 +293,6 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
     
     doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
     doc.save(`Google_Review_Stand_${businessName.replace(/\s+/g, '_') || 'ProRankRadar'}.pdf`);
-    setIsGenerating(false);
   };
 
   return (
@@ -369,12 +373,28 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
                    )}
                 </div>
 
-                <div className="pt-6 border-t border-slate-100">
+                {/* Generate Action */}
+                <div className="pt-2">
+                   <button 
+                     onClick={handleGenerate}
+                     disabled={!reviewLink || isGenerating}
+                     className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                   >
+                     {isGenerating ? (
+                        <>Generating...</>
+                     ) : (
+                        <><QrCode className="w-5 h-5" /> Generate Preview</>
+                     )}
+                   </button>
+                </div>
+
+                {/* Downloads - Only active after generation */}
+                <div className={`pt-6 border-t border-slate-100 transition-opacity duration-500 ${hasGenerated ? 'opacity-100' : 'opacity-50 pointer-events-none'}`}>
                    <h4 className="text-sm font-bold text-slate-700 mb-4">2. Download & Print</h4>
                    <div className="grid grid-cols-2 gap-4">
                       <button 
                         onClick={handleDownloadPDF}
-                        disabled={!reviewLink || isGenerating}
+                        disabled={!hasGenerated}
                         className="flex flex-col items-center justify-center p-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed group shadow-lg shadow-slate-900/20"
                       >
                          <Printer className="w-6 h-6 mb-2 group-hover:scale-110 transition-transform" />
@@ -383,7 +403,7 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
                       </button>
                       <button 
                         onClick={handleDownloadPNG}
-                        disabled={!reviewLink}
+                        disabled={!hasGenerated}
                         className="flex flex-col items-center justify-center p-4 bg-white border-2 border-slate-200 hover:border-blue-500 hover:bg-blue-50 text-slate-700 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
                       >
                          <Download className="w-6 h-6 mb-2 group-hover:text-blue-600 transition-colors" />
