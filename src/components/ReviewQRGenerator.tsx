@@ -118,7 +118,7 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
         const logoImg = new Image();
         logoImg.crossOrigin = "Anonymous";
         logoImg.src = GOOGLE_G_LOGO_SVG;
-        await new Promise((resolve, reject) => { 
+        await new Promise((resolve) => { 
             logoImg.onload = resolve; 
             logoImg.onerror = resolve; // Continue even if logo fails
             if(logoImg.complete) resolve(null); 
