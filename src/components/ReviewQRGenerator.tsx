@@ -15,7 +15,6 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
   const [error, setError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const flyerRef = useRef<HTMLDivElement>(null); // For layout preview if needed, but we draw primarily on canvas
 
   // JSON-LD Schema
   const schemaData = {
