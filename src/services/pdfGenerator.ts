@@ -185,10 +185,9 @@ export const generateAuditPdf = (data: AuditReportData) => {
       doc.text(line, leftMargin + indent, y);
       y += lineHeight + 2;
     });
-    // Do not double increment y here, leave it to the loop or caller for spacing
   };
 
-  // --- Header Function (Applied to subsequent pages) ---
+  // --- Header Function ---
   const addHeader = () => {
     doc.setFontSize(10);
     doc.setTextColor(COLORS.slate600[0], COLORS.slate600[1], COLORS.slate600[2]);
@@ -199,28 +198,23 @@ export const generateAuditPdf = (data: AuditReportData) => {
   };
 
   // --- 1. COVER / INTRO ---
-  // Background Header Block
   doc.setFillColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
   doc.rect(0, 0, pageWidth, 50, 'F');
   
-  // Branding
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
   doc.text("ProRankRadar", leftMargin, 15);
 
-  // Document Title
   doc.setFontSize(24);
   doc.setFont("helvetica", "bold");
   doc.text(t.title.split(' ')[0] + ' ' + t.title.split(' ')[1], leftMargin, 28);
   doc.text(t.title.split(' ').slice(2).join(' '), leftMargin, 38);
   
-  // Client Details
   doc.setFontSize(14);
   doc.setFont("helvetica", "normal");
   doc.text(`${t.prepared_for} ${data.business.name}`, leftMargin, 65);
   
-  // Extract Zip/Neighborhood from address
   const addressParts = data.business.address.split(',');
   const cityZip = addressParts.slice(Math.max(0, addressParts.length - 2)).join(',').trim();
   
@@ -231,68 +225,57 @@ export const generateAuditPdf = (data: AuditReportData) => {
   y = 90;
 
   // --- 2. EXECUTIVE VISUALS ---
-  
-  // Title
   doc.setTextColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
   doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
   doc.text(t.exec_summary, leftMargin, y);
   y += 10;
 
-  // Actual Executive Summary Text from Gemini
   if (data.geminiAnalysis.executiveSummary) {
     addWrappedText(data.geminiAnalysis.executiveSummary, 10, "normal", COLORS.slate600);
-    y += 10; // Extra space after text
+    y += 10;
   } else {
     y += 5;
   }
 
-  // Draw Circles for Scores
+  // Draw Circles
   const drawScoreCircle = (label: string, score: number, xPos: number) => {
     const radius = 15;
     const color = score >= 80 ? COLORS.green500 : score >= 50 ? COLORS.yellow500 : COLORS.red500;
     
-    // Ring
     doc.setDrawColor(color[0], color[1], color[2]);
     doc.setLineWidth(2);
     doc.circle(xPos, y + radius, radius);
     
-    // Text
     doc.setFontSize(16);
     doc.setTextColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
     doc.setFont("helvetica", "bold");
     doc.text(`${score}`, xPos, y + radius + 2, { align: "center" });
     
-    // Label
     doc.setFontSize(9);
     doc.setTextColor(COLORS.slate600[0], COLORS.slate600[1], COLORS.slate600[2]);
     doc.setFont("helvetica", "bold");
     doc.text(label, xPos, y + radius * 2 + 8, { align: "center" });
   };
 
-  // --- SCORE CALCULATION ALIGNMENT ---
-  const gbpSectionFactors = data.factors.filter(f => 
-    ['cat_rel', 'title_opt', 'addr_prox', 'prof_comp', 'ver_status', 'pin_acc', 'sec_cat'].includes(f.id)
-  );
-  const seoSectionFactors = data.factors.filter(f => 
-    ['seo_h1', 'seo_title', 'seo_links', 'seo_nap', 'seo_int', 'seo_geo', 'seo_auth'].includes(f.id)
-  );
+  // Calculate Subsection Scores
+  const trustFactors = data.factors.filter(f => ['risk_suspend', 'risk_stuffing', 'nap_integrity'].includes(f.id));
+  const trustScore = trustFactors.reduce((acc, f) => acc + f.score, 0); 
+  const trustMax = trustFactors.reduce((acc, f) => acc + f.maxScore, 0) || 1;
+  const trustPercent = Math.round((trustScore / trustMax) * 100);
 
-  const gbpSectionScore = gbpSectionFactors.reduce((acc, f) => acc + f.score, 0); 
-  const gbpSectionMax = gbpSectionFactors.reduce((acc, f) => acc + f.maxScore, 0);
-  const seoSectionScore = seoSectionFactors.reduce((acc, f) => acc + f.score, 0); 
-  const seoSectionMax = seoSectionFactors.reduce((acc, f) => acc + f.maxScore, 0);
-
-  const gbpPercent = Math.round((gbpSectionScore / (gbpSectionMax || 1)) * 100);
-  const seoPercent = Math.round((seoSectionScore / (seoSectionMax || 1)) * 100);
+  const engageFactors = data.factors.filter(f => ['eng_response', 'eng_velocity', 'trans_action'].includes(f.id));
+  const engageScore = engageFactors.reduce((acc, f) => acc + f.score, 0);
+  const engageMax = engageFactors.reduce((acc, f) => acc + f.maxScore, 0) || 1;
+  const engagePercent = Math.round((engageScore / engageMax) * 100);
 
   drawScoreCircle(t.overall, data.overallScore, leftMargin + 30);
-  drawScoreCircle(t.gbp_health, gbpPercent, leftMargin + 85);
-  drawScoreCircle(t.seo_strength, seoPercent, leftMargin + 140);
+  drawScoreCircle("Trust Health", trustPercent, leftMargin + 85);
+  drawScoreCircle("Engagement", engagePercent, leftMargin + 140);
 
   y += 55;
 
-  // Ranking Potential Forecast Box (Blue Box)
+  // Ranking Potential Forecast Box
   checkPageBreak(30);
   doc.setFillColor(COLORS.blue600[0], COLORS.blue600[1], COLORS.blue600[2]);
   doc.rect(leftMargin, y, maxLineWidth, 25, 'F');
@@ -332,7 +315,6 @@ export const generateAuditPdf = (data: AuditReportData) => {
       const dist = Math.abs(row - 3) + Math.abs(col - 3);
       
       let color = COLORS.red500;
-      // Grid logic based on overall score
       const greenRadius = data.overallScore > 80 ? 3 : data.overallScore > 60 ? 2 : 1;
       const yellowRadius = greenRadius + 1;
 
@@ -345,28 +327,22 @@ export const generateAuditPdf = (data: AuditReportData) => {
     }
   }
 
-  // Grid Legend/Context
   const legendX = startX + (gridSize * gap) + 20;
   doc.setTextColor(COLORS.slate600[0], COLORS.slate600[1], COLORS.slate600[2]);
   doc.setFontSize(10);
   doc.text(t.grid_legend, legendX, y + 10);
   
-  // Legend Dots
-  // 1. Top 3 (Green)
   doc.setFillColor(COLORS.green500[0], COLORS.green500[1], COLORS.green500[2]);
   doc.circle(legendX + 2, y + 18, 2, 'F');
   doc.text(t.money_zones, legendX + 6, y + 20);
 
-  // 2. Lost Revenue (Red)
   doc.setFillColor(COLORS.red500[0], COLORS.red500[1], COLORS.red500[2]);
   doc.circle(legendX + 2, y + 28, 2, 'F');
   doc.text(t.lost_revenue, legendX + 6, y + 30);
 
-  // 3. Client Name (Color based on Score)
   const myScoreColor = data.overallScore >= 80 ? COLORS.green500 : data.overallScore >= 50 ? COLORS.yellow500 : COLORS.red500;
   doc.setFillColor(myScoreColor[0], myScoreColor[1], myScoreColor[2]);
   doc.circle(legendX + 2, y + 38, 2, 'F');
-  // Truncate name if too long to avoid overflow
   let displayName = data.business.name;
   if(displayName.length > 25) displayName = displayName.substring(0, 22) + "...";
   doc.text(displayName, legendX + 6, y + 40);
@@ -381,7 +357,6 @@ export const generateAuditPdf = (data: AuditReportData) => {
   doc.text(t.comp_gap, leftMargin, y);
   y += 10;
 
-  // Simple Bar Chart
   const clientRating = data.business.rating;
   const competitorRating = data.competitors.length > 0 
     ? Math.max(...data.competitors.map(c => c.rating)) 
@@ -389,7 +364,6 @@ export const generateAuditPdf = (data: AuditReportData) => {
 
   const maxBarWidth = 100;
   
-  // You
   doc.setFontSize(11);
   doc.text(t.you, leftMargin, y + 10);
   doc.setFillColor(COLORS.yellow500[0], COLORS.yellow500[1], COLORS.yellow500[2]);
@@ -397,7 +371,6 @@ export const generateAuditPdf = (data: AuditReportData) => {
   doc.setTextColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
   doc.text(clientRating.toString(), leftMargin + 30 + ((clientRating / 5) * maxBarWidth) + 5, y + 8);
 
-  // Market Leader
   doc.text(t.leader, leftMargin, y + 25);
   doc.setFillColor(COLORS.green500[0], COLORS.green500[1], COLORS.green500[2]);
   doc.rect(leftMargin + 30, y + 17, (competitorRating / 5) * maxBarWidth, 8, 'F');
@@ -405,7 +378,6 @@ export const generateAuditPdf = (data: AuditReportData) => {
 
   y += 40;
 
-  // Review Goal Text
   let reviewsNeeded = 0;
   if (clientRating < competitorRating) {
       const currentReviews = data.business.user_ratings_total || 1;
@@ -422,7 +394,7 @@ export const generateAuditPdf = (data: AuditReportData) => {
   y += 15;
 
   // --- 5. DETAILED TECHNICAL AUDIT ---
-  doc.addPage(); // Force new page
+  doc.addPage();
   y = 20;
   addHeader();
   y += 15;
@@ -433,12 +405,9 @@ export const generateAuditPdf = (data: AuditReportData) => {
   doc.text(t.detailed_audit, leftMargin, y);
   y += 15;
 
-  // Helper for rows with FIXED spacing logic to avoid overlaps
   const addAuditRow = (factor: ScoringFactor) => {
-    // Ensure we have space for at least title + one line of text + fix
     checkPageBreak(50);
     
-    // Status Badge
     let statusText = "[PASS]";
     let statusColor = COLORS.green500;
     
@@ -450,57 +419,44 @@ export const generateAuditPdf = (data: AuditReportData) => {
     doc.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
     doc.text(statusText, leftMargin, y);
 
-    // Title
     doc.setTextColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
     doc.text(factor.name, leftMargin + 15, y);
 
-    y += 6; // Move down after title
+    y += 6;
 
-    // Analysis Header
     doc.setFont("helvetica", "bold");
     doc.setTextColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
     doc.text(t.analysis, leftMargin, y);
-    y += 5; // Move down for analysis text
+    y += 5;
     
-    // Analysis Body
     addWrappedText(factor.reason, 10, "normal", COLORS.slate600, 0);
     
-    y += 4; // Buffer after analysis block
+    y += 4;
 
-    // Fix (Only for Warn/Fail)
     if (factor.status !== 'good') {
         doc.setFont("helvetica", "bold");
         doc.setTextColor(COLORS.blue600[0], COLORS.blue600[1], COLORS.blue600[2]);
         doc.text(t.step_fix, leftMargin, y);
-        y += 5; // Move down for fix text
-        // Fix instructions in plain color
+        y += 5;
         addWrappedText(factor.fixAction, 10, "normal", COLORS.slate900);
-        y += 4; // Buffer after fix block
+        y += 4;
     }
     
-    y += 4; // Spacing between rows
+    y += 4;
   };
 
-  // Grouped Rendering matching exactly the Web UI Sections
+  // Grouped Rendering
   const groups = {
-    "1. Google Business Profile Core Signals": data.factors.filter(f => 
-      ['cat_rel', 'title_opt', 'addr_prox', 'prof_comp', 'ver_status', 'pin_acc', 'sec_cat'].includes(f.id)),
-    
-    "2. Reputation & Engagement": data.factors.filter(f => 
-      ['rev_rate', 'rev_vol', 'rev_kw'].includes(f.id)),
-    
-    "3. Website & Local SEO": data.factors.filter(f => 
-      ['seo_h1', 'seo_title', 'seo_links', 'seo_nap', 'seo_int', 'seo_geo', 'seo_auth'].includes(f.id)),
-    
-    "4. Competitive Environment": data.factors.filter(f => 
-      ['seo_eng', 'comp_spam'].includes(f.id))
+    "1. Trust, Security & NAP Integrity": data.factors.filter(f => ['risk_suspend', 'risk_stuffing', 'nap_integrity'].includes(f.id)),
+    "2. Transactional & Conversion Readiness": data.factors.filter(f => ['trans_action', 'trans_attr'].includes(f.id)),
+    "3. Engagement & Ranking Velocity": data.factors.filter(f => ['eng_response', 'eng_velocity', 'cat_rel', 'gbp_complete'].includes(f.id)),
+    "4. Website & Local SEO Authority": data.factors.filter(f => ['seo_content', 'seo_links'].includes(f.id))
   };
 
   Object.entries(groups).forEach(([groupTitle, factors]) => {
      if (factors.length === 0) return;
      checkPageBreak(30);
      
-     // Section Header Bar
      doc.setFillColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
      doc.rect(leftMargin, y, maxLineWidth, 8, 'F');
      doc.setTextColor(255, 255, 255);
@@ -524,7 +480,6 @@ export const generateAuditPdf = (data: AuditReportData) => {
   doc.setFont("helvetica", "bold");
   doc.text(t.roi_forecast, leftMargin + 5, y + 10);
   
-  // Use the dynamic ROI forecast string from Gemini
   const roiText = data.geminiAnalysis.roiForecast || "Resolving these gaps typically results in a 25% to 50% increase in calls.";
   doc.setFont("helvetica", "normal");
   doc.setTextColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
@@ -533,7 +488,6 @@ export const generateAuditPdf = (data: AuditReportData) => {
   const splitRoi = doc.splitTextToSize(roiText, maxLineWidth - 10);
   doc.text(splitRoi, leftMargin + 5, y + 18);
 
-  // Footer Numbers
   const pageCount = doc.getNumberOfPages();
   for(let i = 1; i <= pageCount; i++) {
     doc.setPage(i);

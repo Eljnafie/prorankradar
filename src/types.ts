@@ -43,37 +43,33 @@ export interface ScoringFactor {
   impact: 'high' | 'medium' | 'low';
   reason: string;
   fixAction: string;
-  category: 'gbp' | 'seo';
+  category: 'gbp' | 'seo' | 'trust' | 'conversion';
 }
 
 // STRICT MAPPING TO PDF SECTIONS
 export interface GeminiAnalysis {
-  // Section 1: GBP Core Signals
-  primaryCategory: { score: number; analysis: string; fix: string; suggested: string[] };
-  businessTitle: { score: number; analysis: string; fix: string; isSpammy: boolean };
-  proximity: { score: number; analysis: string; fix: string };
-  completeness: { score: number; analysis: string; fix: string };
-  verification: { score: number; analysis: string; fix: string };
-  mapPin: { score: number; analysis: string; fix: string };
-  secondaryCategories: { score: number; analysis: string; fix: string };
+  // 1. Transactional & Attributes
+  transactional: { score: number; analysis: string; fix: string; missingActions: string[] };
+  attributes: { score: number; analysis: string; fix: string; missingAttributes: string[] };
 
-  // Section 2: Reputation
-  reviewRating: { score: number; analysis: string; fix: string };
-  reviewVolume: { score: number; analysis: string; fix: string };
-  reviewKeywords: { score: number; analysis: string; fix: string };
+  // 2. Engagement & Velocity
+  responseRate: { score: number; analysis: string; fix: string; estimatedRate: string };
+  postVelocity: { score: number; analysis: string; fix: string; competitorFrequency: string };
   
-  // Section 3: Website & Content
-  h1Optimization: { score: number; analysis: string; fix: string };
-  titleTag: { score: number; analysis: string; fix: string };
+  // 3. NAP & Data Integrity
+  napConsistency: { score: number; analysis: string; fix: string; inconsistencies: string[] };
+  
+  // 4. Trust & Security
+  suspensionRisk: { score: number; analysis: string; fix: string; riskLevel: 'Low' | 'Medium' | 'High' };
+  keywordStuffing: { score: number; analysis: string; fix: string; isDetected: boolean };
+
+  // Core GBP (Legacy/Foundation)
+  primaryCategory: { score: number; analysis: string; fix: string; suggested: string[] };
+  completeness: { score: number; analysis: string; fix: string };
+  
+  // Website & SEO (Legacy/Foundation)
+  websiteOptimization: { score: number; analysis: string; fix: string };
   backlinks: { score: number; analysis: string; fix: string };
-  napConsistency: { score: number; analysis: string; fix: string };
-  internalLinks: { score: number; analysis: string; fix: string };
-  geoContent: { score: number; analysis: string; fix: string };
-  authority: { score: number; analysis: string; fix: string };
-  
-  // Section 4: Competitive/Authority
-  engagement: { score: number; analysis: string; fix: string };
-  competitorSpam: { score: number; analysis: string; fix: string };
   
   // Summary & Plan
   executiveSummary: string;

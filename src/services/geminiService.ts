@@ -62,8 +62,8 @@ export const analyzeProfileWithGemini = async (
   const leaderRatingVal = competitors.length > 0 ? Math.max(...competitors.map((c: any) => c.rating || 0)) : 4.8;
 
   const prompt = `
-    Role: Senior Local SEO Auditor (20+ years experience).
-    Task: Conduct a forensic deep-scan of a Google Business Profile (GBP).
+    Role: Senior Google Maps Forensic Auditor.
+    Task: Conduct a deep-dive technical audit of a Google Business Profile (GBP).
     Output Language: ${targetLanguage}
     
     === BUSINESS DATA ===
@@ -74,86 +74,70 @@ export const analyzeProfileWithGemini = async (
     Primary Category: "${business.types[0] || 'Unknown'}"
     Rating: ${business.rating} (${business.user_ratings_total} reviews)
     Website: "${business.website || 'No Website'}"
-    H1: "${inputs.websiteContent?.h1 || 'Not detected'}"
-    Title Tag: "${inputs.websiteContent?.titleTag || 'Not detected'}"
     
-    === MARKET DATA ===
+    === MARKET BENCHMARK ===
     Competitor Leader Rating: ${leaderRatingVal.toFixed(1)}
     ==================
 
-    === ANALYSIS REQUIREMENTS ===
-    Analyze 4 Core Areas:
-    
-    1. GBP CORE SIGNALS:
-       - Primary Category: Is it specific? Suggest better ones if generic.
-       - Title: Check for keyword stuffing (Spam).
-       - Address/Proximity: Is it in the target city?
-       - Profile Completeness: Photos, website link.
-       - Verification: Assume based on visibility.
-       - Map Pin: Assess accuracy based on address.
-       - Secondary Categories: Are they likely missing?
+    === ANALYSIS MODULES (0-10 SCORE) ===
 
-    2. REPUTATION:
-       - Rating Health: Compare to ${leaderRatingVal.toFixed(1)}.
-       - Volume Gap: Does it have enough reviews?
-       - Keywords in Reviews: Do customers mention the service?
+    1. TRANSACTIONAL & ATTRIBUTE READINESS (Conversion)
+       - Actions: Does this business type usually have 'Book Online', 'Order', 'Reserve'? If missing, flag it.
+       - Attributes: Are critical attributes (Wheelchair, Wi-Fi, Seating, Gender-neutral restrooms) likely missing based on the profile leanness?
 
-    3. WEBSITE & LOCAL SEO:
-       - Landing Page H1: Does it match keyword?
-       - Title Tag: Does it include City + Keyword?
-       - Backlinks: Estimate based on authority (Low/Med/High).
-       - NAP Consistency: Is address format consistent?
-       - Internal Linking: Is structure logical?
-       - Geo-Content: Are "Areas We Serve" missing?
-       - Local Authority: Events, sponsorships?
+    2. INTERACTION & ENGAGEMENT VELOCITY
+       - Review Response: Estimate response rate. If they have reviews but no recent activity, assume 'Stale'.
+       - Post/Photo Velocity: Compare against a typical market leader who posts 1-3 times/week.
 
-    4. COMPETITIVE & AUTHORITY:
-       - Engagement: Are they posting updates?
-       - Competitor Spam: Is the niche spammy?
+    3. NAP & DATA INTEGRITY (Source of Truth)
+       - Consistency: Analyze the address format. Is it standard? 
+       - Mentions: Is the business name distinctive enough to be consistent across Yelp/Bing, or is it generic (hard to track)?
 
-    For EVERY factor, provide:
-    - Score (0-10).
-    - Analysis: Professional insight.
-    - Fix: Specific actionable advice.
+    4. TRUST & SECURITY GUARDRAILS (Risk)
+       - Keyword Stuffing: Check Name "${business.name}" strictly for non-brand keywords (e.g., "Best Dentist in [City]").
+       - Suspension Risk: Is the address a P.O. Box, Virtual Office, or Co-working space? (High risk).
 
-    Return valid JSON.
+    5. CORE & SEO
+       - Primary Category Analysis.
+       - Website Content Alignment (H1/Title).
+
+    Provide strict JSON output.
   `;
 
   const schema = {
     type: Type.OBJECT,
     properties: {
+      // Module 1: Transactional
+      transactional: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING }, missingActions: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["score", "analysis", "fix", "missingActions"] },
+      attributes: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING }, missingAttributes: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["score", "analysis", "fix", "missingAttributes"] },
+
+      // Module 2: Engagement
+      responseRate: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING }, estimatedRate: { type: Type.STRING } }, required: ["score", "analysis", "fix", "estimatedRate"] },
+      postVelocity: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING }, competitorFrequency: { type: Type.STRING } }, required: ["score", "analysis", "fix", "competitorFrequency"] },
+
+      // Module 3: NAP
+      napConsistency: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING }, inconsistencies: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["score", "analysis", "fix", "inconsistencies"] },
+
+      // Module 4: Trust
+      suspensionRisk: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING }, riskLevel: { type: Type.STRING, enum: ["Low", "Medium", "High"] } }, required: ["score", "analysis", "fix", "riskLevel"] },
+      keywordStuffing: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING }, isDetected: { type: Type.BOOLEAN } }, required: ["score", "analysis", "fix", "isDetected"] },
+
+      // Core & SEO
       primaryCategory: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING }, suggested: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["score", "analysis", "fix", "suggested"] },
-      businessTitle: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING }, isSpammy: { type: Type.BOOLEAN } }, required: ["score", "analysis", "fix", "isSpammy"] },
-      proximity: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
       completeness: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
-      verification: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
-      mapPin: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
-      secondaryCategories: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
-
-      reviewRating: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
-      reviewVolume: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
-      reviewKeywords: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
-
-      h1Optimization: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
-      titleTag: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
+      websiteOptimization: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
       backlinks: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
-      napConsistency: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
-      internalLinks: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
-      geoContent: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
-      authority: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
-
-      engagement: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
-      competitorSpam: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
 
       executiveSummary: { type: Type.STRING },
       roiForecast: { type: Type.STRING },
       fixPlan: { type: Type.OBJECT, properties: { step1: { type: Type.STRING }, step2: { type: Type.STRING }, step3: { type: Type.STRING }, rankingPotential: { type: Type.STRING } }, required: ["step1", "step2", "step3", "rankingPotential"] }
     },
     required: [
-      "primaryCategory", "businessTitle", "proximity", "completeness", "verification", "mapPin", "secondaryCategories",
-      "reviewRating", "reviewVolume", "reviewKeywords",
-      "h1Optimization", "titleTag", "backlinks", "napConsistency", "internalLinks", "geoContent", "authority",
-      "engagement", "competitorSpam",
+      "transactional", "attributes",
+      "responseRate", "postVelocity",
+      "napConsistency",
+      "suspensionRisk", "keywordStuffing",
+      "primaryCategory", "completeness", "websiteOptimization", "backlinks",
       "executiveSummary", "roiForecast", "fixPlan"
     ]
   };

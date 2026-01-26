@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Download, ExternalLink, Lock, MessageCircle, X, Check, Unlock, ArrowUpRight, FileText, Grid, TrendingUp } from 'lucide-react';
+import { CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Download, ExternalLink, Lock, MessageCircle, X, Check, Unlock, ArrowUpRight, FileText, Grid, TrendingUp, Shield, Zap, Database, MousePointerClick } from 'lucide-react';
 import type { AuditReportData, ScoringFactor, SiteContent } from '../types';
 import { generateAuditPdf } from '../services/pdfGenerator';
 
@@ -16,29 +16,25 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
   const [expandedFactor, setExpandedFactor] = React.useState<string | null>(null);
   const [showPricing, setShowPricing] = React.useState(false);
 
-  // Group factors by section for UI similar to PDF
+  // LOGICAL GROUPING FOR UI
   const sections = {
-    "1. Google Business Profile Core Signals": data.factors.filter(f => 
-      ['cat_rel', 'title_opt', 'addr_prox', 'prof_comp', 'ver_status', 'pin_acc', 'sec_cat'].includes(f.id)),
-    
-    "2. Reputation & Engagement": data.factors.filter(f => 
-      ['rev_rate', 'rev_vol', 'rev_kw'].includes(f.id)),
-    
-    "3. Website & Local SEO": data.factors.filter(f => 
-      ['seo_h1', 'seo_title', 'seo_links', 'seo_nap', 'seo_int', 'seo_geo', 'seo_auth'].includes(f.id)),
-    
-    "4. Competitive Environment": data.factors.filter(f => 
-      ['seo_eng', 'comp_spam'].includes(f.id))
+    "1. Trust, Security & NAP Integrity": {
+      icon: <Shield className="w-5 h-5 text-blue-600" />,
+      factors: data.factors.filter(f => ['risk_suspend', 'risk_stuffing', 'nap_integrity'].includes(f.id))
+    },
+    "2. Transactional & Conversion Readiness": {
+      icon: <MousePointerClick className="w-5 h-5 text-green-600" />,
+      factors: data.factors.filter(f => ['trans_action', 'trans_attr'].includes(f.id))
+    },
+    "3. Engagement & Ranking Velocity": {
+      icon: <Zap className="w-5 h-5 text-yellow-600" />,
+      factors: data.factors.filter(f => ['eng_response', 'eng_velocity', 'cat_rel', 'gbp_complete'].includes(f.id))
+    },
+    "4. Website & Local SEO Authority": {
+      icon: <TrendingUp className="w-5 h-5 text-purple-600" />,
+      factors: data.factors.filter(f => ['seo_content', 'seo_links'].includes(f.id))
+    }
   };
-
-  // Calculate Section specific scores for the summary circles
-  const section1 = sections["1. Google Business Profile Core Signals"];
-  const section1Score = section1.reduce((a,b) => a + b.score, 0);
-  const section1Max = section1.reduce((a,b) => a + b.maxScore, 0) || 1;
-
-  const section3 = sections["3. Website & Local SEO"];
-  const section3Score = section3.reduce((a,b) => a + b.score, 0);
-  const section3Max = section3.reduce((a,b) => a + b.maxScore, 0) || 1;
 
   const overallScore = data.overallScore;
   const scoreColor = overallScore >= 80 ? '#22c55e' : overallScore >= 50 ? '#eab308' : '#ef4444';
@@ -57,19 +53,6 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
   };
 
   const whatsappNumber = content?.contact?.phone?.replace(/[^0-9]/g, '') || '15550123456';
-
-  // --- CALCULATE REVIEW GOAL ---
-  const competitorRating = data.competitors.length > 0 ? Math.max(...data.competitors.map(c => c.rating)) : 4.8;
-  const myRating = data.business.rating || 0;
-  const myCount = data.business.user_ratings_total || 0;
-  
-  let reviewsNeeded = 0;
-  if (myRating < competitorRating) {
-      const target = Math.min(competitorRating, 4.9);
-      reviewsNeeded = Math.ceil((myCount * (target - myRating)) / (5 - target));
-      if (reviewsNeeded < 0) reviewsNeeded = 0;
-      if (reviewsNeeded > 1000) reviewsNeeded = 999;
-  }
 
   return (
     <div className="w-full max-w-6xl mx-auto space-y-8 pb-12 relative">
@@ -113,11 +96,11 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
         </div>
       </div>
 
-      {/* EXECUTIVE SUMMARY (Uses FileText) */}
+      {/* EXECUTIVE SUMMARY */}
       {data.geminiAnalysis.executiveSummary && (
         <div className="bg-slate-800 text-white p-6 rounded-xl shadow-lg print:break-inside-avoid">
            <h3 className="text-lg font-bold mb-3 flex items-center gap-2 text-blue-300">
-             <FileText className="w-5 h-5" /> Executive Summary
+             <FileText className="w-5 h-5" /> Executive Performance Summary
            </h3>
            <p className="text-slate-200 leading-relaxed text-sm md:text-base">
              {data.geminiAnalysis.executiveSummary}
@@ -130,9 +113,9 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
         {/* LEFT COLUMN: Summary & Visuals */}
         <div className="lg:col-span-1 space-y-6">
           
-          {/* 1. Executive Summary Circles */}
+          {/* 1. Score Card */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col items-center text-center">
-             <h3 className="font-bold text-slate-700 mb-6">Performance Score</h3>
+             <h3 className="font-bold text-slate-700 mb-6">Overall Health Score</h3>
              
              <div className="relative w-40 h-40 mb-4">
                <ResponsiveContainer>
@@ -145,32 +128,17 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
                </ResponsiveContainer>
                <div className="absolute inset-0 flex flex-col items-center justify-center">
                  <span className="text-4xl font-extrabold text-slate-800">{overallScore}</span>
-                 <span className="text-xs font-bold text-slate-400 uppercase">Overall</span>
+                 <span className="text-xs font-bold text-slate-400 uppercase">/ 100</span>
                </div>
-             </div>
-
-             <div className="flex justify-center gap-4 w-full">
-                <div className="p-3 bg-slate-50 rounded-lg w-1/2">
-                   <div className="text-2xl font-bold text-slate-700">
-                     {Math.round((section1Score / section1Max) * 100)}%
-                   </div>
-                   <div className="text-[10px] uppercase font-bold text-slate-400">GBP Health</div>
-                </div>
-                <div className="p-3 bg-slate-50 rounded-lg w-1/2">
-                   <div className="text-2xl font-bold text-slate-700">
-                     {Math.round((section3Score / section3Max) * 100)}%
-                   </div>
-                   <div className="text-[10px] uppercase font-bold text-slate-400">SEO Strength</div>
-                </div>
              </div>
           </div>
 
-          {/* 2. Ranking Forecast (Blue Box) */}
+          {/* 2. Ranking Forecast */}
           <div className="bg-blue-600 text-white rounded-xl shadow-lg p-6 relative overflow-hidden">
              <div className="relative z-10">
-               <h3 className="text-sm font-bold uppercase tracking-wider mb-2 opacity-80">Ranking Potential Forecast</h3>
+               <h3 className="text-sm font-bold uppercase tracking-wider mb-2 opacity-80">Ranking Potential</h3>
                <p className="font-medium text-lg leading-snug">
-                 {data.geminiAnalysis.fixPlan.rankingPotential || "Fixing critical issues can push this profile to the Top 5 within 90 days."}
+                 {data.geminiAnalysis.fixPlan.rankingPotential || "Fixing these critical trust & velocity issues can push this profile to the Top 3."}
                </p>
              </div>
              <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-blue-500/30 rounded-full blur-xl"></div>
@@ -188,7 +156,6 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
                    const row = Math.floor(i / 7);
                    const col = i % 7;
                    const isCenter = row === 3 && col === 3;
-                   // Logic to simulate grid based on score
                    const dist = Math.max(Math.abs(row - 3), Math.abs(col - 3));
                    
                    let bgClass = 'bg-red-400';
@@ -212,65 +179,28 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
              </div>
           </div>
 
-          {/* 4. ROI Forecast (Green Box) */}
+          {/* 4. ROI Forecast */}
           <div className="bg-green-50 border border-green-200 text-green-900 rounded-xl p-6">
              <h3 className="text-sm font-bold uppercase tracking-wider mb-2 flex items-center gap-2">
-                <ArrowUpRight className="w-4 h-4" /> Projected ROI Forecast
+                <ArrowUpRight className="w-4 h-4" /> ROI Forecast
              </h3>
              <p className="text-sm leading-relaxed">
-               {data.geminiAnalysis.roiForecast || "Resolving these gaps typically results in a 25% to 50% increase in calls and directions within 90-120 days."}
+               {data.geminiAnalysis.roiForecast}
              </p>
           </div>
 
         </div>
 
-        {/* RIGHT COLUMN: Detailed Audit */}
+        {/* RIGHT COLUMN: Detailed Modules */}
         <div className="lg:col-span-2 space-y-8">
            
-           {/* Competitor Gap */}
-           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-              <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
-                 <TrendingUp className="w-5 h-5 text-blue-600" /> Competitive Gap Analysis
-              </h3>
-              
-              <div className="space-y-6">
-                 {/* Rating Bars */}
-                 <div className="space-y-3">
-                    <div className="flex items-center gap-4">
-                       <span className="w-16 text-sm font-bold text-slate-600">You</span>
-                       <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
-                          <div className="h-full bg-yellow-400" style={{ width: `${(myRating/5)*100}%` }}></div>
-                       </div>
-                       <span className="w-8 text-sm font-bold text-slate-800">{myRating}</span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                       <span className="w-16 text-sm font-bold text-slate-600">Leader</span>
-                       <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
-                          <div className="h-full bg-green-500" style={{ width: `${(competitorRating/5)*100}%` }}></div>
-                       </div>
-                       <span className="w-8 text-sm font-bold text-slate-800">{competitorRating}</span>
-                    </div>
-                 </div>
-
-                 {/* Review Goal Text */}
-                 <div className="p-4 bg-red-50 border border-red-100 rounded-lg flex items-start gap-3">
-                    <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                    <div>
-                       <div className="text-sm font-bold text-red-700 uppercase mb-1">Review Goal</div>
-                       <p className="text-sm text-red-600">
-                         You need <strong>{reviewsNeeded} more 5-star reviews</strong> to reach a {Math.min(competitorRating, 4.9).toFixed(1)}+ rating and stop being filtered out by "Top Rated" searches.
-                       </p>
-                    </div>
-                 </div>
-              </div>
-           </div>
-
-           {/* Detailed Sections */}
-           {Object.entries(sections).map(([title, factors], idx) => (
+           {Object.entries(sections).map(([title, { icon, factors }], idx) => (
              <div key={idx} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
-                   <h3 className="font-bold text-slate-800">{title}</h3>
-                   <span className="text-xs font-bold text-slate-400 uppercase">{factors.length} Checks</span>
+                   <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                     {icon} {title}
+                   </h3>
+                   <span className="text-xs font-bold text-slate-400 uppercase bg-white border border-slate-200 px-2 py-1 rounded-full">{factors.length} Checks</span>
                 </div>
                 <div className="divide-y divide-slate-100">
                    {factors.map(factor => (
@@ -304,7 +234,7 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
   );
 };
 
-// Extracted Pricing Content to re-enable Check icon usage and better organization
+// Extracted Pricing Content
 const PricingContent: React.FC<{ onClose: any, data: any, content?: SiteContent, whatsappNumber: string }> = ({ onClose, data, content, whatsappNumber }) => {
   const pricing = content?.pricing || {
     auditOneTime: "30",
@@ -320,12 +250,10 @@ const PricingContent: React.FC<{ onClose: any, data: any, content?: SiteContent,
         <X className="w-6 h-6" />
       </button>
       <h2 className="text-3xl font-extrabold text-slate-900 mb-2">Upgrade Your Ranking Power</h2>
-      <p className="text-slate-500 max-w-2xl mx-auto">Choose a plan to fix your Google Business Profile and dominate local search results.</p>
+      <p className="text-slate-500 max-w-2xl mx-auto">Unlock critical Trust & Transactional insights to protect and grow your profile.</p>
     </div>
 
     <div className="p-6 md:p-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-      
-      {/* Plan 1: Basic Audit */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col hover:border-blue-300 transition-all relative group">
         <div className="mb-4">
           <h3 className="text-lg font-bold text-slate-800">Unlock Full Report</h3>
@@ -336,113 +264,38 @@ const PricingContent: React.FC<{ onClose: any, data: any, content?: SiteContent,
           <span className="text-slate-400">/one-time</span>
         </div>
         <ul className="space-y-3 mb-8 flex-1">
-          <li className="flex gap-2 text-sm text-slate-600">
-            <Check className="w-4 h-4 text-green-500 flex-shrink-0" /> Unlock specific fix instructions
-          </li>
-          <li className="flex gap-2 text-sm text-slate-600">
-            <Check className="w-4 h-4 text-green-500 flex-shrink-0" /> Full PDF Download
-          </li>
-          <li className="flex gap-2 text-sm text-slate-600">
-            <Check className="w-4 h-4 text-green-500 flex-shrink-0" /> AI Step-by-Step Strategy
-          </li>
-          <li className="flex gap-2 text-sm text-slate-600">
-            <Check className="w-4 h-4 text-green-500 flex-shrink-0" /> Keyword Optimization Guide
-          </li>
+          <li className="flex gap-2 text-sm text-slate-600"><Check className="w-4 h-4 text-green-500 flex-shrink-0" /> Unlock Suspension Risk Fixes</li>
+          <li className="flex gap-2 text-sm text-slate-600"><Check className="w-4 h-4 text-green-500 flex-shrink-0" /> Unlock NAP Inconsistencies</li>
+          <li className="flex gap-2 text-sm text-slate-600"><Check className="w-4 h-4 text-green-500 flex-shrink-0" /> Action Button Guide</li>
+          <li className="flex gap-2 text-sm text-slate-600"><Check className="w-4 h-4 text-green-500 flex-shrink-0" /> Full PDF Download</li>
         </ul>
-        <a 
-           href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Hi, I'd like to purchase the €${pricing.auditOneTime} Full Audit Report for ${data.business.name}.`)}`}
-           target="_blank"
-           rel="noopener noreferrer"
-           className="w-full py-3 rounded-lg border-2 border-slate-900 text-slate-900 font-bold hover:bg-slate-900 hover:text-white transition-colors text-center"
-        >
-          Unlock Report
-        </a>
+        <a href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Hi, I'd like to purchase the €${pricing.auditOneTime} Full Audit Report for ${data.business.name}.`)}`} target="_blank" rel="noopener noreferrer" className="w-full py-3 rounded-lg border-2 border-slate-900 text-slate-900 font-bold hover:bg-slate-900 hover:text-white transition-colors text-center">Unlock Report</a>
       </div>
 
-      {/* Plan 2: Expert Fix (Most Popular) */}
       <div className="bg-white rounded-xl shadow-lg border-2 border-blue-600 p-6 flex flex-col relative transform md:-translate-y-2">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide shadow-sm">
-          Most Popular
-        </div>
-        <div className="mb-4">
-          <h3 className="text-lg font-bold text-slate-800">Expert Fix</h3>
-          <div className="text-sm text-slate-500">We Fix It For You</div>
-        </div>
-        <div className="mb-6">
-          <span className="text-4xl font-extrabold text-slate-900">€{pricing.expertOneTime}</span>
-          <span className="text-slate-400 font-medium">/one-time</span>
-        </div>
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide shadow-sm">Most Popular</div>
+        <div className="mb-4"><h3 className="text-lg font-bold text-slate-800">Expert Fix</h3><div className="text-sm text-slate-500">We Fix It For You</div></div>
+        <div className="mb-6"><span className="text-4xl font-extrabold text-slate-900">€{pricing.expertOneTime}</span><span className="text-slate-400 font-medium">/one-time</span></div>
         <ul className="space-y-3 mb-8 flex-1">
-          <li className="flex gap-2 text-sm text-slate-700 font-medium">
-            <Check className="w-4 h-4 text-blue-600 flex-shrink-0" /> <strong>We implement all fixes</strong>
-          </li>
-          <li className="flex gap-2 text-sm text-slate-600">
-            <Check className="w-4 h-4 text-blue-600 flex-shrink-0" /> Title & Category Optimization
-          </li>
-          <li className="flex gap-2 text-sm text-slate-600">
-            <Check className="w-4 h-4 text-blue-600 flex-shrink-0" /> Description & Service Writing
-          </li>
-          <li className="flex gap-2 text-sm text-slate-600">
-            <Check className="w-4 h-4 text-blue-600 flex-shrink-0" /> Photo Geo-tagging & Upload
-          </li>
-          <li className="flex gap-2 text-sm text-slate-600">
-            <Check className="w-4 h-4 text-blue-600 flex-shrink-0" /> One-time detailed consultation
-          </li>
+          <li className="flex gap-2 text-sm text-slate-700 font-medium"><Check className="w-4 h-4 text-blue-600 flex-shrink-0" /> <strong>We implement all fixes</strong></li>
+          <li className="flex gap-2 text-sm text-slate-600"><Check className="w-4 h-4 text-blue-600 flex-shrink-0" /> Enable "Book/Order" Buttons</li>
+          <li className="flex gap-2 text-sm text-slate-600"><Check className="w-4 h-4 text-blue-600 flex-shrink-0" /> Clean up NAP Data Errors</li>
+          <li className="flex gap-2 text-sm text-slate-600"><Check className="w-4 h-4 text-blue-600 flex-shrink-0" /> Remove Risk of Suspension</li>
         </ul>
-        <a 
-           href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Hi, I'm interested in the €${pricing.expertOneTime} Expert Fix Service for ${data.business.name}. Please help me fix my profile.`)}`}
-           target="_blank"
-           rel="noopener noreferrer"
-           className="w-full py-3 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30 text-center"
-        >
-          Hire Expert to Fix
-        </a>
+        <a href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Hi, I'm interested in the €${pricing.expertOneTime} Expert Fix Service for ${data.business.name}.`)}`} target="_blank" rel="noopener noreferrer" className="w-full py-3 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30 text-center">Hire Expert to Fix</a>
       </div>
 
-      {/* Plan 3: Full Management */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col hover:border-purple-300 transition-all">
-        <div className="mb-4">
-          <h3 className="text-lg font-bold text-slate-800">Full Management</h3>
-          <div className="text-sm text-slate-500">Complete Peace of Mind</div>
-        </div>
-        <div className="mb-6">
-          <div className="flex items-baseline gap-1">
-            <span className="text-4xl font-extrabold text-slate-900">€{pricing.managementSetup}</span>
-            <span className="text-xs font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded">Setup</span>
-          </div>
-          <div className="text-sm text-slate-500 mt-1">+ €{pricing.managementMonthly}/month</div>
-        </div>
+        <div className="mb-4"><h3 className="text-lg font-bold text-slate-800">Full Management</h3><div className="text-sm text-slate-500">Complete Peace of Mind</div></div>
+        <div className="mb-6"><div className="flex items-baseline gap-1"><span className="text-4xl font-extrabold text-slate-900">€{pricing.managementSetup}</span><span className="text-xs font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded">Setup</span></div><div className="text-sm text-slate-500 mt-1">+ €{pricing.managementMonthly}/month</div></div>
         <ul className="space-y-3 mb-8 flex-1">
-          <li className="flex gap-2 text-sm text-slate-600">
-            <Check className="w-4 h-4 text-purple-600 flex-shrink-0" /> <strong>Everything in Expert Fix</strong>
-          </li>
-          <li className="flex gap-2 text-sm text-slate-600">
-            <Check className="w-4 h-4 text-purple-600 flex-shrink-0" /> Weekly GBP Posts (AI Optimized)
-          </li>
-          <li className="flex gap-2 text-sm text-slate-600">
-            <Check className="w-4 h-4 text-purple-600 flex-shrink-0" /> Professional Review Replies
-          </li>
-          <li className="flex gap-2 text-sm text-slate-600">
-            <Check className="w-4 h-4 text-purple-600 flex-shrink-0" /> Spam Monitoring & Fighting
-          </li>
-          <li className="flex gap-2 text-sm text-slate-600">
-            <Check className="w-4 h-4 text-purple-600 flex-shrink-0" /> Monthly Performance Report
-          </li>
+          <li className="flex gap-2 text-sm text-slate-600"><Check className="w-4 h-4 text-purple-600 flex-shrink-0" /> <strong>Everything in Expert Fix</strong></li>
+          <li className="flex gap-2 text-sm text-slate-600"><Check className="w-4 h-4 text-purple-600 flex-shrink-0" /> Weekly Activity Posts</li>
+          <li className="flex gap-2 text-sm text-slate-600"><Check className="w-4 h-4 text-purple-600 flex-shrink-0" /> Review Responses (24h)</li>
+          <li className="flex gap-2 text-sm text-slate-600"><Check className="w-4 h-4 text-purple-600 flex-shrink-0" /> Ongoing Spam Protection</li>
         </ul>
-        <a 
-           href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Hi, I'm interested in the Full Management Plan (€${pricing.managementSetup}+€${pricing.managementMonthly}/mo) for ${data.business.name}.`)}`}
-           target="_blank"
-           rel="noopener noreferrer"
-           className="w-full py-3 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold hover:opacity-90 transition-opacity shadow-lg text-center"
-        >
-          Start Management
-        </a>
+        <a href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Hi, I'm interested in the Full Management Plan (€${pricing.managementSetup}+€${pricing.managementMonthly}/mo) for ${data.business.name}.`)}`} target="_blank" rel="noopener noreferrer" className="w-full py-3 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold hover:opacity-90 transition-opacity shadow-lg text-center">Start Management</a>
       </div>
-
-    </div>
-    
-    <div className="p-6 text-center bg-slate-50 border-t border-slate-100">
-       <p className="text-sm text-slate-500">All plans include a 100% Satisfaction Guarantee. Secure payment via Stripe or Bank Transfer handled via WhatsApp.</p>
     </div>
   </>
   );
@@ -462,7 +315,6 @@ const FactorRow: React.FC<{
         onClick={onToggle}
       >
         <div className="flex items-center gap-3">
-          {/* Use CheckCircle, AlertTriangle, XCircle to consume imports */}
           {factor.status === 'good' && <CheckCircle className="w-5 h-5 text-green-500" />}
           {factor.status === 'warning' && <AlertTriangle className="w-5 h-5 text-yellow-500" />}
           {factor.status === 'critical' && <XCircle className="w-5 h-5 text-red-500" />}
@@ -519,11 +371,11 @@ const FactorRow: React.FC<{
              ) : (
                 <div className="space-y-3">
                   <div>
-                    <span className="font-semibold text-slate-700 block mb-1">Why it Matters:</span>
+                    <span className="font-semibold text-slate-700 block mb-1">Analysis:</span>
                     <p className="text-slate-600 whitespace-pre-wrap">{factor.reason}</p>
                   </div>
                   <div>
-                    <span className="font-semibold text-blue-600 block mb-1">The Fix (Step-by-Step):</span>
+                    <span className="font-semibold text-blue-600 block mb-1">Recommended Fix:</span>
                     <p className="text-slate-700 whitespace-pre-wrap">{factor.fixAction}</p>
                   </div>
                </div>
