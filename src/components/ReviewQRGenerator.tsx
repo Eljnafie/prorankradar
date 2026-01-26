@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Download, ShieldCheck, Printer, Check, Star, QrCode as QrIcon, AlertTriangle, Link as LinkIcon, Building2, ArrowRight } from 'lucide-react';
+import { Download, ShieldCheck, Printer, Check, Star, QrCode as QrIcon, AlertTriangle, Link as LinkIcon, Building2, ArrowRight, RefreshCw } from 'lucide-react';
 
 interface ReviewQRGeneratorProps {
   onNavigateToAudit: () => void;
@@ -13,6 +13,7 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
   const [reviewLink, setReviewLink] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [libReady, setLibReady] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // JSON-LD Schema
@@ -22,20 +23,22 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
     "name": "Free Google Review QR Code Generator",
     "applicationCategory": "BusinessApplication",
     "operatingSystem": "Web",
-    "offers": {
-      "@type": "Offer",
-      "price": "0",
-      "priceCurrency": "USD"
-    },
-    "publisher": {
-      "@type": "Organization",
-      "name": "ProRankRadar"
-    },
-    "description": "Generate a high-conversion Google Review QR code stand for your business. Free, instant, and compliant with Google policies."
+    "description": "Generate a high-conversion Google Review QR code stand for your business."
   };
 
+  // Check for library availability
+  useEffect(() => {
+    const checkLib = setInterval(() => {
+      if ((window as any).QRCode) {
+        setLibReady(true);
+        clearInterval(checkLib);
+      }
+    }, 500);
+    return () => clearInterval(checkLib);
+  }, []);
+
   const validateLink = (url: string) => {
-    if (!url) return true; // Allow empty while typing
+    if (!url) return true;
     try {
       const u = new URL(url);
       const allowed = ['google.com', 'goo.gl', 'g.page', 'search.google.com'];
@@ -58,6 +61,32 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
     }
   };
 
+  // Helper to draw a star
+  const drawStar = (ctx: CanvasRenderingContext2D, cx: number, cy: number, spikes: number, outerRadius: number, innerRadius: number) => {
+    let rot = Math.PI / 2 * 3;
+    let x = cx;
+    let y = cy;
+    const step = Math.PI / spikes;
+
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - outerRadius);
+    for (let i = 0; i < spikes; i++) {
+      x = cx + Math.cos(rot) * outerRadius;
+      y = cy + Math.sin(rot) * outerRadius;
+      ctx.lineTo(x, y);
+      rot += step;
+
+      x = cx + Math.cos(rot) * innerRadius;
+      y = cy + Math.sin(rot) * innerRadius;
+      ctx.lineTo(x, y);
+      rot += step;
+    }
+    ctx.lineTo(cx, cy - outerRadius);
+    ctx.closePath();
+    ctx.fillStyle = '#FBBC05'; // Google Yellow
+    ctx.fill();
+  };
+
   // Main Drawing Function
   useEffect(() => {
     const drawCanvas = async () => {
@@ -66,137 +95,142 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      const QRCodeLib = window.QRCode;
+      const QRCodeLib = (window as any).QRCode;
       
-      // Canvas Config (High Res A4 Ratio for quality)
-      // Width: 1200px, Height: 1600px (Roughly A4/4x6 vertical ratio)
+      // Standard 4x6 inch ratio @ 300 DPI approx
       const WIDTH = 1200;
-      const HEIGHT = 1600;
+      const HEIGHT = 1800;
       canvas.width = WIDTH;
       canvas.height = HEIGHT;
 
-      // 1. Background
+      // 1. Background (Clean White)
       ctx.fillStyle = '#FFFFFF';
       ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-      // 2. Border
-      const borderWidth = 30;
-      const margin = 60;
-      ctx.lineWidth = borderWidth;
-      ctx.strokeStyle = '#2563EB'; // Blue
-      ctx.beginPath();
-      // Rounded rect manually
-      const r = 40;
-      const x = margin, y = margin, w = WIDTH - margin*2, h = HEIGHT - margin*2;
-      ctx.moveTo(x + r, y);
-      ctx.lineTo(x + w - r, y);
-      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-      ctx.lineTo(x + w, y + h - r);
-      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-      ctx.lineTo(x + r, y + h);
-      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-      ctx.lineTo(x, y + r);
-      ctx.quadraticCurveTo(x, y, x + r, y);
-      ctx.stroke();
+      // 2. Google Logo (Top Center)
+      const logoSize = 180;
+      const logoY = 180;
+      const logoX = (WIDTH - logoSize) / 2;
+      
+      const logoImg = new Image();
+      logoImg.src = GOOGLE_G_LOGO_SVG;
+      await new Promise(r => { logoImg.onload = r; if(logoImg.complete) r(null); });
+      ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize);
 
       // 3. Header Text
       ctx.textAlign = 'center';
-      ctx.fillStyle = '#1e293b'; // Slate 800
       
-      // Title
-      ctx.font = 'bold 64px Inter, system-ui, sans-serif';
-      ctx.fillText("Valued Customer,", WIDTH / 2, 280);
-      ctx.fillText("Your Opinion Matters!", WIDTH / 2, 360);
+      // "review us on"
+      ctx.font = '500 48px Inter, system-ui, sans-serif';
+      ctx.fillStyle = '#64748b'; // Slate 500
+      ctx.fillText("review us on", WIDTH / 2, logoY + logoSize + 80);
 
-      // Subtitle
-      ctx.font = 'normal 40px Inter, system-ui, sans-serif';
-      ctx.fillStyle = '#475569'; // Slate 600
-      ctx.fillText("Scan to share your experience on Google.", WIDTH / 2, 450);
+      // "Google"
+      ctx.font = 'bold 96px Inter, system-ui, sans-serif';
+      ctx.fillStyle = '#1e293b'; // Slate 800
+      ctx.fillText("Google", WIDTH / 2, logoY + logoSize + 190);
 
-      // 4. QR Code Generation
-      const qrSize = 550;
+      // 4. Five Stars
+      const starY = logoY + logoSize + 260;
+      const starGap = 90;
+      const startX = (WIDTH - (starGap * 4)) / 2;
+      
+      for(let i=0; i<5; i++) {
+        drawStar(ctx, startX + (i * starGap), starY, 5, 35, 16);
+      }
+
+      // 5. QR Code Area
+      const qrSize = 650;
+      const qrY = starY + 120;
       const qrX = (WIDTH - qrSize) / 2;
-      const qrY = 550;
+
+      // QR Container Box (Subtle Shadow/Border effect)
+      // Shadow
+      ctx.shadowColor = "rgba(0, 0, 0, 0.1)";
+      ctx.shadowBlur = 30;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 10;
+      
+      // Box
+      ctx.fillStyle = '#FFFFFF';
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 2;
+      
+      // Draw rounded rect for QR container
+      const r = 40;
+      const p = 40; // padding inside box
+      const boxSize = qrSize + (p*2);
+      const boxX = (WIDTH - boxSize) / 2;
+      const boxY = qrY - p;
+      
+      ctx.beginPath();
+      ctx.roundRect(boxX, boxY, boxSize, boxSize, r);
+      ctx.fill();
+      ctx.stroke();
+      
+      // Reset Shadow
+      ctx.shadowColor = "transparent";
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
 
       if (reviewLink && !error && QRCodeLib) {
         try {
           const qrDataUrl = await QRCodeLib.toDataURL(reviewLink, {
             errorCorrectionLevel: 'H',
-            margin: 1,
+            margin: 0,
             width: qrSize,
             color: {
-              dark: '#000000',
+              dark: '#1e293b',
               light: '#ffffff'
             }
           });
 
           const qrImage = new Image();
           qrImage.src = qrDataUrl;
-          await new Promise(r => qrImage.onload = r);
+          await new Promise(r => { qrImage.onload = r; if(qrImage.complete) r(null); });
           ctx.drawImage(qrImage, qrX, qrY, qrSize, qrSize);
-
-          // 5. Draw Google G Logo in Center
-          const logoSize = qrSize * 0.22; // 22% of QR
-          const logoX = qrX + (qrSize - logoSize) / 2;
-          const logoY = qrY + (qrSize - logoSize) / 2;
-
-          // White circle background for logo
-          ctx.beginPath();
-          ctx.arc(logoX + logoSize/2, logoY + logoSize/2, logoSize/2 + 5, 0, 2 * Math.PI);
-          ctx.fillStyle = '#FFFFFF';
-          ctx.fill();
-
-          const logoImg = new Image();
-          logoImg.src = GOOGLE_G_LOGO_SVG;
-          await new Promise(r => logoImg.onload = r);
-          ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize);
 
         } catch (e) {
           console.error("QR Gen Error", e);
         }
       } else {
-        // Placeholder box if no link
-        ctx.fillStyle = '#F1F5F9';
+        // Placeholder state
+        ctx.fillStyle = '#f8fafc';
         ctx.fillRect(qrX, qrY, qrSize, qrSize);
-        ctx.strokeStyle = '#CBD5E1';
-        ctx.lineWidth = 4;
-        ctx.strokeRect(qrX, qrY, qrSize, qrSize);
         
-        ctx.fillStyle = '#94A3B8';
-        ctx.font = 'bold 30px sans-serif';
-        if (!QRCodeLib) {
-           ctx.fillText("Library Loading...", WIDTH / 2, qrY + qrSize / 2);
-        } else {
-           ctx.fillText("Paste Link to Generate QR", WIDTH / 2, qrY + qrSize / 2);
-        }
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = 'bold 32px sans-serif';
+        const msg = !QRCodeLib ? "Loading Library..." : "Paste Link to Generate";
+        ctx.fillText(msg, WIDTH / 2, qrY + qrSize / 2);
       }
 
-      // 6. Call To Action & Business Name
-      ctx.fillStyle = '#1e293b';
-      ctx.font = 'bold 48px Inter, system-ui, sans-serif';
+      // 6. Footer Text (Business Name & CTA)
+      const footerY = boxY + boxSize + 120;
       
-      // Auto-scale business name if too long
-      let nameFontSize = 56;
-      if (businessName.length > 20) nameFontSize = 48;
-      if (businessName.length > 35) nameFontSize = 36;
-      ctx.font = `bold ${nameFontSize}px Inter, system-ui, sans-serif`;
-      
-      // Draw text
-      ctx.fillText("Thank you for supporting", WIDTH / 2, 1200);
-      
-      ctx.fillStyle = '#2563EB'; // Blue branding
-      ctx.fillText(businessName || "Our Local Business", WIDTH / 2, 1280);
+      if (businessName) {
+        ctx.font = 'bold 56px Inter, system-ui, sans-serif';
+        ctx.fillStyle = '#0f172a'; // Slate 900
+        ctx.fillText(businessName, WIDTH / 2, footerY);
+        
+        ctx.font = 'normal 36px Inter, system-ui, sans-serif';
+        ctx.fillStyle = '#64748b'; // Slate 500
+        ctx.fillText("Scan to share your experience", WIDTH / 2, footerY + 70);
+      } else {
+        ctx.font = 'bold 48px Inter, system-ui, sans-serif';
+        ctx.fillStyle = '#0f172a';
+        ctx.fillText("Scan to share your experience", WIDTH / 2, footerY + 30);
+      }
 
-      // 7. Footer Branding (Mandatory)
-      ctx.fillStyle = '#94A3B8'; // Light slate
-      ctx.font = 'normal 24px Inter, system-ui, sans-serif';
-      ctx.fillText("Powered by ProRankRadar — Growth Audit & SEO for Google Business Profiles", WIDTH / 2, HEIGHT - 60);
+      // 7. Branding (Very subtle)
+      ctx.font = 'normal 20px Inter, system-ui, sans-serif';
+      ctx.fillStyle = '#cbd5e1'; 
+      ctx.fillText("Generated by ProRankRadar", WIDTH / 2, HEIGHT - 40);
     };
 
     // Debounce drawing
-    const timeout = setTimeout(drawCanvas, 100);
+    const timeout = setTimeout(drawCanvas, 200);
     return () => clearTimeout(timeout);
-  }, [businessName, reviewLink, error]);
+  }, [businessName, reviewLink, error, libReady]);
 
   // Download Handlers
   const handleDownloadPNG = () => {
@@ -206,7 +240,7 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
         return;
     }
     const link = document.createElement('a');
-    link.download = `Google_Review_QR_${businessName.replace(/\s+/g, '_') || 'Flyer'}.png`;
+    link.download = `Google_Review_Stand_${businessName.replace(/\s+/g, '_') || 'ProRankRadar'}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
   };
@@ -227,14 +261,14 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
       return;
     }
 
-    const doc = new jsPDF('p', 'mm', 'a4');
+    const doc = new jsPDF('p', 'mm', 'a6'); // A6 is closer to table tent size
     const imgData = canvas.toDataURL('image/png');
     
     const pdfWidth = doc.internal.pageSize.getWidth();
     const pdfHeight = doc.internal.pageSize.getHeight();
     
     doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-    doc.save(`Google_Review_QR_${businessName.replace(/\s+/g, '_') || 'Flyer'}.pdf`);
+    doc.save(`Google_Review_Stand_${businessName.replace(/\s+/g, '_') || 'ProRankRadar'}.pdf`);
     setIsGenerating(false);
   };
 
@@ -249,40 +283,43 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
              Free Tool
           </div>
           <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 mb-6 leading-tight">
-            Free Google Review QR Code Generator <br className="hidden md:block"/> for Local Businesses
+            Free Google Review Stand Generator
           </h1>
           <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-            Create a professional, print-ready QR code stand that sends customers directly to your Google review page. No signup required.
+            Create a professional, printable QR table tent. Convert happy customers into 5-star reviews instantly.
           </p>
         </div>
       </section>
 
       {/* Tool Section */}
       <section className="py-12 px-6">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
           
           {/* Inputs */}
-          <div className="bg-white p-8 rounded-2xl shadow-xl border border-slate-100">
-             <h3 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
-                <QrIcon className="w-6 h-6 text-blue-600" /> Customize Your QR Stand
-             </h3>
+          <div className="bg-white p-8 rounded-2xl shadow-xl border border-slate-100 lg:sticky lg:top-24">
+             <div className="mb-8 border-b border-slate-100 pb-6">
+               <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                  <RefreshCw className="w-5 h-5 text-blue-600" /> 1. Enter Details
+               </h3>
+               <p className="text-slate-500 text-sm mt-1">Configure your printable sign.</p>
+             </div>
 
              <div className="space-y-6">
                 <div>
                    <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
-                     <Building2 className="w-4 h-4 text-slate-400" /> Business Name
+                     <Building2 className="w-4 h-4 text-slate-400" /> Business Name (Optional)
                    </label>
                    <input 
                      type="text" 
-                     maxLength={60}
-                     placeholder="e.g. Joe's Coffee Shop"
+                     maxLength={30}
+                     placeholder="e.g. Joe's Coffee"
                      value={businessName}
                      onChange={(e) => setBusinessName(e.target.value)}
-                     className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                     className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                    />
                    <div className="flex justify-between text-xs text-slate-400 mt-1">
-                      <span>Appears below QR code</span>
-                      <span>{businessName.length}/60</span>
+                      <span>Appears at bottom of stand</span>
+                      <span>{businessName.length}/30</span>
                    </div>
                 </div>
 
@@ -290,120 +327,89 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
                    <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
                      <LinkIcon className="w-4 h-4 text-slate-400" /> Google Review Link
                    </label>
-                   <input 
-                     type="text" 
-                     placeholder="e.g. https://g.page/r/CbX..."
-                     value={reviewLink}
-                     onChange={handleLinkChange}
-                     className={`w-full px-4 py-3 border rounded-lg focus:ring-2 outline-none ${error ? 'border-red-300 focus:ring-red-200' : 'border-slate-200 focus:ring-blue-500'}`}
-                   />
+                   <div className="relative">
+                     <input 
+                       type="text" 
+                       placeholder="https://g.page/r/..."
+                       value={reviewLink}
+                       onChange={handleLinkChange}
+                       className={`w-full px-4 py-3 border rounded-lg focus:ring-2 outline-none transition-all ${error ? 'border-red-300 focus:ring-red-200' : 'border-slate-200 focus:ring-blue-500'}`}
+                     />
+                     {!reviewLink && (
+                       <div className="absolute right-3 top-3.5 text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded">
+                         Required
+                       </div>
+                     )}
+                   </div>
                    {error ? (
                      <p className="text-xs text-red-500 mt-2 flex items-center gap-1">
                         <AlertTriangle className="w-3 h-3" /> {error}
                      </p>
                    ) : (
-                     <p className="text-xs text-slate-500 mt-2">Paste your "Get more reviews" link from your GBP dashboard.</p>
+                     <p className="text-xs text-slate-500 mt-2">Paste your "Get more reviews" link from your Google Business Profile.</p>
                    )}
                 </div>
 
                 <div className="pt-6 border-t border-slate-100">
-                   <h4 className="text-sm font-bold text-slate-700 mb-3">Download Options</h4>
+                   <h4 className="text-sm font-bold text-slate-700 mb-4">2. Download & Print</h4>
                    <div className="grid grid-cols-2 gap-4">
                       <button 
                         onClick={handleDownloadPDF}
                         disabled={!reviewLink || !!error || isGenerating}
-                        className="flex flex-col items-center justify-center p-4 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-all disabled:opacity-50 group"
+                        className="flex flex-col items-center justify-center p-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed group shadow-lg shadow-slate-900/20"
                       >
-                         <Printer className="w-6 h-6 text-slate-700 mb-2 group-hover:text-blue-600" />
-                         <span className="font-bold text-sm text-slate-800">Print PDF</span>
-                         <span className="text-xs text-slate-500">Best for Flyer/Stand</span>
+                         <Printer className="w-6 h-6 mb-2 group-hover:scale-110 transition-transform" />
+                         <span className="font-bold text-sm">Print PDF</span>
+                         <span className="text-xs opacity-70">Best for Table Tents</span>
                       </button>
                       <button 
                         onClick={handleDownloadPNG}
                         disabled={!reviewLink || !!error}
-                        className="flex flex-col items-center justify-center p-4 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-all disabled:opacity-50 group"
+                        className="flex flex-col items-center justify-center p-4 bg-white border-2 border-slate-200 hover:border-blue-500 hover:bg-blue-50 text-slate-700 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
                       >
-                         <Download className="w-6 h-6 text-slate-700 mb-2 group-hover:text-blue-600" />
-                         <span className="font-bold text-sm text-slate-800">Digital PNG</span>
-                         <span className="text-xs text-slate-500">For Social/Email</span>
+                         <Download className="w-6 h-6 mb-2 group-hover:text-blue-600 transition-colors" />
+                         <span className="font-bold text-sm">Download PNG</span>
+                         <span className="text-xs text-slate-400">For Social Media</span>
                       </button>
                    </div>
                 </div>
                 
-                <div className="bg-blue-50 p-4 rounded-lg flex gap-3">
+                <div className="bg-blue-50 p-4 rounded-lg flex gap-3 border border-blue-100">
                    <ShieldCheck className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
                    <div className="text-xs text-blue-800 leading-relaxed">
-                      <strong>Safe & Compliant:</strong> This tool generates a direct link to your Google profile. We do not use redirects or track your customers. Fully compliant with Google's guidelines.
+                      <strong>Safe & Direct:</strong> We generate a QR code that links directly to Google. No intermediaries, no tracking, no expiring links.
                    </div>
                 </div>
              </div>
           </div>
 
           {/* Preview */}
-          <div className="flex flex-col items-center">
-             <h3 className="font-bold text-slate-500 mb-4 uppercase tracking-wider text-sm">Live Preview</h3>
-             <div className="shadow-2xl rounded-lg overflow-hidden border-[8px] border-slate-800 bg-white">
-                {/* 
-                  We render the canvas at a scaled down size for preview using CSS, 
-                  but keep internal resolution high for download 
-                */}
-                <canvas 
-                  ref={canvasRef} 
-                  style={{ width: '100%', maxWidth: '400px', height: 'auto', display: 'block' }}
-                />
+          <div className="flex flex-col items-center justify-center">
+             <div className="relative group perspective-1000">
+                {/* Acrylic Stand Effect Container */}
+                <div className="relative transform transition-transform duration-500 preserve-3d">
+                   {/* Reflection/Shine overlay */}
+                   <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent z-20 pointer-events-none rounded-lg"></div>
+                   
+                   {/* Canvas Wrapper */}
+                   <div className="bg-white rounded-lg shadow-[0_20px_50px_-12px_rgba(0,0,0,0.25)] border-[1px] border-slate-200 overflow-hidden relative z-10">
+                      <canvas 
+                        ref={canvasRef} 
+                        style={{ width: '100%', maxWidth: '400px', height: 'auto', display: 'block' }}
+                      />
+                   </div>
+
+                   {/* Stand Base Mimic (CSS) */}
+                   <div className="absolute -bottom-8 left-10 right-10 h-8 bg-black/20 blur-xl rounded-[100%] z-0"></div>
+                </div>
              </div>
-             <p className="text-sm text-slate-400 mt-4 text-center">
-                Preview automatically updates as you type. <br/>Download to get high-resolution version.
+             
+             <p className="text-sm text-slate-400 mt-12 text-center flex items-center gap-2">
+                <Check className="w-4 h-4 text-green-500" /> High Resolution (300 DPI) Rendering
              </p>
           </div>
 
         </div>
-      </section>
-
-      {/* SEO Content & FAQ */}
-      <section className="bg-white py-20 border-t border-slate-200">
-         <div className="max-w-4xl mx-auto px-6">
-            
-            <div className="mb-16">
-               <h2 className="text-3xl font-bold text-slate-900 mb-6">Why use a Google Review QR Code?</h2>
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  {[
-                    { title: "Instant Access", text: "Removes friction. Customers don't need to search for your business manually." },
-                    { title: "More 5-Star Ratings", text: "Capture happy customers while they are still on-premise." },
-                    { title: "Zero Cost", text: "Our tool is 100% free. No monthly fees, no scan limits, no signup." }
-                  ].map((item, i) => (
-                    <div key={i} className="bg-slate-50 p-6 rounded-xl">
-                       <Check className="w-5 h-5 text-green-500 mb-3" />
-                       <h4 className="font-bold text-slate-900 mb-2">{item.title}</h4>
-                       <p className="text-sm text-slate-600">{item.text}</p>
-                    </div>
-                  ))}
-               </div>
-            </div>
-
-            <div>
-               <h2 className="text-3xl font-bold text-slate-900 mb-8">Frequently Asked Questions</h2>
-               <div className="space-y-6">
-                  <div className="border-b border-slate-100 pb-6">
-                     <h3 className="font-bold text-lg text-slate-800 mb-2">Is this Google Review QR code generator really free?</h3>
-                     <p className="text-slate-600">Yes, it is 100% free. There are no hidden costs, no signup required, and no limits on how many times the QR code can be scanned. We built this as a free utility for the ProRankRadar community.</p>
-                  </div>
-                  <div className="border-b border-slate-100 pb-6">
-                     <h3 className="font-bold text-lg text-slate-800 mb-2">Will this help me get more Google reviews?</h3>
-                     <p className="text-slate-600">Yes. By placing a QR stand at your checkout counter or on tables, you make it incredibly easy for customers to leave a review. Reducing the effort required significantly increases conversion rates.</p>
-                  </div>
-                  <div className="border-b border-slate-100 pb-6">
-                     <h3 className="font-bold text-lg text-slate-800 mb-2">Is the QR code safe to scan?</h3>
-                     <p className="text-slate-600">Absolutely. The QR code links directly to the Google URL you provide. We do not use intermediary redirects or tracking links, ensuring complete safety and transparency for your customers.</p>
-                  </div>
-                  <div className="pb-6">
-                     <h3 className="font-bold text-lg text-slate-800 mb-2">Can I print the QR code?</h3>
-                     <p className="text-slate-600">Yes. Our tool generates a high-resolution PDF designed specifically for printing. You can print it on standard A4 paper or resize it for 4x6 table tents.</p>
-                  </div>
-               </div>
-            </div>
-
-         </div>
       </section>
 
       {/* Upsell / CTA */}
