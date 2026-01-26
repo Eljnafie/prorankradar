@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Download, ArrowRight, ShieldCheck, Printer, Check, Star, QrCode, AlertTriangle, Link as LinkIcon, Building2 } from 'lucide-react';
-import QRCode from 'qrcode';
+import { Download, ShieldCheck, Printer, Check, Star, QrCode as QrIcon, AlertTriangle, Link as LinkIcon, Building2, ArrowRight } from 'lucide-react';
 
 interface ReviewQRGeneratorProps {
   onNavigateToAudit: () => void;
@@ -67,6 +66,8 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
+      const QRCodeLib = window.QRCode;
+      
       // Canvas Config (High Res A4 Ratio for quality)
       // Width: 1200px, Height: 1600px (Roughly A4/4x6 vertical ratio)
       const WIDTH = 1200;
@@ -117,9 +118,9 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
       const qrX = (WIDTH - qrSize) / 2;
       const qrY = 550;
 
-      if (reviewLink && !error) {
+      if (reviewLink && !error && QRCodeLib) {
         try {
-          const qrDataUrl = await QRCode.toDataURL(reviewLink, {
+          const qrDataUrl = await QRCodeLib.toDataURL(reviewLink, {
             errorCorrectionLevel: 'H',
             margin: 1,
             width: qrSize,
@@ -163,7 +164,11 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
         
         ctx.fillStyle = '#94A3B8';
         ctx.font = 'bold 30px sans-serif';
-        ctx.fillText("Paste Link to Generate QR", WIDTH / 2, qrY + qrSize / 2);
+        if (!QRCodeLib) {
+           ctx.fillText("Library Loading...", WIDTH / 2, qrY + qrSize / 2);
+        } else {
+           ctx.fillText("Paste Link to Generate QR", WIDTH / 2, qrY + qrSize / 2);
+        }
       }
 
       // 6. Call To Action & Business Name
@@ -215,7 +220,13 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
     
     setIsGenerating(true);
     // Use jspdf
-    const { jsPDF } = (window as any).jspdf;
+    const { jsPDF } = window.jspdf || (window as any).jspdf;
+    if (!jsPDF) {
+      alert("PDF library not loaded yet. Please try again.");
+      setIsGenerating(false);
+      return;
+    }
+
     const doc = new jsPDF('p', 'mm', 'a4');
     const imgData = canvas.toDataURL('image/png');
     
@@ -253,7 +264,7 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
           {/* Inputs */}
           <div className="bg-white p-8 rounded-2xl shadow-xl border border-slate-100">
              <h3 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
-                <QrCode className="w-6 h-6 text-blue-600" /> Customize Your QR Stand
+                <QrIcon className="w-6 h-6 text-blue-600" /> Customize Your QR Stand
              </h3>
 
              <div className="space-y-6">
