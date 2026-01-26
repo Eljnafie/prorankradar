@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Download, ShieldCheck, Printer, Check, Star, AlertTriangle, Link as LinkIcon, Building2, RefreshCw, QrCode, Loader2, ArrowRight } from 'lucide-react';
+import { Download, ShieldCheck, Printer, Check, Star, AlertTriangle, Link as LinkIcon, Building2, RefreshCw, QrCode, Loader2, ArrowRight, Globe } from 'lucide-react';
 
 interface ReviewQRGeneratorProps {
   onNavigateToAudit: () => void;
@@ -53,15 +53,18 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
          }
       }
 
-      // Timeout after 15 seconds
-      if (attempts > 30) {
+      // Timeout after 10 seconds (reduce from 15 to make fallback active faster)
+      if (attempts > 20) {
         clearInterval(interval);
-        if (!isLibLoaded) setLoadError(true);
+        // Only set error if still not loaded
+        if (!(window as any).QRCode) {
+            setLoadError(true);
+        }
       }
     }, 500);
 
     return () => clearInterval(interval);
-  }, [isLibLoaded]);
+  }, []);
 
   // JSON-LD Schema
   const schemaData = {
@@ -219,27 +222,39 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
     if ((forceQr || hasGenerated) && reviewLink) {
       try {
         const QRCode = (window as any).QRCode;
-        if (!QRCode) {
-            throw new Error("QRCode library not loaded yet.");
+        let qrImageSrc = '';
+
+        if (QRCode) {
+            // STRATEGY A: Local Library
+            qrImageSrc = await QRCode.toDataURL(reviewLink, {
+                errorCorrectionLevel: 'H',
+                margin: 0,
+                width: qrSize,
+                color: {
+                    dark: '#1e293b',
+                    light: '#ffffff'
+                }
+            });
+        } else {
+            // STRATEGY B: API Fallback (Online Mode)
+            // Use qrserver.com if local lib fails or is blocked
+            console.warn("Using Online QR Fallback");
+            const safeLink = encodeURIComponent(reviewLink);
+            // API returns an image. 
+            // Color: 1e293b (Slate 800), Bg: ffffff
+            qrImageSrc = `https://api.qrserver.com/v1/create-qr-code/?size=${qrSize}x${qrSize}&data=${safeLink}&color=1e293b&bgcolor=ffffff&margin=0`;
         }
 
-        const qrDataUrl = await QRCode.toDataURL(reviewLink, {
-          errorCorrectionLevel: 'H',
-          margin: 0,
-          width: qrSize,
-          color: {
-            dark: '#1e293b',
-            light: '#ffffff'
-          }
-        });
-
         const qrImage = new Image();
-        qrImage.src = qrDataUrl;
-        await new Promise((resolve) => { 
+        qrImage.crossOrigin = "Anonymous"; // Important for allowing download
+        qrImage.src = qrImageSrc;
+        
+        await new Promise((resolve, reject) => { 
             qrImage.onload = resolve; 
-            qrImage.onerror = resolve; 
+            qrImage.onerror = reject; 
             if(qrImage.complete) resolve(null);
         });
+        
         ctx.drawImage(qrImage, qrX, qrY, qrSize, qrSize);
 
       } catch (e) {
@@ -295,12 +310,9 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
         alert("Please paste your review link first.");
         return;
     }
-    if (!isLibLoaded) {
-        // Try to force reload via fallback if not loaded
-        if (loadError) {
-           window.location.reload();
-           return;
-        }
+    
+    // Check if we can proceed (Either lib loaded OR we decided to use fallback)
+    if (!isLibLoaded && !loadError) {
         alert("Resources are still loading. Please wait a moment.");
         return;
     }
@@ -428,18 +440,23 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
                      onClick={handleGenerate}
                      disabled={!reviewLink || isGenerating || (!isLibLoaded && !loadError)}
                      className={`w-full py-4 font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed
-                        ${loadError ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/30'}`}
+                        ${loadError ? 'bg-orange-600 hover:bg-orange-700 text-white shadow-orange-500/30' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/30'}`}
                    >
                      {isGenerating ? (
                         <>Generating...</>
                      ) : loadError ? (
-                        <>Network Error - Refresh Page</>
+                        <><Globe className="w-5 h-5" /> Generate (Online Mode)</>
                      ) : !isLibLoaded ? (
                         <><Loader2 className="w-5 h-5 animate-spin" /> Loading Resources...</>
                      ) : (
                         <><QrCode className="w-5 h-5" /> Generate Preview</>
                      )}
                    </button>
+                   {loadError && (
+                       <p className="text-xs text-orange-600 mt-2 text-center">
+                           Network blocked local library. Using online backup generator.
+                       </p>
+                   )}
                 </div>
 
                 {/* Downloads - Only active after generation */}
