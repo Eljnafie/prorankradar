@@ -178,9 +178,10 @@ const App: React.FC = () => {
 
       setReport({ business, inputs, overallScore: score, factors, geminiAnalysis, competitors });
       setCurrentView('report');
-    } catch (error) {
+    } catch (error: any) {
       console.error("Audit failed", error);
-      alert("Audit failed. Please ensure your Gemini API Key is set in Settings.");
+      const msg = error?.message || "Unknown error";
+      alert(`Audit failed: ${msg}\n\nPlease check your Gemini API Key in Settings.`);
     } finally {
       setLoading(false);
     }
