@@ -20,7 +20,7 @@ const PDF_TRANSLATIONS: Record<AuditLanguage, Record<string, string>> = {
     you: "You",
     leader: "Leader",
     review_goal: "REVIEW GOAL:",
-    review_goal_sub: "more 5-star reviews to reach a 4.3+ rating and stop being filtered out.",
+    review_goal_sub: "more 5-star reviews to reach a 4.9 rating and stop being filtered out.",
     detailed_audit: "Detailed Technical Audit",
     step_fix: "Step-by-Step Fix:",
     analysis: "Expert Analysis:",
@@ -43,7 +43,7 @@ const PDF_TRANSLATIONS: Record<AuditLanguage, Record<string, string>> = {
     you: "Tú",
     leader: "Líder",
     review_goal: "META DE RESEÑAS:",
-    review_goal_sub: "más reseñas de 5 estrellas para alcanzar 4.3+ y dejar de ser filtrado.",
+    review_goal_sub: "más reseñas de 5 estrellas para alcanzar 4.9 y dejar de ser filtrado.",
     detailed_audit: "Auditoría Técnica Detallada",
     step_fix: "Solución Paso a Paso:",
     analysis: "Análisis del Experto:", 
@@ -66,7 +66,7 @@ const PDF_TRANSLATIONS: Record<AuditLanguage, Record<string, string>> = {
     you: "Vous",
     leader: "Leader",
     review_goal: "OBJECTIF AVIS:",
-    review_goal_sub: "avis 5 étoiles de plus pour atteindre 4.3+.",
+    review_goal_sub: "avis 5 étoiles de plus pour atteindre 4.9.",
     detailed_audit: "Audit Technique Détaillé",
     step_fix: "Correction Étape par Étape:",
     analysis: "Analyse:",
@@ -89,7 +89,7 @@ const PDF_TRANSLATIONS: Record<AuditLanguage, Record<string, string>> = {
     you: "Sie",
     leader: "Führer",
     review_goal: "BEWERTUNGSZIEL:",
-    review_goal_sub: "mehr 5-Sterne-Bewertungen, um 4.3+ zu erreichen.",
+    review_goal_sub: "mehr 5-Sterne-Bewertungen, um 4.9 zu erreichen.",
     detailed_audit: "Detailliertes Technisches Audit",
     step_fix: "Schritt-für-Schritt Lösung:",
     analysis: "Expertenanalyse:",
@@ -112,7 +112,7 @@ const PDF_TRANSLATIONS: Record<AuditLanguage, Record<string, string>> = {
     you: "Tu",
     leader: "Leader",
     review_goal: "OBIETTIVO RECENSIONI:",
-    review_goal_sub: "recensioni a 5 stelle in più per raggiungere 4.3+.",
+    review_goal_sub: "recensioni a 5 stelle in più per raggiungere 4.9.",
     detailed_audit: "Audit Tecnico Dettagliato",
     step_fix: "Soluzione Passo-Passo:",
     analysis: "Analisi dell'Esperto:",
@@ -135,7 +135,7 @@ const PDF_TRANSLATIONS: Record<AuditLanguage, Record<string, string>> = {
     you: "Você",
     leader: "Líder",
     review_goal: "META DE AVALIAÇÕES:",
-    review_goal_sub: "mais avaliações de 5 estrelas para atingir 4.3+.",
+    review_goal_sub: "mais avaliações de 5 estrelas para atingir 4.9.",
     detailed_audit: "Auditoria Técnica Detalhada",
     step_fix: "Correção Passo a Passo:",
     analysis: "Análise do Especialista:",
@@ -266,16 +266,24 @@ export const generateAuditPdf = (data: AuditReportData) => {
     doc.text(label, xPos, y + radius * 2 + 8, { align: "center" });
   };
 
-  // Calculate Subscores
-  const gbpFactors = data.factors.filter(f => f.category === 'gbp');
-  const seoFactors = data.factors.filter(f => f.category === 'seo');
-  const gbpScore = gbpFactors.reduce((acc, f) => acc + f.score, 0); 
-  const gbpMax = gbpFactors.reduce((acc, f) => acc + f.maxScore, 0);
-  const seoScore = seoFactors.reduce((acc, f) => acc + f.score, 0); 
-  const seoMax = seoFactors.reduce((acc, f) => acc + f.maxScore, 0);
+  // --- SCORE CALCULATION ALIGNMENT ---
+  // To match Web UI exactly:
+  // "GBP Health" = Section 1 only (Core Signals)
+  // "SEO Strength" = Section 3 only (Website & Local SEO)
+  const gbpSectionFactors = data.factors.filter(f => 
+    ['cat_rel', 'title_opt', 'addr_prox', 'prof_comp', 'ver_status', 'pin_acc', 'sec_cat'].includes(f.id)
+  );
+  const seoSectionFactors = data.factors.filter(f => 
+    ['seo_h1', 'seo_title', 'seo_links', 'seo_nap', 'seo_int', 'seo_geo', 'seo_auth'].includes(f.id)
+  );
 
-  const gbpPercent = Math.round((gbpScore / (gbpMax || 1)) * 100);
-  const seoPercent = Math.round((seoScore / (seoMax || 1)) * 100);
+  const gbpSectionScore = gbpSectionFactors.reduce((acc, f) => acc + f.score, 0); 
+  const gbpSectionMax = gbpSectionFactors.reduce((acc, f) => acc + f.maxScore, 0);
+  const seoSectionScore = seoSectionFactors.reduce((acc, f) => acc + f.score, 0); 
+  const seoSectionMax = seoSectionFactors.reduce((acc, f) => acc + f.maxScore, 0);
+
+  const gbpPercent = Math.round((gbpSectionScore / (gbpSectionMax || 1)) * 100);
+  const seoPercent = Math.round((seoSectionScore / (seoSectionMax || 1)) * 100);
 
   // Position circles nicely
   drawScoreCircle(t.overall, data.overallScore, leftMargin + 30);
@@ -406,6 +414,7 @@ export const generateAuditPdf = (data: AuditReportData) => {
       // X = N * (Target - Current) / (5 - Target)
       reviewsNeeded = Math.ceil((currentReviews * (safeTarget - clientRating)) / (5 - safeTarget));
       if (reviewsNeeded < 5) reviewsNeeded = 5;
+      if (reviewsNeeded > 1000) reviewsNeeded = 999;
   }
   
   doc.setFontSize(11);
@@ -467,12 +476,19 @@ export const generateAuditPdf = (data: AuditReportData) => {
     y += 4; // Spacing
   };
 
-  // Grouped Rendering matching the PDF Sections
+  // Grouped Rendering matching exactly the Web UI Sections
   const groups = {
-    "1. Google Business Profile (GBP) Core Signals": data.factors.filter(f => ['cat_rel', 'title_opt', 'addr_prox', 'prof_photo'].includes(f.id)),
-    "2. Reputation & Engagement Metrics": data.factors.filter(f => ['rev_rate', 'rev_vol', 'rev_fresh'].includes(f.id)),
-    "3. External & Local SEO (Website Signals)": data.factors.filter(f => ['seo_web', 'seo_title'].includes(f.id)),
-    "4. Competitive Environment": data.factors.filter(f => ['comp_gap'].includes(f.id))
+    "1. Google Business Profile Core Signals": data.factors.filter(f => 
+      ['cat_rel', 'title_opt', 'addr_prox', 'prof_comp', 'ver_status', 'pin_acc', 'sec_cat'].includes(f.id)),
+    
+    "2. Reputation & Engagement": data.factors.filter(f => 
+      ['rev_rate', 'rev_vol', 'rev_kw'].includes(f.id)),
+    
+    "3. Website & Local SEO": data.factors.filter(f => 
+      ['seo_h1', 'seo_title', 'seo_links', 'seo_nap', 'seo_int', 'seo_geo', 'seo_auth'].includes(f.id)),
+    
+    "4. Competitive Environment": data.factors.filter(f => 
+      ['seo_eng', 'comp_spam'].includes(f.id))
   };
 
   Object.entries(groups).forEach(([groupTitle, factors]) => {
