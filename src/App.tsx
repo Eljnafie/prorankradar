@@ -8,14 +8,15 @@ import BlogView from './components/BlogView';
 import PricingPage from './components/PricingPage';
 import LegalPage from './components/LegalPages';
 import ContactPage from './components/ContactPage';
+import ReviewQRGenerator from './components/ReviewQRGenerator';
 import Footer from './components/Footer';
 import { loadGoogleMapsScript } from './services/mapsLoader';
 import { analyzeProfileWithGemini } from './services/geminiService';
 import { calculateScore } from './services/scoringEngine';
 import type { BusinessProfile, AuditInputs, AuditReportData, CompetitorData, SiteContent, BlogPost } from './types';
-import { Radar } from 'lucide-react';
+import { Radar, QrCode } from 'lucide-react';
 
-type ViewState = 'landing' | 'audit' | 'report' | 'blog' | 'pricing' | 'privacy' | 'terms' | 'cookies' | 'contact';
+type ViewState = 'landing' | 'audit' | 'report' | 'blog' | 'pricing' | 'privacy' | 'terms' | 'cookies' | 'contact' | 'qr-tool';
 
 // Default Content
 const DEFAULT_CONTENT: SiteContent = {
@@ -250,6 +251,14 @@ const App: React.FC = () => {
              <LegalPage type={currentView} onBack={() => setCurrentView('landing')} />
            </div>
         );
+      case 'qr-tool':
+        return (
+          <div className="animate-in fade-in duration-500">
+            <ReviewQRGenerator 
+              onNavigateToAudit={() => { setCurrentView('audit'); window.scrollTo(0, 0); }}
+            />
+          </div>
+        );
       case 'audit':
         return (
           <div className="p-6">
@@ -306,6 +315,9 @@ const App: React.FC = () => {
           <div className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
             <button onClick={() => setCurrentView('landing')} className={`transition-colors ${currentView === 'landing' ? 'text-blue-600 font-bold' : 'hover:text-blue-600'}`}>Home</button>
             <button onClick={() => setCurrentView('audit')} className={`transition-colors ${currentView === 'audit' ? 'text-blue-600 font-bold' : 'hover:text-blue-600'}`}>Run Audit</button>
+            <button onClick={() => setCurrentView('qr-tool')} className={`flex items-center gap-1 transition-colors ${currentView === 'qr-tool' ? 'text-blue-600 font-bold' : 'hover:text-blue-600'}`}>
+              <QrCode className="w-3 h-3" /> Free QR Tool
+            </button>
             <button onClick={() => setCurrentView('pricing')} className={`transition-colors ${currentView === 'pricing' ? 'text-blue-600 font-bold' : 'hover:text-blue-600'}`}>Services & Pricing</button>
             <button onClick={() => setCurrentView('blog')} className={`transition-colors ${currentView === 'blog' ? 'text-blue-600 font-bold' : 'hover:text-blue-600'}`}>Insights</button>
             <button onClick={() => setCurrentView('contact')} className={`transition-colors ${currentView === 'contact' ? 'text-blue-600 font-bold' : 'hover:text-blue-600'}`}>Contact</button>
