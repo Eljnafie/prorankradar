@@ -7,11 +7,9 @@
     <title>Google Maps Ranking Audit | ProRankRadar</title>
     <meta name="description" content="Get a professional audit of your Google Business Profile. Find hidden blockers and improve your Google Maps ranking fast." />
     
-    <!-- Favicon (Browser Tab & Google Search) -->
-    <!-- Using an SVG data URI representing a Radar icon (Blue #2563eb) to match the App logo -->
+    <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19.07 4.93A10 10 0 0 0 6.99 3.34'/%3E%3Cpath d='M4 6h.01'/%3E%3Cpath d='M2.29 9.62A10 10 0 1 0 21.31 8.35'/%3E%3Cpath d='M16.24 7.76A6 6 0 1 0 8.23 16.67'/%3E%3Cpath d='M12 18h.01'/%3E%3Cpath d='M17.99 11.66A6 6 0 0 1 15.77 16.67'/%3E%3Ccircle cx='12' cy='12' r='2'/%3E%3Cpath d='m13.41 10.59-5.66 5.66'/%3E%3C/svg%3E" />
     
-    <!-- Open Graph / Social Media Image -->
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Google Maps Ranking Audit | ProRankRadar" />
     <meta property="og:description" content="Professional Google Business Profile auditor powered by ProRank Neural Engine." />
@@ -19,12 +17,12 @@
     <meta property="og:url" content="https://prorankradar.com" />
     <meta name="theme-color" content="#2563eb" />
 
-    <!-- Security Hardening: Content Security Policy -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://esm.sh https://maps.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com https://api.qrserver.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://esm.sh https://maps.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://maps.gstatic.com https://maps.googleapis.com https://images.unsplash.com https://api.qrserver.com; connect-src 'self' https://generativelanguage.googleapis.com https://maps.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://api.qrserver.com;">
+    <!-- Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://esm.sh https://*.googleapis.com https://*.gstatic.com https://cdn.jsdelivr.net https://unpkg.com https://api.qrserver.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://esm.sh https://*.googleapis.com https://*.gstatic.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.gstatic.com https://*.googleapis.com https://images.unsplash.com https://api.qrserver.com; connect-src 'self' https://esm.sh https://generativelanguage.googleapis.com https://*.googleapis.com https://cdn.jsdelivr.net https://unpkg.com https://api.qrserver.com;">
 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script id="qrcode-lib-script" src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script id="qrcode-lib-script" src="https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js"></script>
     <style>
       body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
       ::-webkit-scrollbar { width: 8px; }
@@ -35,14 +33,14 @@
 <script type="importmap">
 {
   "imports": {
-    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
-    "recharts": "https://esm.sh/recharts@^3.7.0",
-    "react/": "https://esm.sh/react@^19.2.4/",
-    "react": "https://esm.sh/react@^19.2.4",
-    "@google/genai": "https://esm.sh/@google/genai@^1.38.0",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "react-dom": "https://esm.sh/react-dom@^19.2.4",
-    "react-router-dom": "https://esm.sh/react-router-dom@6.22.0",
+    "react": "https://esm.sh/react@18.3.1",
+    "react/": "https://esm.sh/react@18.3.1/",
+    "react-dom": "https://esm.sh/react-dom@18.3.1?deps=react@18.3.1",
+    "react-dom/": "https://esm.sh/react-dom@18.3.1/?deps=react@18.3.1",
+    "react-router-dom": "https://esm.sh/react-router-dom@6.22.0?deps=react@18.3.1,react-dom@18.3.1",
+    "lucide-react": "https://esm.sh/lucide-react@0.263.1?deps=react@18.3.1",
+    "recharts": "https://esm.sh/recharts@2.12.0?deps=react@18.3.1,react-dom@18.3.1",
+    "@google/genai": "https://esm.sh/@google/genai@0.1.1",
     "vite": "https://esm.sh/vite@^7.3.1",
     "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
   }
