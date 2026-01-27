@@ -221,7 +221,7 @@ const AuditForm: React.FC<AuditFormProps> = ({ onRunAudit, isLoading, mapsApiKey
       return;
     }
 
-    // Record usage only on valid submit initiation
+    // Record usage
     recordAuditUsage();
 
     const inputs: AuditInputs = {

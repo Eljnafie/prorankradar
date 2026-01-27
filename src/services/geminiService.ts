@@ -65,6 +65,8 @@ export const analyzeProfileWithGemini = async (
   const prompt = `
     System Role: You are the lead AI auditor for ProRankRadar. Your goal is to convert raw Google Business Profile data into a high-converting, professional growth strategy. 
     Use the "Ghost Profile" and "Lost Revenue" terminology from our branding.
+    
+    Language: The report MUST be written in ${targetLanguage}.
 
     Input Data:
     Business Details: [${business.name}, ${business.types[0] || 'Unknown'}, ${business.website || 'No Website'}, ${business.address}]
@@ -159,29 +161,31 @@ export const analyzeProfileWithGemini = async (
   } catch (error: any) {
     console.error("Gemini Analysis Error:", error);
     
-    // Parse JSON error message if provided by SDK
+    // Check if error is due to missing key or network before returning fallback
     let errMsg = error.message || '';
-    try {
-        if (errMsg.trim().startsWith('{')) {
-            const parsed = JSON.parse(errMsg);
-            if (parsed.error && parsed.error.message) {
-                errMsg = parsed.error.message;
-            }
-        }
-    } catch(e) {}
-
-    // Map to specific user-friendly messages
-    if (errMsg.includes('403') || errMsg.includes('API key not valid')) {
+    if (errMsg.includes('403') || errMsg.includes('API key')) {
         throw new Error("API Key Invalid. Please check your Gemini API Key in Admin Settings.");
     }
-    if (errMsg.includes('429') || errMsg.toLowerCase().includes('quota')) {
-        throw new Error("API Quota exceeded. You may be using a free key with rate limits. Please try again later.");
-    }
-    if (errMsg.includes('503') || errMsg.toLowerCase().includes('overloaded')) {
-        throw new Error("Google AI Model is currently overloaded. Please wait 30 seconds and try again.");
-    }
 
-    throw new Error(errMsg || "Unknown Gemini API Error");
+    // Fallback Mock Data matching the NEW schema structure
+    const fallback: GeminiAnalysis = {
+        transactional: { score: 0, analysis: "Analysis Failed", fix: "Please try again later.", missingActions: [] },
+        attributes: { score: 0, analysis: "Analysis Failed", fix: "Check internet connection.", missingAttributes: [] },
+        responseRate: { score: 0, analysis: "Analysis Failed", fix: "Retry audit.", estimatedRate: "0%" },
+        postVelocity: { score: 0, analysis: "Analysis Failed", fix: "Retry audit.", competitorFrequency: "Unknown" },
+        napConsistency: { score: 0, analysis: "Analysis Failed", fix: "Retry audit.", inconsistencies: [] },
+        suspensionRisk: { score: 0, analysis: "Analysis Failed", fix: "Retry audit.", riskLevel: "Low" },
+        keywordStuffing: { score: 0, analysis: "Analysis Failed", fix: "Retry audit.", isDetected: false },
+        primaryCategory: { score: 0, analysis: "Analysis Failed", fix: "Retry audit.", suggested: [] },
+        completeness: { score: 0, analysis: "Analysis Failed", fix: "Retry audit." },
+        websiteOptimization: { score: 0, analysis: "Analysis Failed", fix: "Retry audit." },
+        backlinks: { score: 0, analysis: "Analysis Failed", fix: "Retry audit." },
+        executiveSummary: "System was unable to complete the AI analysis. Please check API Key configuration.",
+        roiForecast: "N/A",
+        fixPlan: { step1: "Check Configuration", step2: "Verify API Keys", step3: "Try Again", rankingPotential: "Unknown" }
+    };
+    
+    return fallback;
   }
 };
 
