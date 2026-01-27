@@ -46,7 +46,7 @@ export interface ScoringFactor {
   category: 'gbp' | 'seo' | 'trust' | 'conversion';
 }
 
-// STRICT MAPPING TO PDF SECTIONS
+// STRICT MAPPING TO AI ANALYSIS MODULES
 export interface GeminiAnalysis {
   // 1. Transactional & Attributes
   transactional: { score: number; analysis: string; fix: string; missingActions: string[] };

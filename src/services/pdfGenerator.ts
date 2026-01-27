@@ -98,7 +98,7 @@ const PDF_TRANSLATIONS: Record<AuditLanguage, Record<string, string>> = {
     overall: "Punteggio",
     gbp_health: "Salute GBP",
     seo_strength: "Forza SEO",
-    ranking_forecast: "PREVISIONE RANKING",
+    AAAAA: "PREVISIONE RANKING",
     geo_grid: "Geo-Griglia Visiva",
     grid_legend: "Legenda:",
     money_zones: "Zone Redditizie (Top 3)",

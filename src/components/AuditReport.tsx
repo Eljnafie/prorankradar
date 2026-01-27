@@ -348,12 +348,12 @@ const FactorRow: React.FC<{
                 <>
                   <div className="filter blur-sm select-none opacity-60">
                      <div className="mb-3">
-                        <span className="font-semibold text-slate-700 block mb-1">Why it Matters:</span>
-                        <p className="text-slate-600">Hidden analysis content for pro users only. This specific factor is critical for your local ranking.</p>
+                        <span className="font-semibold text-slate-700 block mb-1">Analysis:</span>
+                        <p className="text-slate-600 whitespace-pre-wrap">{factor.reason}</p>
                       </div>
                       <div>
-                        <span className="font-semibold text-blue-600 block mb-1">The Fix (Step-by-Step):</span>
-                        <p className="text-slate-700">Hidden fix content for pro users only. Follow step 1 to 5 to resolve this issue.</p>
+                        <span className="font-semibold text-blue-600 block mb-1">Recommended Fix:</span>
+                        <p className="text-slate-700 whitespace-pre-wrap">{factor.fixAction}</p>
                       </div>
                   </div>
                   <div className="absolute inset-0 flex items-center justify-center z-10">
