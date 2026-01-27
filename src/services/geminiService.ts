@@ -40,7 +40,7 @@ const retryOperation = async <T>(operation: () => Promise<T>, retries = 3, delay
 export const analyzeProfileWithGemini = async (
   business: BusinessProfile,
   inputs: AuditInputs,
-  competitors: any[],
+  _competitors: any[],
   apiKey?: string
 ): Promise<GeminiAnalysis> => {
   
@@ -55,6 +55,8 @@ export const analyzeProfileWithGemini = async (
     Name: "${business.name}"
     Category: "${business.types[0] || 'Unknown'}"
     Rating: ${business.rating} (${business.user_ratings_total} reviews)
+    Target Keyword: "${inputs.targetKeyword}"
+    Target City: "${inputs.targetCity}"
     Market Leader Benchmark: 4.9 Stars
     
     TASK: Generate a "360-Degree Premium Business Growth Audit".
@@ -62,6 +64,7 @@ export const analyzeProfileWithGemini = async (
     1. SENTIMENT & TRUST GAP
        - Compare ${business.rating} stars to the Market Leader (4.9).
        - If rating < 4.0, label it a "Conversion Killer".
+       - Calculate exact number of 5-star reviews needed to reach 4.9 (approximate).
        - Assess if response rate to reviews seems low (assume low if not provided).
 
     2. TECHNICAL VS COMMERCIAL DUALITY

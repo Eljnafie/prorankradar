@@ -2,7 +2,7 @@
 import type { BusinessProfile, AuditInputs, CompetitorData, GeminiAnalysis, ScoringFactor } from "../types";
 
 export const calculateScore = (
-  business: BusinessProfile,
+  _business: BusinessProfile,
   _inputs: AuditInputs,
   _competitors: CompetitorData[],
   aiAnalysis: GeminiAnalysis

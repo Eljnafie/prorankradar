@@ -54,7 +54,12 @@ const PDF_TRANSLATIONS: Record<AuditLanguage, Record<string, string>> = {
 };
 
 export const generateAuditPdf = (data: AuditReportData) => {
-  const { jsPDF } = (window as any).jspdf;
+  const { jsPDF } = (window as any).jspdf || (window as any).jsPDF;
+  if (!jsPDF) {
+    console.error("jsPDF library not loaded");
+    alert("PDF generation failed. Library not loaded.");
+    return;
+  }
   const doc = new jsPDF();
   
   const lang = data.inputs.language || 'en';

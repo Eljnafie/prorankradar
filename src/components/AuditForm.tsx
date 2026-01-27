@@ -320,6 +320,45 @@ const AuditForm: React.FC<AuditFormProps> = ({
             </div>
           </div>
 
+          {/* Website Data (Manual Entry for Advanced Score Accuracy) */}
+          <div className="pt-2">
+             <button 
+               type="button" 
+               className="text-sm text-blue-600 font-medium hover:text-blue-700 flex items-center gap-1 mb-3"
+               onClick={() => setShowAdvanced(!showAdvanced)}
+             >
+               {showAdvanced ? 'Hide Website Details' : '+ Add Website Details (for higher score accuracy)'}
+             </button>
+             
+             {showAdvanced && (
+               <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-4 animate-in fade-in slide-in-from-top-2">
+                 <div className="flex gap-2 items-center text-sm text-slate-500 mb-2">
+                   <Globe className="w-4 h-4" /> Website SEO Data
+                 </div>
+                 <div>
+                    <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Homepage H1 Tag</label>
+                    <input 
+                      type="text" 
+                      placeholder="Copy the main heading from homepage" 
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded text-sm"
+                      value={h1Text}
+                      onChange={(e) => setH1Text(e.target.value)}
+                    />
+                 </div>
+                 <div>
+                    <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Meta Title Tag</label>
+                    <input 
+                      type="text" 
+                      placeholder="Copy the browser tab title" 
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded text-sm"
+                      value={titleTag}
+                      onChange={(e) => setTitleTag(e.target.value)}
+                    />
+                 </div>
+               </div>
+             )}
+          </div>
+
           <button type="submit" disabled={isLoading || (!!rateLimitError && !bypassLimits)} className={`w-full py-4 rounded-lg font-bold text-lg flex items-center justify-center gap-2 transition-all shadow-lg ${isLoading || (!!rateLimitError && !bypassLimits) ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-blue-500/30'}`}>
             {isLoading ? <><Loader2 className="animate-spin" /> Analyzing...</> : rateLimitError && !bypassLimits ? <><ShieldAlert className="w-5 h-5" /> Limit Reached</> : <><ArrowRight className="w-5 h-5" /> Run 360° Audit</>}
           </button>
