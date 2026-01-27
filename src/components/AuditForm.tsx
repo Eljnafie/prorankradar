@@ -32,7 +32,6 @@ const AuditForm: React.FC<AuditFormProps> = ({
   // Security State
   const [honeypot, setHoneypot] = useState('');
   const [rateLimitError, setRateLimitError] = useState<string | null>(null);
-  
   const [searchError, setSearchError] = useState<string | null>(null);
 
   // Place Search State
@@ -118,10 +117,8 @@ const AuditForm: React.FC<AuditFormProps> = ({
     setSearchError(null);
 
     if (!autocompleteService.current) {
-      if (mapsApiKey && !isMapsLoaded) {
-        return;
-      }
-      if (val.length > 2) setSearchError("Google Maps service not ready. Please refresh or check API key.");
+      if (mapsApiKey && !isMapsLoaded) return;
+      if (val.length > 2) setSearchError("Google Maps service not ready. Please refresh.");
       return;
     }
 
@@ -135,13 +132,9 @@ const AuditForm: React.FC<AuditFormProps> = ({
           setSearchError(null);
         } else {
           setPredictions([]);
-          if (status === 'REQUEST_DENIED') {
-            setSearchError("API Error: Request Denied. Please check API Key permissions.");
-          } else if (status === 'OVER_QUERY_LIMIT') {
-            setSearchError("API Error: Quota exceeded or billing not enabled.");
-          } else {
-             setSearchError(`Search unavailable (Status: ${status})`);
-          }
+          if (status === 'REQUEST_DENIED') setSearchError("API Error: Request Denied. Check API Key.");
+          else if (status === 'OVER_QUERY_LIMIT') setSearchError("API Error: Quota exceeded.");
+          else setSearchError(`Search unavailable (Status: ${status})`);
         }
       });
     } else {
@@ -191,37 +184,23 @@ const AuditForm: React.FC<AuditFormProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // 1. HONEYPOT CHECK (Bots)
-    if (honeypot) {
-      console.log("Bot detected via honeypot.");
-      // Fake loading to waste bot time, then do nothing
-      return; 
-    }
+    // 1. HONEYPOT CHECK
+    if (honeypot) return; 
 
-    // 2. RATE LIMIT CHECK (Spam)
-    // Only check if NOT bypassed (i.e. Free Version)
+    // 2. RATE LIMIT CHECK (Only check if NOT bypassed)
     if (!bypassLimits && !checkRateLimit()) {
       return;
     }
 
-    // 3. INPUT SANITATION (Malicious Length)
+    // 3. INPUT SANITATION
     if (keyword.length > 100 || city.length > 100) {
-      setSearchError("Input too long. Please use concise keywords.");
+      setSearchError("Input too long.");
       return;
     }
     
     // 4. BUSINESS SELECTION CHECK
     if (!selectedPlace) {
-      if (!searchValue) {
-         const inputEl = document.getElementById('business-search-input');
-         inputEl?.focus();
-      } else if (predictions.length > 0) {
-         alert("Please click one of the business suggestions in the dropdown list to continue.");
-      } else if (searchError) {
-         alert(searchError);
-      } else {
-         alert("No valid business selected. Please select a business from the dropdown suggestions.");
-      }
+      alert("Please select a business from the dropdown suggestions.");
       return;
     }
 
@@ -254,51 +233,33 @@ const AuditForm: React.FC<AuditFormProps> = ({
       <div className="p-8">
         <form onSubmit={handleSubmit} className="space-y-6">
           
-          {/* HONEYPOT FIELD (Hidden from humans, visible to dumb bots) */}
           <div className="opacity-0 absolute top-0 left-0 h-0 w-0 overflow-hidden -z-10">
-            <label htmlFor="website_hp_check">Website URL</label>
-            <input 
-              id="website_hp_check"
-              type="text" 
-              name="website_url_honey"
-              tabIndex={-1}
-              value={honeypot}
-              onChange={(e) => setHoneypot(e.target.value)}
-              autoComplete="off"
-            />
+            <input type="text" name="website_url_honey" tabIndex={-1} value={honeypot} onChange={(e) => setHoneypot(e.target.value)} autoComplete="off" />
           </div>
 
-          {/* Business Search */}
           <div className="relative">
             <label className="block text-sm font-semibold text-slate-700 mb-2">Find Business on Maps</label>
             <div className="relative">
               <MapPin className="absolute left-3 top-3.5 text-slate-400 w-5 h-5" />
               <input
-                id="business-search-input"
                 type="text"
                 disabled={!mapsApiKey && !selectedPlace}
                 placeholder={mapsApiKey || selectedPlace ? "Start typing business name..." : "System is waiting for configuration..."}
-                className={`w-full pl-10 pr-4 py-3 border rounded-lg transition-all outline-none
-                  ${!mapsApiKey && !selectedPlace 
-                    ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed' 
-                    : 'bg-slate-50 border-slate-200 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'}`}
+                className={`w-full pl-10 pr-4 py-3 border rounded-lg transition-all outline-none ${!mapsApiKey && !selectedPlace ? 'bg-slate-100 cursor-not-allowed' : 'bg-slate-50 focus:ring-2 focus:ring-blue-500'}`}
                 value={searchValue}
                 onChange={handleSearchChange}
               />
               {isLoading && <div className="absolute right-3 top-3.5"><Loader2 className="w-5 h-5 animate-spin text-blue-500"/></div>}
             </div>
             
-            {/* API Error Message */}
             {searchError && (
               <div className="mt-2 text-xs p-2 bg-red-50 text-red-600 border border-red-200 rounded flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                <span>{searchError}</span>
+                <AlertCircle className="w-4 h-4 flex-shrink-0" /> <span>{searchError}</span>
               </div>
             )}
             
-            {/* Rate Limit Message */}
             {rateLimitError && !bypassLimits && (
-              <div className="mt-4 p-4 bg-orange-50 text-orange-800 border border-orange-200 rounded-lg flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
+              <div className="mt-4 p-4 bg-orange-50 text-orange-800 border border-orange-200 rounded-lg flex items-start gap-3">
                 <Clock className="w-5 h-5 flex-shrink-0 mt-0.5" />
                 <div>
                   <div className="font-bold text-sm">Limit Reached</div>
@@ -307,15 +268,10 @@ const AuditForm: React.FC<AuditFormProps> = ({
               </div>
             )}
             
-            {/* Predictions Dropdown */}
             {predictions.length > 0 && (
               <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                 {predictions.map((pred) => (
-                  <div
-                    key={pred.place_id}
-                    onClick={() => handleSelectPrediction(pred.place_id, pred.description)}
-                    className="px-4 py-3 hover:bg-slate-50 cursor-pointer border-b border-slate-50 last:border-0 flex items-start gap-2"
-                  >
+                  <div key={pred.place_id} onClick={() => handleSelectPrediction(pred.place_id, pred.description)} className="px-4 py-3 hover:bg-slate-50 cursor-pointer border-b border-slate-50 last:border-0 flex items-start gap-2">
                     <MapPin className="w-4 h-4 mt-1 text-slate-400 flex-shrink-0" />
                     <div>
                       <div className="font-medium text-slate-800 text-sm">{pred.structured_formatting.main_text}</div>
@@ -326,9 +282,8 @@ const AuditForm: React.FC<AuditFormProps> = ({
               </div>
             )}
             {selectedPlace && (
-              <div className="mt-2 p-3 bg-green-50 text-green-700 text-sm rounded flex items-center gap-2 border border-green-100 animate-in fade-in slide-in-from-top-1">
-                <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                Selected: <strong>{selectedPlace.name}</strong> ({selectedPlace.rating}★)
+              <div className="mt-2 p-3 bg-green-50 text-green-700 text-sm rounded flex items-center gap-2 border border-green-100">
+                <div className="w-2 h-2 rounded-full bg-green-500"></div> Selected: <strong>{selectedPlace.name}</strong> ({selectedPlace.rating}★)
               </div>
             )}
           </div>
@@ -338,44 +293,23 @@ const AuditForm: React.FC<AuditFormProps> = ({
               <label className="block text-sm font-semibold text-slate-700 mb-2">Target Keyword</label>
               <div className="relative">
                 <Search className="absolute left-3 top-3.5 text-slate-400 w-5 h-5" />
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Emergency Dentist"
-                  maxLength={80}
-                  className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  value={keyword}
-                  onChange={(e) => setKeyword(e.target.value)}
-                />
+                <input type="text" required placeholder="e.g. Emergency Dentist" className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" value={keyword} onChange={(e) => setKeyword(e.target.value)} />
               </div>
             </div>
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">Target City</label>
               <div className="relative">
                 <MapPin className="absolute left-3 top-3.5 text-slate-400 w-5 h-5" />
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Austin"
-                  maxLength={80}
-                  className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                />
+                <input type="text" required placeholder="e.g. Austin" className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" value={city} onChange={(e) => setCity(e.target.value)} />
               </div>
             </div>
           </div>
 
-          {/* Language Selection */}
           <div className="pt-2">
             <label className="block text-sm font-semibold text-slate-700 mb-2">Report Language</label>
             <div className="relative">
               <Languages className="absolute left-3 top-3.5 text-slate-400 w-5 h-5" />
-              <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value as AuditLanguage)}
-                className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none appearance-none cursor-pointer"
-              >
+              <select value={language} onChange={(e) => setLanguage(e.target.value as AuditLanguage)} className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none appearance-none cursor-pointer">
                 <option value="en">English</option>
                 <option value="es">Español (Spanish)</option>
                 <option value="fr">Français (French)</option>
@@ -383,82 +317,12 @@ const AuditForm: React.FC<AuditFormProps> = ({
                 <option value="it">Italiano (Italian)</option>
                 <option value="pt">Português (Portuguese)</option>
               </select>
-              <div className="absolute right-4 top-4 w-2 h-2 border-r-2 border-b-2 border-slate-400 transform rotate-45 pointer-events-none"></div>
             </div>
           </div>
 
-          {/* Website Data (Manual Entry for Demo) */}
-          <div className="pt-2">
-             <button 
-               type="button" 
-               className="text-sm text-blue-600 font-medium hover:text-blue-700 flex items-center gap-1 mb-3"
-               onClick={() => setShowAdvanced(!showAdvanced)}
-             >
-               {showAdvanced ? 'Hide Website Details' : '+ Add Website Details (for higher score accuracy)'}
-             </button>
-             
-             {showAdvanced && (
-               <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-4 animate-in fade-in slide-in-from-top-2">
-                 <div className="flex gap-2 items-center text-sm text-slate-500 mb-2">
-                   <Globe className="w-4 h-4" /> Website SEO Data
-                 </div>
-                 <div>
-                    <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Homepage H1 Tag</label>
-                    <input 
-                      type="text" 
-                      maxLength={150}
-                      placeholder="Copy the main heading from homepage" 
-                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded text-sm"
-                      value={h1Text}
-                      onChange={(e) => setH1Text(e.target.value)}
-                    />
-                 </div>
-                 <div>
-                    <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Meta Title Tag</label>
-                    <input 
-                      type="text" 
-                      maxLength={150}
-                      placeholder="Copy the browser tab title" 
-                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded text-sm"
-                      value={titleTag}
-                      onChange={(e) => setTitleTag(e.target.value)}
-                    />
-                 </div>
-               </div>
-             )}
-          </div>
-
-          <button
-            type="submit"
-            disabled={isLoading || (!!rateLimitError && !bypassLimits)}
-            className={`w-full py-4 rounded-lg font-bold text-lg flex items-center justify-center gap-2 transition-all shadow-lg
-              ${isLoading || (!!rateLimitError && !bypassLimits)
-                ? 'bg-slate-300 text-slate-500 cursor-not-allowed' 
-                : 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-blue-500/30'}`}
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="animate-spin" /> Analyzing Profile...
-              </>
-            ) : rateLimitError && !bypassLimits ? (
-              <>
-                <ShieldAlert className="w-5 h-5" /> Limit Reached
-              </>
-            ) : !selectedPlace ? (
-              <>
-                Select a Business above to Start <ArrowRight className="w-5 h-5 opacity-50" />
-              </>
-            ) : (
-              <>
-                Run Full Audit <ArrowRight className="w-5 h-5" />
-              </>
-            )}
+          <button type="submit" disabled={isLoading || (!!rateLimitError && !bypassLimits)} className={`w-full py-4 rounded-lg font-bold text-lg flex items-center justify-center gap-2 transition-all shadow-lg ${isLoading || (!!rateLimitError && !bypassLimits) ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-blue-500/30'}`}>
+            {isLoading ? <><Loader2 className="animate-spin" /> Analyzing...</> : rateLimitError && !bypassLimits ? <><ShieldAlert className="w-5 h-5" /> Limit Reached</> : <><ArrowRight className="w-5 h-5" /> Run 360° Audit</>}
           </button>
-          
-          <p className="text-center text-xs text-slate-400">
-            Powered by ProRank Neural Engine. 
-            <br/>Safe analysis. No data modification.
-          </p>
         </form>
       </div>
     </div>

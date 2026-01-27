@@ -4,9 +4,7 @@ import type { BusinessProfile, AuditInputs, GeminiAnalysis, BlogPost, AuditLangu
 
 const ANALYSIS_MODEL = 'gemini-3-flash-preview';
 
-// Helper to get AI instance with dynamic key
 const getAI = (apiKey?: string) => {
-  // Check both passed key and environment variable (Vite style)
   const envKey = (import.meta as any).env.VITE_API_KEY || ''; 
   const key = (apiKey || envKey).trim();
   
@@ -25,16 +23,13 @@ const LANGUAGE_MAP: Record<string, string> = {
   pt: 'Portuguese'
 };
 
-// Retry helper for 503 errors
 const retryOperation = async <T>(operation: () => Promise<T>, retries = 3, delay = 2000): Promise<T> => {
   try {
     return await operation();
   } catch (error: any) {
     const msg = error.message || JSON.stringify(error);
     const isOverloaded = msg.includes('503') || msg.toLowerCase().includes('overloaded');
-    
     if (retries > 0 && isOverloaded) {
-      console.warn(`Gemini API Overloaded (503). Retrying in ${delay}ms... (${retries} attempts left)`);
       await new Promise(resolve => setTimeout(resolve, delay));
       return retryOperation(operation, retries - 1, delay * 2);
     }
@@ -49,102 +44,74 @@ export const analyzeProfileWithGemini = async (
   apiKey?: string
 ): Promise<GeminiAnalysis> => {
   
-  // 1. Validate Key immediately
-  let ai;
-  try {
-    ai = getAI(apiKey);
-  } catch (e: any) {
-    console.warn("Gemini Client Init Failed:", e.message);
-    throw e; // Propagate to App.tsx so user sees the "Missing Key" alert
-  }
-
+  const ai = getAI(apiKey);
   const targetLanguage = LANGUAGE_MAP[inputs.language || 'en'] || 'English';
-  const leaderRatingVal = competitors.length > 0 ? Math.max(...competitors.map((c: any) => c.rating || 0)) : 4.8;
-
-  // --- MASTER PROMPT CONSTRUCTION ---
+  
   const prompt = `
-    System Role: You are the lead AI auditor for ProRankRadar. Your goal is to convert raw Google Business Profile data into a high-converting, professional growth strategy. 
-    Use the "Ghost Profile" and "Lost Revenue" terminology from our branding.
+    System Role: You are a Senior Google Business Profile Growth Strategist.
+    Report Language: ${targetLanguage}
+
+    Analyze the following business:
+    Name: "${business.name}"
+    Category: "${business.types[0] || 'Unknown'}"
+    Rating: ${business.rating} (${business.user_ratings_total} reviews)
+    Market Leader Benchmark: 4.9 Stars
     
-    Language: The report MUST be written in ${targetLanguage}.
-
-    Input Data:
-    Business Details: [${business.name}, ${business.types[0] || 'Unknown'}, ${business.website || 'No Website'}, ${business.address}]
-    Review Data: [${business.rating} Stars, ${business.user_ratings_total} Total Reviews]
-    Competitor Leader: [${leaderRatingVal} Stars]
+    TASK: Generate a "360-Degree Premium Business Growth Audit".
     
-    Target Keyword: "${inputs.targetKeyword}"
-    Target City: "${inputs.targetCity}"
+    1. SENTIMENT & TRUST GAP
+       - Compare ${business.rating} stars to the Market Leader (4.9).
+       - If rating < 4.0, label it a "Conversion Killer".
+       - Assess if response rate to reviews seems low (assume low if not provided).
 
-    REQUIRED AUDIT SECTIONS (Strictly map your analysis to the JSON schema provided):
+    2. TECHNICAL VS COMMERCIAL DUALITY
+       - Trust Health: Check if name "${business.name}" has keyword stuffing. If clean, score 100%. If stuffed, High Risk.
+       - Ghost Profile: If reviews < 10 or rating is low, label as "Ghost Profile" -> "Massive Lost Revenue".
 
-    1. Attribute & Transactional Completeness (Maps to 'transactional' & 'attributes')
-       - Check: Verify if 'Action' buttons (Book Now, Order) are inferred to be missing based on category.
-       - Analysis: Identify missing 'Discovery' attributes (Accessibility, Service Options) critical for filters.
+    3. 90-DAY SUCCESS ROADMAP (Actionable Steps)
+       - Phase 1 (Days 1-7): Security & Foundation (Naming, Categories, NAP).
+       - Phase 2 (Days 8-30): Conversion (Action Buttons, Attributes, Website).
+       - Phase 3 (Month 2+): Authority (Trust Gap Closure, Velocity).
 
-    2. Interaction & Engagement Velocity (Maps to 'responseRate' & 'postVelocity')
-       - Check: Estimate 'Review Response Rate' based on industry standards for this rating.
-       - Analysis: Compare 'Post Frequency' against top competitors (assume competitors post weekly).
-
-    3. NAP Data Integrity (Source of Truth) (Maps to 'napConsistency')
-       - Check: Analyze the address format and name consistency.
-       - Analysis: Flag potential discrepancies that would contradict Google (e.g. Suite # formatting).
-
-    4. Trust & Security Guardrails (Maps to 'suspensionRisk' & 'keywordStuffing')
-       - Check: Scan for 'Keyword Stuffing' in "${business.name}".
-       - Analysis: Verify if address looks like a Virtual Office/PO Box (Risk). Provide 'Suspension Risk' rating.
-
-    5. Core & SEO (Maps to 'primaryCategory', 'websiteOptimization', 'backlinks')
-       - Verify Primary Category. If generic, suggest High-Intent alternatives.
-       - Assess Website/Backlink strength based on inputs.
-
-    6. Executive Summary & Plan (Maps to 'executiveSummary', 'roiForecast', 'fixPlan')
-       - Summarize the "Performance Reality".
-       - Forecast ROI/Calls increase.
-       - 3-Step Fix Plan:
-         * Step 1 (Security Phase - Day 1-7): Fix suspension risks immediately.
-         * Step 2 (Visibility Phase - Day 8-30): Optimize attributes & categories.
-         * Step 3 (Authority Phase - Day 30+): Build schema & reviews.
-
-    IMPORTANT: Return ONLY the raw JSON object matching the schema. No markdown formatting.
+    Return strict JSON matching the schema.
   `;
 
   const schema = {
     type: Type.OBJECT,
     properties: {
-      // Module 1: Transactional & Attributes
-      transactional: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING }, missingActions: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["score", "analysis", "fix", "missingActions"] },
-      attributes: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING }, missingAttributes: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["score", "analysis", "fix", "missingAttributes"] },
-
-      // Module 2: Engagement
-      responseRate: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING }, estimatedRate: { type: Type.STRING } }, required: ["score", "analysis", "fix", "estimatedRate"] },
-      postVelocity: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING }, competitorFrequency: { type: Type.STRING } }, required: ["score", "analysis", "fix", "competitorFrequency"] },
-
-      // Module 3: NAP
-      napConsistency: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING }, inconsistencies: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["score", "analysis", "fix", "inconsistencies"] },
-
-      // Module 4: Trust
-      suspensionRisk: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING }, riskLevel: { type: Type.STRING, enum: ["Low", "Medium", "High"] } }, required: ["score", "analysis", "fix", "riskLevel"] },
-      keywordStuffing: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING }, isDetected: { type: Type.BOOLEAN } }, required: ["score", "analysis", "fix", "isDetected"] },
-
-      // Core & SEO
-      primaryCategory: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING }, suggested: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["score", "analysis", "fix", "suggested"] },
-      completeness: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
-      websiteOptimization: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
-      backlinks: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING } }, required: ["score", "analysis", "fix"] },
-
+      sentimentAnalysis: {
+        type: Type.OBJECT,
+        properties: {
+          trustGap: { type: Type.NUMBER, description: "Difference between 4.9 and current rating" },
+          reviewsNeeded: { type: Type.NUMBER, description: "Est. 5-star reviews needed" },
+          ratingImpact: { type: Type.STRING, description: "e.g. Conversion Killer" },
+          responseAnalysis: { type: Type.STRING, description: "Analysis of owner responses" }
+        },
+        required: ["trustGap", "reviewsNeeded", "ratingImpact", "responseAnalysis"]
+      },
+      commercialStatus: {
+        type: Type.OBJECT,
+        properties: {
+          trustHealthScore: { type: Type.NUMBER, description: "100 if name is clean, else lower" },
+          isGhostProfile: { type: Type.BOOLEAN, description: "True if inactive/low reviews" },
+          revenueImpact: { type: Type.STRING, description: "e.g. Massive Lost Revenue" },
+          suspensionRisk: { type: Type.STRING, enum: ["Low", "Medium", "High"] }
+        },
+        required: ["trustHealthScore", "isGhostProfile", "revenueImpact", "suspensionRisk"]
+      },
+      roadmap: {
+        type: Type.OBJECT,
+        properties: {
+          phase1: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, steps: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["title", "steps"] },
+          phase2: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, steps: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["title", "steps"] },
+          phase3: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, steps: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["title", "steps"] }
+        },
+        required: ["phase1", "phase2", "phase3"]
+      },
       executiveSummary: { type: Type.STRING },
-      roiForecast: { type: Type.STRING },
-      fixPlan: { type: Type.OBJECT, properties: { step1: { type: Type.STRING }, step2: { type: Type.STRING }, step3: { type: Type.STRING }, rankingPotential: { type: Type.STRING } }, required: ["step1", "step2", "step3", "rankingPotential"] }
+      roiForecast: { type: Type.STRING }
     },
-    required: [
-      "transactional", "attributes",
-      "responseRate", "postVelocity",
-      "napConsistency",
-      "suspensionRisk", "keywordStuffing",
-      "primaryCategory", "completeness", "websiteOptimization", "backlinks",
-      "executiveSummary", "roiForecast", "fixPlan"
-    ]
+    required: ["sentimentAnalysis", "commercialStatus", "roadmap", "executiveSummary", "roiForecast"]
   };
 
   try {
@@ -165,31 +132,18 @@ export const analyzeProfileWithGemini = async (
   } catch (error: any) {
     console.error("Gemini Analysis Error:", error);
     
-    // Check if error is due to missing key or network before returning fallback
-    let errMsg = error.message || '';
-    if (errMsg.includes('403') || errMsg.includes('API key')) {
-        throw new Error("API Key Invalid. Please check your Gemini API Key in Admin Settings.");
-    }
-
-    // Fallback Mock Data matching the NEW schema structure
-    const fallback: GeminiAnalysis = {
-        transactional: { score: 0, analysis: "Analysis Failed", fix: "Please try again later.", missingActions: [] },
-        attributes: { score: 0, analysis: "Analysis Failed", fix: "Check internet connection.", missingAttributes: [] },
-        responseRate: { score: 0, analysis: "Analysis Failed", fix: "Retry audit.", estimatedRate: "0%" },
-        postVelocity: { score: 0, analysis: "Analysis Failed", fix: "Retry audit.", competitorFrequency: "Unknown" },
-        napConsistency: { score: 0, analysis: "Analysis Failed", fix: "Retry audit.", inconsistencies: [] },
-        suspensionRisk: { score: 0, analysis: "Analysis Failed", fix: "Retry audit.", riskLevel: "Low" },
-        keywordStuffing: { score: 0, analysis: "Analysis Failed", fix: "Retry audit.", isDetected: false },
-        primaryCategory: { score: 0, analysis: "Analysis Failed", fix: "Retry audit.", suggested: [] },
-        completeness: { score: 0, analysis: "Analysis Failed", fix: "Retry audit." },
-        websiteOptimization: { score: 0, analysis: "Analysis Failed", fix: "Retry audit." },
-        backlinks: { score: 0, analysis: "Analysis Failed", fix: "Retry audit." },
-        executiveSummary: "System was unable to complete the AI analysis. Please check API Key configuration.",
-        roiForecast: "N/A",
-        fixPlan: { step1: "Check Configuration", step2: "Verify API Keys", step3: "Try Again", rankingPotential: "Unknown" }
+    // Fallback Mock Data
+    return {
+        sentimentAnalysis: { trustGap: 1.0, reviewsNeeded: 15, ratingImpact: "Analysis Unavailable", responseAnalysis: "Check manually" },
+        commercialStatus: { trustHealthScore: 50, isGhostProfile: true, revenueImpact: "Unknown", suspensionRisk: "Medium" },
+        roadmap: {
+            phase1: { title: "Security (System Offline)", steps: ["Verify Name", "Check Address", "Confirm Category"] },
+            phase2: { title: "Conversion", steps: ["Add Photos", "Enable Messages"] },
+            phase3: { title: "Authority", steps: ["Get Reviews"] }
+        },
+        executiveSummary: "System could not complete the full AI audit. Please verify API Key.",
+        roiForecast: "N/A"
     };
-    
-    return fallback;
   }
 };
 
@@ -232,8 +186,6 @@ export const generateBlogPost = async (topic: string, language: AuditLanguage, a
     return JSON.parse(text) as Partial<BlogPost>;
   } catch (error: any) {
     console.error("Blog Gen Error:", error);
-    const msg = error.message || '';
-    if (msg.includes('503')) throw new Error("AI Service Overloaded. Try again.");
-    throw new Error("Failed to generate blog post: " + msg);
+    throw new Error("Failed to generate blog post: " + (error.message || "Unknown error"));
   }
 };

@@ -46,40 +46,43 @@ export interface ScoringFactor {
   category: 'gbp' | 'seo' | 'trust' | 'conversion';
 }
 
-// STRICT MAPPING TO AI ANALYSIS MODULES
+// UPGRADED AI ANALYSIS INTERFACE
 export interface GeminiAnalysis {
-  // 1. Transactional & Attributes
-  transactional: { score: number; analysis: string; fix: string; missingActions: string[] };
-  attributes: { score: number; analysis: string; fix: string; missingAttributes: string[] };
+  // 1. Review Sentiment & Response
+  sentimentAnalysis: {
+    trustGap: number; // e.g. 1.9 stars difference
+    reviewsNeeded: number; // e.g. 42 reviews to reach 4.9
+    ratingImpact: string; // "Conversion Killer" description
+    responseAnalysis: string; // "Neglect" vs "Managed"
+  };
 
-  // 2. Engagement & Velocity
-  responseRate: { score: number; analysis: string; fix: string; estimatedRate: string };
-  postVelocity: { score: number; analysis: string; fix: string; competitorFrequency: string };
-  
-  // 3. NAP & Data Integrity
-  napConsistency: { score: number; analysis: string; fix: string; inconsistencies: string[] };
-  
-  // 4. Trust & Security
-  suspensionRisk: { score: number; analysis: string; fix: string; riskLevel: 'Low' | 'Medium' | 'High' };
-  keywordStuffing: { score: number; analysis: string; fix: string; isDetected: boolean };
+  // 2. Technical vs Commercial Duality
+  commercialStatus: {
+    trustHealthScore: number; // 100 if safe
+    isGhostProfile: boolean; // True if activity is zero despite good health
+    revenueImpact: string; // "Massive Lost Revenue" or "Optimized"
+    suspensionRisk: 'Low' | 'Medium' | 'High';
+  };
 
-  // Core GBP (Legacy/Foundation)
-  primaryCategory: { score: number; analysis: string; fix: string; suggested: string[] };
-  completeness: { score: number; analysis: string; fix: string };
-  
-  // Website & SEO (Legacy/Foundation)
-  websiteOptimization: { score: number; analysis: string; fix: string };
-  backlinks: { score: number; analysis: string; fix: string };
-  
-  // Summary & Plan
+  // 3. 90-Day Success Roadmap
+  roadmap: {
+    phase1: {
+      title: string; // "Security & Foundation"
+      steps: string[];
+    };
+    phase2: {
+      title: string; // "Lead Generation & Conversion"
+      steps: string[];
+    };
+    phase3: {
+      title: string; // "Authority & Market Dominance"
+      steps: string[];
+    };
+  };
+
+  // Legacy/Visual Assets
   executiveSummary: string;
   roiForecast: string;
-  fixPlan: {
-    step1: string;
-    step2: string;
-    step3: string;
-    rankingPotential: string;
-  };
 }
 
 export interface AuditReportData {
