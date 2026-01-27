@@ -444,7 +444,7 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
                         ${loadError ? 'bg-orange-600 hover:bg-orange-700 text-white shadow-orange-500/30' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/30'}`}
                    >
                      {isGenerating ? (
-                        <>Generating...</>
+                        <><Loader2 className="w-5 h-5 animate-spin" /> Generating...</>
                      ) : loadError ? (
                         <><Globe className="w-5 h-5" /> Generate (Online Mode)</>
                      ) : !isLibLoaded ? (
