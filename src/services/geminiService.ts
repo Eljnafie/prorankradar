@@ -101,7 +101,10 @@ export const analyzeProfileWithGemini = async (
     6. Executive Summary & Plan (Maps to 'executiveSummary', 'roiForecast', 'fixPlan')
        - Summarize the "Performance Reality".
        - Forecast ROI/Calls increase.
-       - 3-Step Fix Plan.
+       - 3-Step Fix Plan:
+         * Step 1 (Security Phase - Day 1-7): Fix suspension risks immediately.
+         * Step 2 (Visibility Phase - Day 8-30): Optimize attributes & categories.
+         * Step 3 (Authority Phase - Day 30+): Build schema & reviews.
 
     IMPORTANT: Return ONLY the raw JSON object matching the schema. No markdown formatting.
   `;
