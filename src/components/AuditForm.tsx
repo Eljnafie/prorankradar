@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, MapPin, Globe, ArrowRight, Loader2, AlertCircle, Languages } from 'lucide-react';
+import { Search, MapPin, Globe, ArrowRight, Loader2, AlertCircle, Languages, ShieldAlert, Clock } from 'lucide-react';
 import type { AuditInputs, BusinessProfile, AuditLanguage } from '../types';
 
 interface AuditFormProps {
@@ -11,6 +11,13 @@ interface AuditFormProps {
   isMapsLoaded: boolean;
 }
 
+// SECURITY CONFIGURATION
+const RATE_LIMIT_CONFIG = {
+  MAX_AUDITS_PER_DAY: 3,
+  COOLDOWN_MINUTES: 2,
+  STORAGE_KEY: 'prr_audit_limits'
+};
+
 const AuditForm: React.FC<AuditFormProps> = ({ onRunAudit, isLoading, mapsApiKey, isMapsLoaded }) => {
   const [keyword, setKeyword] = useState('');
   const [city, setCity] = useState('');
@@ -18,8 +25,10 @@ const AuditForm: React.FC<AuditFormProps> = ({ onRunAudit, isLoading, mapsApiKey
   const [h1Text, setH1Text] = useState('');
   const [titleTag, setTitleTag] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [honeypot, setHoneypot] = useState(''); // Anti-bot field
   
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [rateLimitError, setRateLimitError] = useState<string | null>(null);
 
   // Place Search State
   const [searchValue, setSearchValue] = useState('');
@@ -47,6 +56,56 @@ const AuditForm: React.FC<AuditFormProps> = ({ onRunAudit, isLoading, mapsApiKey
     }
   }, [isMapsLoaded, mapsApiKey]);
 
+  // --- SECURITY: RATE LIMIT CHECKER ---
+  const checkRateLimit = (): boolean => {
+    try {
+      const rawData = localStorage.getItem(RATE_LIMIT_CONFIG.STORAGE_KEY);
+      const now = Date.now();
+      const oneDay = 24 * 60 * 60 * 1000;
+      const cooldownMs = RATE_LIMIT_CONFIG.COOLDOWN_MINUTES * 60 * 1000;
+
+      let data = rawData ? JSON.parse(rawData) : { timestamps: [] };
+      
+      // Filter out timestamps older than 24 hours
+      data.timestamps = data.timestamps.filter((t: number) => (now - t) < oneDay);
+
+      // Check Daily Quota
+      if (data.timestamps.length >= RATE_LIMIT_CONFIG.MAX_AUDITS_PER_DAY) {
+        setRateLimitError(`Daily limit reached (${RATE_LIMIT_CONFIG.MAX_AUDITS_PER_DAY} audits/24h). Please try again tomorrow.`);
+        return false;
+      }
+
+      // Check Cooldown (prevent spam clicking)
+      if (data.timestamps.length > 0) {
+        const lastAudit = data.timestamps[data.timestamps.length - 1];
+        if ((now - lastAudit) < cooldownMs) {
+          const waitSecs = Math.ceil((cooldownMs - (now - lastAudit)) / 1000);
+          setRateLimitError(`Please wait ${waitSecs} seconds before running another audit.`);
+          return false;
+        }
+      }
+
+      setRateLimitError(null);
+      return true;
+    } catch (e) {
+      // In case of localstorage error, allow but log
+      console.warn("Rate limit check failed", e);
+      return true;
+    }
+  };
+
+  const recordAuditUsage = () => {
+    try {
+      const now = Date.now();
+      const rawData = localStorage.getItem(RATE_LIMIT_CONFIG.STORAGE_KEY);
+      let data = rawData ? JSON.parse(rawData) : { timestamps: [] };
+      data.timestamps.push(now);
+      localStorage.setItem(RATE_LIMIT_CONFIG.STORAGE_KEY, JSON.stringify(data));
+    } catch (e) {
+      console.error("Failed to record usage");
+    }
+  };
+
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setSearchValue(val);
@@ -72,13 +131,11 @@ const AuditForm: React.FC<AuditFormProps> = ({ onRunAudit, isLoading, mapsApiKey
           setSearchError(null);
         } else {
           setPredictions([]);
-          // Handle specific API errors
           if (status === 'REQUEST_DENIED') {
-            setSearchError("API Error: Request Denied. Please check API Key permissions (Places API enabled?)");
+            setSearchError("API Error: Request Denied. Please check API Key permissions.");
           } else if (status === 'OVER_QUERY_LIMIT') {
-            setSearchError("API Error: Quota exceeded or billing not enabled on Google Cloud.");
+            setSearchError("API Error: Quota exceeded or billing not enabled.");
           } else {
-            // Only show generic error if input is substantial
              setSearchError(`Search unavailable (Status: ${status})`);
           }
         }
@@ -116,10 +173,9 @@ const AuditForm: React.FC<AuditFormProps> = ({ onRunAudit, isLoading, mapsApiKey
            };
            setSelectedPlace(profile);
            
-           // Auto-fill city if possible from address
            const addressParts = place.formatted_address.split(',');
            if (addressParts.length >= 2) {
-             setCity(addressParts[addressParts.length - 2].trim().split(' ')[0]); // heuristic
+             setCity(addressParts[addressParts.length - 2].trim().split(' ')[0]);
            }
         } else {
            setSearchError("Failed to load business details.");
@@ -131,7 +187,25 @@ const AuditForm: React.FC<AuditFormProps> = ({ onRunAudit, isLoading, mapsApiKey
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // VALIDATION UX
+    // 1. HONEYPOT CHECK (Bots)
+    if (honeypot) {
+      console.log("Bot detected via honeypot.");
+      // Fake loading to waste bot time, then do nothing
+      return; 
+    }
+
+    // 2. RATE LIMIT CHECK (Spam)
+    if (!checkRateLimit()) {
+      return;
+    }
+
+    // 3. INPUT SANITATION (Malicious Length)
+    if (keyword.length > 100 || city.length > 100) {
+      setSearchError("Input too long. Please use concise keywords.");
+      return;
+    }
+    
+    // 4. BUSINESS SELECTION CHECK
     if (!selectedPlace) {
       if (!searchValue) {
          const inputEl = document.getElementById('business-search-input');
@@ -145,6 +219,9 @@ const AuditForm: React.FC<AuditFormProps> = ({ onRunAudit, isLoading, mapsApiKey
       }
       return;
     }
+
+    // Record usage only on valid submit initiation
+    recordAuditUsage();
 
     const inputs: AuditInputs = {
       targetKeyword: keyword,
@@ -170,6 +247,20 @@ const AuditForm: React.FC<AuditFormProps> = ({ onRunAudit, isLoading, mapsApiKey
       <div className="p-8">
         <form onSubmit={handleSubmit} className="space-y-6">
           
+          {/* HONEYPOT FIELD (Hidden from humans, visible to dumb bots) */}
+          <div className="opacity-0 absolute top-0 left-0 h-0 w-0 overflow-hidden -z-10">
+            <label htmlFor="website_hp_check">Website URL</label>
+            <input 
+              id="website_hp_check"
+              type="text" 
+              name="website_url_honey"
+              tabIndex={-1}
+              value={honeypot}
+              onChange={(e) => setHoneypot(e.target.value)}
+              autoComplete="off"
+            />
+          </div>
+
           {/* Business Search */}
           <div className="relative">
             <label className="block text-sm font-semibold text-slate-700 mb-2">Find Business on Maps</label>
@@ -195,6 +286,17 @@ const AuditForm: React.FC<AuditFormProps> = ({ onRunAudit, isLoading, mapsApiKey
               <div className="mt-2 text-xs p-2 bg-red-50 text-red-600 border border-red-200 rounded flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
                 <span>{searchError}</span>
+              </div>
+            )}
+            
+            {/* Rate Limit Message */}
+            {rateLimitError && (
+              <div className="mt-4 p-4 bg-orange-50 text-orange-800 border border-orange-200 rounded-lg flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
+                <Clock className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-bold text-sm">Limit Reached</div>
+                  <div className="text-sm opacity-90">{rateLimitError}</div>
+                </div>
               </div>
             )}
             
@@ -233,6 +335,7 @@ const AuditForm: React.FC<AuditFormProps> = ({ onRunAudit, isLoading, mapsApiKey
                   type="text"
                   required
                   placeholder="e.g. Emergency Dentist"
+                  maxLength={80}
                   className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                   value={keyword}
                   onChange={(e) => setKeyword(e.target.value)}
@@ -247,6 +350,7 @@ const AuditForm: React.FC<AuditFormProps> = ({ onRunAudit, isLoading, mapsApiKey
                   type="text"
                   required
                   placeholder="e.g. Austin"
+                  maxLength={80}
                   className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
@@ -295,6 +399,7 @@ const AuditForm: React.FC<AuditFormProps> = ({ onRunAudit, isLoading, mapsApiKey
                     <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Homepage H1 Tag</label>
                     <input 
                       type="text" 
+                      maxLength={150}
                       placeholder="Copy the main heading from homepage" 
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded text-sm"
                       value={h1Text}
@@ -305,6 +410,7 @@ const AuditForm: React.FC<AuditFormProps> = ({ onRunAudit, isLoading, mapsApiKey
                     <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Meta Title Tag</label>
                     <input 
                       type="text" 
+                      maxLength={150}
                       placeholder="Copy the browser tab title" 
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded text-sm"
                       value={titleTag}
@@ -317,15 +423,19 @@ const AuditForm: React.FC<AuditFormProps> = ({ onRunAudit, isLoading, mapsApiKey
 
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || !!rateLimitError}
             className={`w-full py-4 rounded-lg font-bold text-lg flex items-center justify-center gap-2 transition-all shadow-lg
-              ${isLoading 
+              ${isLoading || !!rateLimitError
                 ? 'bg-slate-300 text-slate-500 cursor-not-allowed' 
                 : 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-blue-500/30'}`}
           >
             {isLoading ? (
               <>
                 <Loader2 className="animate-spin" /> Analyzing Profile...
+              </>
+            ) : rateLimitError ? (
+              <>
+                <ShieldAlert className="w-5 h-5" /> Limit Reached
               </>
             ) : !selectedPlace ? (
               <>
