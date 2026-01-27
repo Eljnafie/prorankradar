@@ -78,29 +78,30 @@ export const analyzeProfileWithGemini = async (
 
     REQUIRED AUDIT SECTIONS (Strictly map your analysis to the JSON schema provided):
 
-    1. The "Performance Reality" Check (Maps to 'executiveSummary' & 'roiForecast')
-       - Identify the "Conversion Gap": How many more calls would they get if they reached the Top 3?
-       - Estimate the % increase in Search Impressions and potential revenue growth if the "High Impact" changes are made.
+    1. Attribute & Transactional Completeness (Maps to 'transactional' & 'attributes')
+       - Check: Verify if 'Action' buttons (Book Now, Order) are inferred to be missing based on category.
+       - Analysis: Identify missing 'Discovery' attributes (Accessibility, Service Options) critical for filters.
 
-    2. Core SEO & Category Audit (Maps to 'primaryCategory' & 'completeness')
-       - Verify the Primary Category: "${business.types[0] || 'Unknown'}". If generic, suggest 3 "High-Intent" alternatives.
-       - Calculate the "Review Gap": Exactly how many 5-star reviews are needed to beat the Leader (${leaderRatingVal})?
+    2. Interaction & Engagement Velocity (Maps to 'responseRate' & 'postVelocity')
+       - Check: Estimate 'Review Response Rate' based on industry standards for this rating.
+       - Analysis: Compare 'Post Frequency' against top competitors (assume competitors post weekly).
 
-    3. Trust & NAP Integrity (Maps to 'napConsistency' & 'suspensionRisk')
-       - Audit the "NAP" (Name, Address). Is the name "${business.name}" keyword stuffed? (Risk).
-       - Flag any "Suspension Risks" based on recent Google algorithm updates.
+    3. NAP Data Integrity (Source of Truth) (Maps to 'napConsistency')
+       - Check: Analyze the address format and name consistency.
+       - Analysis: Flag potential discrepancies that would contradict Google (e.g. Suite # formatting).
 
-    4. Visual & Content "Ghost Profile" Audit (Maps to 'postVelocity' & 'attributes')
-       - Is the business a "Ghost Profile" (low photos, no posts)?
-       - Check if "Menu," "Outdoor Seating," or "Accessibility" tags appear missing based on category standards.
+    4. Trust & Security Guardrails (Maps to 'suspensionRisk' & 'keywordStuffing')
+       - Check: Scan for 'Keyword Stuffing' in "${business.name}".
+       - Analysis: Verify if address looks like a Virtual Office/PO Box (Risk). Provide 'Suspension Risk' rating.
 
-    5. AI Sentiment Analysis (Maps to 'responseRate' analysis field context)
-       - Identify top positive emotions and top pain points from a typical business in this niche.
-       - Draft a short "SEO-Optimized Description" snippet.
+    5. Core & SEO (Maps to 'primaryCategory', 'websiteOptimization', 'backlinks')
+       - Verify Primary Category. If generic, suggest High-Intent alternatives.
+       - Assess Website/Backlink strength based on inputs.
 
-    6. Step-by-Step Recovery Plan (Maps to 'fixPlan')
-       - Provide a numbered list for every [FAIL] or [WARN] status.
-       - Instructions must be "Copy-Paste" ready for the business owner.
+    6. Executive Summary & Plan (Maps to 'executiveSummary', 'roiForecast', 'fixPlan')
+       - Summarize the "Performance Reality".
+       - Forecast ROI/Calls increase.
+       - 3-Step Fix Plan.
 
     IMPORTANT: Return ONLY the raw JSON object matching the schema. No markdown formatting.
   `;
