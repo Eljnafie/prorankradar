@@ -9,6 +9,7 @@ interface AuditFormProps {
   mapsApiKey: string;
   setMapsApiKey: (key: string) => void;
   isMapsLoaded: boolean;
+  bypassLimits?: boolean;
 }
 
 // SECURITY CONFIGURATION
@@ -18,7 +19,9 @@ const RATE_LIMIT_CONFIG = {
   STORAGE_KEY: 'prr_audit_limits'
 };
 
-const AuditForm: React.FC<AuditFormProps> = ({ onRunAudit, isLoading, mapsApiKey, isMapsLoaded }) => {
+const AuditForm: React.FC<AuditFormProps> = ({ 
+  onRunAudit, isLoading, mapsApiKey, isMapsLoaded, bypassLimits = false 
+}) => {
   const [keyword, setKeyword] = useState('');
   const [city, setCity] = useState('');
   const [language, setLanguage] = useState<AuditLanguage>('en');
@@ -196,7 +199,8 @@ const AuditForm: React.FC<AuditFormProps> = ({ onRunAudit, isLoading, mapsApiKey
     }
 
     // 2. RATE LIMIT CHECK (Spam)
-    if (!checkRateLimit()) {
+    // Only check if NOT bypassed (i.e. Free Version)
+    if (!bypassLimits && !checkRateLimit()) {
       return;
     }
 
@@ -221,8 +225,10 @@ const AuditForm: React.FC<AuditFormProps> = ({ onRunAudit, isLoading, mapsApiKey
       return;
     }
 
-    // Record usage
-    recordAuditUsage();
+    // Record usage (Only for free users)
+    if (!bypassLimits) {
+      recordAuditUsage();
+    }
 
     const inputs: AuditInputs = {
       targetKeyword: keyword,
@@ -291,7 +297,7 @@ const AuditForm: React.FC<AuditFormProps> = ({ onRunAudit, isLoading, mapsApiKey
             )}
             
             {/* Rate Limit Message */}
-            {rateLimitError && (
+            {rateLimitError && !bypassLimits && (
               <div className="mt-4 p-4 bg-orange-50 text-orange-800 border border-orange-200 rounded-lg flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
                 <Clock className="w-5 h-5 flex-shrink-0 mt-0.5" />
                 <div>
@@ -424,9 +430,9 @@ const AuditForm: React.FC<AuditFormProps> = ({ onRunAudit, isLoading, mapsApiKey
 
           <button
             type="submit"
-            disabled={isLoading || !!rateLimitError}
+            disabled={isLoading || (!!rateLimitError && !bypassLimits)}
             className={`w-full py-4 rounded-lg font-bold text-lg flex items-center justify-center gap-2 transition-all shadow-lg
-              ${isLoading || !!rateLimitError
+              ${isLoading || (!!rateLimitError && !bypassLimits)
                 ? 'bg-slate-300 text-slate-500 cursor-not-allowed' 
                 : 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-blue-500/30'}`}
           >
@@ -434,7 +440,7 @@ const AuditForm: React.FC<AuditFormProps> = ({ onRunAudit, isLoading, mapsApiKey
               <>
                 <Loader2 className="animate-spin" /> Analyzing Profile...
               </>
-            ) : rateLimitError ? (
+            ) : rateLimitError && !bypassLimits ? (
               <>
                 <ShieldAlert className="w-5 h-5" /> Limit Reached
               </>

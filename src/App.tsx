@@ -272,6 +272,7 @@ const AppContent: React.FC = () => {
                  mapsApiKey={mapsKey}
                  setMapsApiKey={handleSetMapsKey}
                  isMapsLoaded={isMapsLoaded}
+                 bypassLimits={isAdminLoggedIn}
                />
              </div>
           } />
@@ -294,6 +295,7 @@ const AppContent: React.FC = () => {
                     mapsApiKey={mapsKey}
                     setMapsApiKey={handleSetMapsKey}
                     isMapsLoaded={isMapsLoaded}
+                    bypassLimits={isAdminLoggedIn}
                   />
                </div>
             </div>

@@ -17,11 +17,12 @@ interface LandingPageProps {
   mapsApiKey: string;
   setMapsApiKey: (key: string) => void;
   isMapsLoaded: boolean;
+  bypassLimits?: boolean;
 }
 
 const LandingPage: React.FC<LandingPageProps> = ({ 
   onStart, content, onViewBlog, recentPosts,
-  onRunAudit, isLoading, mapsApiKey, setMapsApiKey, isMapsLoaded
+  onRunAudit, isLoading, mapsApiKey, setMapsApiKey, isMapsLoaded, bypassLimits
 }) => {
   
   // JSON-LD Schema for SEO (2026 Standard)
@@ -245,6 +246,7 @@ const LandingPage: React.FC<LandingPageProps> = ({
                   mapsApiKey={mapsApiKey}
                   setMapsApiKey={setMapsApiKey}
                   isMapsLoaded={isMapsLoaded}
+                  bypassLimits={bypassLimits}
                 />
            </div>
         </div>
