@@ -61,53 +61,52 @@ export const analyzeProfileWithGemini = async (
   const targetLanguage = LANGUAGE_MAP[inputs.language || 'en'] || 'English';
   const leaderRatingVal = competitors.length > 0 ? Math.max(...competitors.map((c: any) => c.rating || 0)) : 4.8;
 
+  // --- MASTER PROMPT CONSTRUCTION ---
   const prompt = `
-    Role: Senior Google Maps Forensic Auditor.
-    Task: Conduct a deep-dive technical audit of a Google Business Profile (GBP).
-    Output Language: ${targetLanguage}
+    System Role: You are the lead AI auditor for ProRankRadar. Your goal is to convert raw Google Business Profile data into a high-converting, professional growth strategy. 
+    Use the "Ghost Profile" and "Lost Revenue" terminology from our branding.
+
+    Input Data:
+    Business Details: [${business.name}, ${business.types[0] || 'Unknown'}, ${business.website || 'No Website'}, ${business.address}]
+    Review Data: [${business.rating} Stars, ${business.user_ratings_total} Total Reviews]
+    Competitor Leader: [${leaderRatingVal} Stars]
     
-    === BUSINESS DATA ===
-    Name: "${business.name}"
-    Address: "${business.address}"
-    Target City: "${inputs.targetCity}"
     Target Keyword: "${inputs.targetKeyword}"
-    Primary Category: "${business.types[0] || 'Unknown'}"
-    Rating: ${business.rating} (${business.user_ratings_total} reviews)
-    Website: "${business.website || 'No Website'}"
-    
-    === MARKET BENCHMARK ===
-    Competitor Leader Rating: ${leaderRatingVal.toFixed(1)}
-    ==================
+    Target City: "${inputs.targetCity}"
 
-    === ANALYSIS MODULES (0-10 SCORE) ===
+    REQUIRED AUDIT SECTIONS (Strictly map your analysis to the JSON schema provided):
 
-    1. TRANSACTIONAL & ATTRIBUTE READINESS (Conversion)
-       - Actions: Does this business type usually have 'Book Online', 'Order', 'Reserve'? If missing, flag it.
-       - Attributes: Are critical attributes (Wheelchair, Wi-Fi, Seating, Gender-neutral restrooms) likely missing based on the profile leanness?
+    1. The "Performance Reality" Check (Maps to 'executiveSummary' & 'roiForecast')
+       - Identify the "Conversion Gap": How many more calls would they get if they reached the Top 3?
+       - Estimate the % increase in Search Impressions and potential revenue growth if the "High Impact" changes are made.
 
-    2. INTERACTION & ENGAGEMENT VELOCITY
-       - Review Response: Estimate response rate. If they have reviews but no recent activity, assume 'Stale'.
-       - Post/Photo Velocity: Compare against a typical market leader who posts 1-3 times/week.
+    2. Core SEO & Category Audit (Maps to 'primaryCategory' & 'completeness')
+       - Verify the Primary Category: "${business.types[0] || 'Unknown'}". If generic, suggest 3 "High-Intent" alternatives.
+       - Calculate the "Review Gap": Exactly how many 5-star reviews are needed to beat the Leader (${leaderRatingVal})?
 
-    3. NAP & DATA INTEGRITY (Source of Truth)
-       - Consistency: Analyze the address format. Is it standard? 
-       - Mentions: Is the business name distinctive enough to be consistent across Yelp/Bing, or is it generic (hard to track)?
+    3. Trust & NAP Integrity (Maps to 'napConsistency' & 'suspensionRisk')
+       - Audit the "NAP" (Name, Address). Is the name "${business.name}" keyword stuffed? (Risk).
+       - Flag any "Suspension Risks" based on recent Google algorithm updates.
 
-    4. TRUST & SECURITY GUARDRAILS (Risk)
-       - Keyword Stuffing: Check Name "${business.name}" strictly for non-brand keywords (e.g., "Best Dentist in [City]").
-       - Suspension Risk: Is the address a P.O. Box, Virtual Office, or Co-working space? (High risk).
+    4. Visual & Content "Ghost Profile" Audit (Maps to 'postVelocity' & 'attributes')
+       - Is the business a "Ghost Profile" (low photos, no posts)?
+       - Check if "Menu," "Outdoor Seating," or "Accessibility" tags appear missing based on category standards.
 
-    5. CORE & SEO
-       - Primary Category Analysis.
-       - Website Content Alignment (H1/Title).
+    5. AI Sentiment Analysis (Maps to 'responseRate' analysis field context)
+       - Identify top positive emotions and top pain points from a typical business in this niche.
+       - Draft a short "SEO-Optimized Description" snippet.
 
-    Provide strict JSON output.
+    6. Step-by-Step Recovery Plan (Maps to 'fixPlan')
+       - Provide a numbered list for every [FAIL] or [WARN] status.
+       - Instructions must be "Copy-Paste" ready for the business owner.
+
+    IMPORTANT: Return ONLY the raw JSON object matching the schema. No markdown formatting.
   `;
 
   const schema = {
     type: Type.OBJECT,
     properties: {
-      // Module 1: Transactional
+      // Module 1: Transactional & Attributes
       transactional: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING }, missingActions: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["score", "analysis", "fix", "missingActions"] },
       attributes: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, analysis: { type: Type.STRING }, fix: { type: Type.STRING }, missingAttributes: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["score", "analysis", "fix", "missingAttributes"] },
 
@@ -225,7 +224,6 @@ export const generateBlogPost = async (topic: string, language: AuditLanguage, a
     return JSON.parse(text) as Partial<BlogPost>;
   } catch (error: any) {
     console.error("Blog Gen Error:", error);
-    // Reuse specific error parsing if needed, or generic
     const msg = error.message || '';
     if (msg.includes('503')) throw new Error("AI Service Overloaded. Try again.");
     throw new Error("Failed to generate blog post: " + msg);

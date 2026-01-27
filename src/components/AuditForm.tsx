@@ -25,10 +25,12 @@ const AuditForm: React.FC<AuditFormProps> = ({ onRunAudit, isLoading, mapsApiKey
   const [h1Text, setH1Text] = useState('');
   const [titleTag, setTitleTag] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [honeypot, setHoneypot] = useState(''); // Anti-bot field
+  
+  // Security State
+  const [honeypot, setHoneypot] = useState('');
+  const [rateLimitError, setRateLimitError] = useState<string | null>(null);
   
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [rateLimitError, setRateLimitError] = useState<string | null>(null);
 
   // Place Search State
   const [searchValue, setSearchValue] = useState('');
@@ -71,7 +73,7 @@ const AuditForm: React.FC<AuditFormProps> = ({ onRunAudit, isLoading, mapsApiKey
 
       // Check Daily Quota
       if (data.timestamps.length >= RATE_LIMIT_CONFIG.MAX_AUDITS_PER_DAY) {
-        setRateLimitError(`Daily limit reached (${RATE_LIMIT_CONFIG.MAX_AUDITS_PER_DAY} audits/24h). Please try again tomorrow.`);
+        setRateLimitError(`Daily limit reached (${RATE_LIMIT_CONFIG.MAX_AUDITS_PER_DAY} audits/24h). Please contact support for enterprise access.`);
         return false;
       }
 
@@ -114,7 +116,6 @@ const AuditForm: React.FC<AuditFormProps> = ({ onRunAudit, isLoading, mapsApiKey
 
     if (!autocompleteService.current) {
       if (mapsApiKey && !isMapsLoaded) {
-        // Still loading, silent return
         return;
       }
       if (val.length > 2) setSearchError("Google Maps service not ready. Please refresh or check API key.");
@@ -190,7 +191,6 @@ const AuditForm: React.FC<AuditFormProps> = ({ onRunAudit, isLoading, mapsApiKey
     // 1. HONEYPOT CHECK (Bots)
     if (honeypot) {
       console.log("Bot detected via honeypot.");
-      // Fake loading to waste bot time, then do nothing
       return; 
     }
 
@@ -220,7 +220,7 @@ const AuditForm: React.FC<AuditFormProps> = ({ onRunAudit, isLoading, mapsApiKey
       return;
     }
 
-    // Record usage only on valid submit initiation
+    // Record usage
     recordAuditUsage();
 
     const inputs: AuditInputs = {
