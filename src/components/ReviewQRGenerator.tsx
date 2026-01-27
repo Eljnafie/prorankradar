@@ -24,8 +24,7 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
     let attempts = 0;
 
     const checkLibrary = () => {
-      // Specifically check for toDataURL to ensure we have the correct library (node-qrcode),
-      // not the legacy qrcodejs which doesn't support canvas generation this way.
+      // Specifically check for toDataURL to ensure we have the correct library (node-qrcode)
       if ((window as any).QRCode && (window as any).QRCode.toDataURL) {
         setIsLibLoaded(true);
         if (interval) clearInterval(interval);
@@ -42,24 +41,8 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
       attempts++;
       if (checkLibrary()) return;
 
-      // If not loaded after 5 seconds, try injecting fallback
-      if (attempts === 10) { // 500ms * 10 = 5s
-         if (!document.getElementById('qrcode-lib-fallback')) {
-            console.warn("QR Code lib slow to load, trying unpkg fallback...");
-            const script = document.createElement('script');
-            script.id = 'qrcode-lib-fallback';
-            script.src = "https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js";
-            script.async = true;
-            script.onload = () => {
-              // Wait slightly for execution
-              setTimeout(checkLibrary, 200);
-            };
-            document.body.appendChild(script);
-         }
-      }
-
-      // Timeout after 10 seconds
-      if (attempts > 20) {
+      // Timeout after 8 seconds
+      if (attempts > 16) {
         clearInterval(interval);
         if (!checkLibrary()) {
             setLoadError(true);
@@ -225,32 +208,40 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
     // Only generate if forceQr is true OR we already generated it and just redrawing for text updates
     if ((forceQr || hasGenerated) && reviewLink) {
       try {
-        const QRCode = (window as any).QRCode;
         let qrImageSrc = '';
+        let strategy = 'local';
 
-        if (QRCode && QRCode.toDataURL) {
-            // STRATEGY A: Local Library (Correct one loaded)
-            qrImageSrc = await QRCode.toDataURL(reviewLink, {
-                errorCorrectionLevel: 'H',
-                margin: 0,
-                width: qrSize,
-                color: {
-                    dark: '#1e293b',
-                    light: '#ffffff'
-                }
-            });
-        } else {
-            // STRATEGY B: API Fallback (Online Mode)
-            // Use qrserver.com if local lib fails or is blocked
-            console.warn("Using Online QR Fallback");
+        // STRATEGY A: Local Library
+        try {
+            const QRCode = (window as any).QRCode;
+            if (QRCode && QRCode.toDataURL) {
+                qrImageSrc = await QRCode.toDataURL(reviewLink, {
+                    errorCorrectionLevel: 'H',
+                    margin: 0,
+                    width: qrSize,
+                    color: {
+                        dark: '#1e293b',
+                        light: '#ffffff'
+                    }
+                });
+            } else {
+                strategy = 'api-fallback';
+            }
+        } catch (localErr) {
+            console.warn("Local QR generation failed, switching to fallback", localErr);
+            strategy = 'api-fallback';
+        }
+
+        // STRATEGY B: API Fallback (Online Mode)
+        // Triggered if library missing OR library threw error
+        if (strategy === 'api-fallback' || !qrImageSrc) {
+            console.log("Using Online QR Fallback");
             const safeLink = encodeURIComponent(reviewLink);
-            // API returns an image. 
-            // Color: 1e293b (Slate 800), Bg: ffffff
             qrImageSrc = `https://api.qrserver.com/v1/create-qr-code/?size=${qrSize}x${qrSize}&data=${safeLink}&color=1e293b&bgcolor=ffffff&margin=0`;
         }
 
         const qrImage = new Image();
-        qrImage.crossOrigin = "Anonymous"; // Important for allowing download
+        qrImage.crossOrigin = "Anonymous";
         qrImage.src = qrImageSrc;
         
         await new Promise((resolve, reject) => { 
@@ -266,6 +257,8 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
         ctx.fillStyle = '#ef4444';
         ctx.font = 'bold 24px sans-serif';
         ctx.fillText("Error Generating QR", WIDTH / 2, qrY + qrSize / 2);
+        ctx.font = 'normal 16px sans-serif';
+        ctx.fillText("Please check internet connection", WIDTH / 2, qrY + qrSize / 2 + 30);
       }
     } else {
       // Placeholder state
@@ -315,14 +308,11 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
         return;
     }
     
-    // Check if we can proceed (Either lib loaded OR we decided to use fallback)
-    if (!isLibLoaded && !loadError) {
-        alert("Resources are still loading. Please wait a moment.");
-        return;
-    }
-
+    // Check if we can proceed
+    // We allow proceeding even if lib not loaded (it will fallback to API)
     setIsGenerating(true);
-    // Add artificial delay to make it feel like "work" and ensure UI updates
+    
+    // Add artificial delay to make it feel like "work"
     await new Promise(r => setTimeout(r, 500));
     await drawCanvas(true);
     setHasGenerated(true);
@@ -333,10 +323,14 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
   const handleDownloadPNG = () => {
     const canvas = canvasRef.current;
     if (!canvas || !reviewLink || !hasGenerated) return;
-    const link = document.createElement('a');
-    link.download = `Google_Review_Stand_${businessName.replace(/\s+/g, '_') || 'ProRankRadar'}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+    try {
+        const link = document.createElement('a');
+        link.download = `Google_Review_Stand_${businessName.replace(/\s+/g, '_') || 'ProRankRadar'}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    } catch(e) {
+        alert("Could not download image. If you see the QR code, try Right Click > Save Image As.");
+    }
   };
 
   const handleDownloadPDF = () => {
@@ -350,14 +344,17 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
       return;
     }
 
-    const doc = new jsPDF('p', 'mm', 'a6');
-    const imgData = canvas.toDataURL('image/png');
-    
-    const pdfWidth = doc.internal.pageSize.getWidth();
-    const pdfHeight = doc.internal.pageSize.getHeight();
-    
-    doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-    doc.save(`Google_Review_Stand_${businessName.replace(/\s+/g, '_') || 'ProRankRadar'}.pdf`);
+    try {
+        const doc = new jsPDF('p', 'mm', 'a6');
+        const imgData = canvas.toDataURL('image/png');
+        const pdfWidth = doc.internal.pageSize.getWidth();
+        const pdfHeight = doc.internal.pageSize.getHeight();
+        
+        doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        doc.save(`Google_Review_Stand_${businessName.replace(/\s+/g, '_') || 'ProRankRadar'}.pdf`);
+    } catch(e) {
+         alert("Could not generate PDF. Please try downloading as PNG instead.");
+    }
   };
 
   return (
@@ -442,7 +439,7 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
                 <div className="pt-2">
                    <button 
                      onClick={handleGenerate}
-                     disabled={!reviewLink || isGenerating || (!isLibLoaded && !loadError)}
+                     disabled={!reviewLink || isGenerating}
                      className={`w-full py-4 font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed
                         ${loadError ? 'bg-orange-600 hover:bg-orange-700 text-white shadow-orange-500/30' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/30'}`}
                    >
@@ -451,7 +448,7 @@ const ReviewQRGenerator: React.FC<ReviewQRGeneratorProps> = ({ onNavigateToAudit
                      ) : loadError ? (
                         <><Globe className="w-5 h-5" /> Generate (Online Mode)</>
                      ) : !isLibLoaded ? (
-                        <><Loader2 className="w-5 h-5 animate-spin" /> Loading Resources...</>
+                        <><Globe className="w-5 h-5" /> Generate (Online Mode)</>
                      ) : (
                         <><QrCode className="w-5 h-5" /> Generate Preview</>
                      )}
