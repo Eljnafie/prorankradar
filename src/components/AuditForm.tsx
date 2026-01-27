@@ -191,6 +191,7 @@ const AuditForm: React.FC<AuditFormProps> = ({ onRunAudit, isLoading, mapsApiKey
     // 1. HONEYPOT CHECK (Bots)
     if (honeypot) {
       console.log("Bot detected via honeypot.");
+      // Fake loading to waste bot time, then do nothing
       return; 
     }
 
@@ -220,7 +221,7 @@ const AuditForm: React.FC<AuditFormProps> = ({ onRunAudit, isLoading, mapsApiKey
       return;
     }
 
-    // Record usage
+    // Record usage only on valid submit initiation
     recordAuditUsage();
 
     const inputs: AuditInputs = {
