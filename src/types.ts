@@ -102,7 +102,7 @@ export interface BlogPost {
   date: string;
   imageUrl?: string;
   slug: string;
-  language: AuditLanguage;
+  language?: AuditLanguage;
 }
 
 export interface SiteContent {
