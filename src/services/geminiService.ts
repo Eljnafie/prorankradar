@@ -64,7 +64,6 @@ export const analyzeProfileWithGemini = async (
     1. SENTIMENT & TRUST GAP
        - Compare ${business.rating} stars to the Market Leader (4.9).
        - If rating < 4.0, label it a "Conversion Killer".
-       - Calculate exact number of 5-star reviews needed to reach 4.9 (approximate).
        - Assess if response rate to reviews seems low (assume low if not provided).
 
     2. TECHNICAL VS COMMERCIAL DUALITY

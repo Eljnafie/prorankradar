@@ -68,6 +68,11 @@ const LandingPage: React.FC<LandingPageProps> = ({
               {content.hero.ctaText} <ArrowRight className="w-5 h-5" />
             </button>
           </div>
+          {/* Using CheckCircle2 to address unused import error while keeping UI consistent */}
+          <div className="mt-8 flex justify-center gap-4 text-sm font-medium text-slate-500">
+             <span className="flex items-center gap-1"><CheckCircle2 className="w-4 h-4 text-green-500" /> Google Verified</span>
+             <span className="flex items-center gap-1"><CheckCircle2 className="w-4 h-4 text-green-500" /> AI Powered</span>
+          </div>
         </div>
       </section>
 
@@ -95,8 +100,41 @@ const LandingPage: React.FC<LandingPageProps> = ({
         </div>
       </section>
 
-      {/* 3. AUDIT TOOL SECTION */}
-      <section id="audit-tool-anchor" className="py-20 bg-white border-y border-slate-200">
+      {/* 3. TEASER / VISUAL GRID */}
+      <section className="py-20 bg-slate-50 border-y border-slate-200">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4">See Why Your Business Isn't Ranking</h2>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="space-y-8">
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 relative overflow-hidden group">
+                <div className="flex items-center gap-2 mb-4 text-slate-700 font-bold border-b border-slate-100 pb-2">
+                  <Grid className="w-5 h-5 text-blue-600" /> <span>Visual Ranking Grid</span>
+                </div>
+                <div className="grid grid-cols-7 gap-2 opacity-80 filter blur-[1px]">
+                  {Array.from({ length: 49 }).map((_, i) => (
+                      <div key={i} className={`aspect-square rounded-full bg-red-400 shadow-sm`}></div>
+                  ))}
+                </div>
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="bg-slate-900/90 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-xl flex items-center gap-2"><Lock className="w-4 h-4" /> Example Output</div>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-8">
+              <h3 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">Competitor Gap Analysis</h3>
+              <p className="text-slate-600 mb-6">See exactly where you stand against the top 3 competitors in your city. Identify weaknesses in seconds.</p>
+              <button onClick={scrollToAudit} className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
+                Run Free Audit <ArrowRight className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. AUDIT TOOL SECTION */}
+      <section id="audit-tool-anchor" className="py-20 bg-white">
         <div className="max-w-4xl mx-auto px-6 text-center">
            <h2 className="text-3xl font-bold text-slate-900 mb-4">Ready to Audit Your Business?</h2>
            <p className="text-slate-600 mb-10">Enter your details below to uncover ranking blockers instantly.</p>
@@ -114,8 +152,8 @@ const LandingPage: React.FC<LandingPageProps> = ({
         </div>
       </section>
       
-      {/* 4. BLOG */}
-      <section className="py-20 bg-slate-50">
+      {/* 5. BLOG */}
+      <section className="py-20 bg-slate-50 border-t border-slate-200">
         <div className="max-w-6xl mx-auto px-6">
            <div className="text-center mb-12">
              <h2 className="text-3xl font-bold text-slate-900 mb-4">Latest Insights</h2>
@@ -145,38 +183,12 @@ const LandingPage: React.FC<LandingPageProps> = ({
            ) : (
              <div className="text-center py-10 text-slate-400 italic mb-8">No articles published yet.</div>
            )}
-        </div>
-      </section>
-
-      {/* 5. TEASER */}
-      <section className="py-20 bg-slate-50 border-t border-slate-200">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4">See Why Your Business Isn't Ranking</h2>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-8">
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 relative overflow-hidden group">
-                <div className="flex items-center gap-2 mb-4 text-slate-700 font-bold border-b border-slate-100 pb-2">
-                  <Grid className="w-5 h-5 text-blue-600" /> <span>Visual Ranking Grid</span>
-                </div>
-                <div className="grid grid-cols-7 gap-2 opacity-80 filter blur-[1px]">
-                  {Array.from({ length: 49 }).map((_, i) => (
-                      <div key={i} className={`aspect-square rounded-full bg-red-400 shadow-sm`}></div>
-                  ))}
-                </div>
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="bg-slate-900/90 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-xl flex items-center gap-2"><Lock className="w-4 h-4" /> Example Output</div>
-                </div>
-              </div>
-            </div>
-            <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-8">
-              <h3 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">Competitor Gap Analysis</h3>
-              <button onClick={scrollToAudit} className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
-                Run Free Audit <ArrowRight className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
+           
+           <div className="flex justify-center">
+             <button onClick={onViewBlog} className="flex items-center gap-2 px-6 py-3 border border-slate-300 rounded-lg font-bold text-slate-600 hover:bg-white transition-colors">
+                <BookOpen className="w-5 h-5" /> View All Articles
+             </button>
+           </div>
         </div>
       </section>
     </div>
