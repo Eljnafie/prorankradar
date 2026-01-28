@@ -4,43 +4,45 @@ import type { AuditReportData, ScoringFactor, AuditLanguage } from "../types";
 // Translation dictionary for PDF Labels
 const PDF_TRANSLATIONS: Record<AuditLanguage, Record<string, string>> = {
   en: {
-    title: "MASTER VISIBILITY AUDIT",
+    title: "CLIENT VISIBILITY GUIDE",
     prepared_for: "Prepared for:",
-    exec_summary: "Executive Visibility Summary",
+    how_it_works: "How This Audit Works",
+    how_it_works_text: "We use Google Maps data to see where your business appears for real people searching nearby. We then use AI to help explain patterns in that data — not to control Google or predict results. Think of this as a diagnosis, not a crystal ball.",
+    exec_summary: "Executive Summary",
     lvc_score: "Local Visibility Coverage (LVC)",
-    roadmap_title: "90-DAY ACTION ROADMAP",
-    geo_grid: "Geo-Grid Analysis",
-    grid_legend: "Grid Legend:",
-    money_zones: "Prime Zone (Top 3)",
-    lost_revenue: "Invisible Zone (10+)",
-    trust_gap: "Trust Gap Analysis",
-    reviews_needed: "Reviews Needed",
-    immediate: "Phase 1: Immediate (0-7 Days)",
-    short_term: "Phase 2: Short Term (14-30 Days)",
-    growth: "Phase 3: Growth (30-90 Days)",
-    detailed_audit: "Detailed Compliance Audit"
+    lvc_sub: "Real-world market reach",
+    health_check: "Profile Health Check",
+    safety: "A. Profile Safety",
+    trust: "B. Trust & Reputation",
+    visibility: "C. Visibility & Power",
+    improvement: "Step-by-Step Improvement Plan",
+    immediate: "Phase 1: Immediate Fixes (Safety)",
+    short_term: "Phase 2: Quick Wins (Activity)",
+    long_term: "Phase 3: Growth (Dominance)",
+    notes: "Important Notes: Results vary by user location. Google updates often."
   },
   es: {
-    title: "AUDITORÍA MAESTRA DE VISIBILIDAD",
+    title: "GUÍA DE VISIBILIDAD DEL CLIENTE",
     prepared_for: "Preparado para:",
+    how_it_works: "Cómo Funciona Esta Auditoría",
+    how_it_works_text: "Usamos datos de Google Maps para ver dónde aparece su negocio. Usamos IA para explicar patrones, no para controlar a Google. Piense en esto como un diagnóstico.",
     exec_summary: "Resumen Ejecutivo",
-    lvc_score: "Cobertura de Visibilidad Local",
-    roadmap_title: "HOJA DE RUTA 90 DÍAS",
-    geo_grid: "Análisis Geo-Grid",
-    grid_legend: "Leyenda:",
-    money_zones: "Zona Prime",
-    lost_revenue: "Zona Invisible",
-    trust_gap: "Brecha de Confianza",
-    reviews_needed: "Reseñas Necesarias",
-    immediate: "Fase 1: Inmediato (0-7 Días)",
-    short_term: "Fase 2: Corto Plazo (14-30 Días)",
-    growth: "Fase 3: Crecimiento (30-90 Días)",
-    detailed_audit: "Auditoría Detallada"
+    lvc_score: "Cobertura de Visibilidad Local (LVC)",
+    lvc_sub: "Alcance real del mercado",
+    health_check: "Chequeo de Salud del Perfil",
+    safety: "A. Seguridad del Perfil",
+    trust: "B. Confianza y Reputación",
+    visibility: "C. Visibilidad y Poder",
+    improvement: "Plan de Mejora Paso a Paso",
+    immediate: "Fase 1: Arreglos Inmediatos",
+    short_term: "Fase 2: Victorias Rápidas",
+    long_term: "Fase 3: Crecimiento",
+    notes: "Notas Importantes: Los resultados varían por ubicación."
   },
-  fr: { title: "AUDIT DE VISIBILITÉ MASTER", prepared_for: "Pour:", exec_summary: "Résumé Exécutif", lvc_score: "Score de Visibilité", roadmap_title: "FEUILLE DE ROUTE", geo_grid: "Analyse Géo-Grille", grid_legend: "Légende:", money_zones: "Zone Prime", lost_revenue: "Zone Invisible", trust_gap: "Écart de Confiance", reviews_needed: "Avis Requis", immediate: "Phase 1: Immédiat", short_term: "Phase 2: Court Terme", growth: "Phase 3: Croissance", detailed_audit: "Audit Détaillé" },
-  de: { title: "MASTER SICHTBARKEITSAUDIT", prepared_for: "Für:", exec_summary: "Zusammenfassung", lvc_score: "Sichtbarkeitsindex", roadmap_title: "90-TAGE PLAN", geo_grid: "Geo-Grid Analyse", grid_legend: "Legende:", money_zones: "Prime Zone", lost_revenue: "Unsichtbar", trust_gap: "Vertrauenslücke", reviews_needed: "Benötigte Bewertungen", immediate: "Phase 1: Sofort", short_term: "Phase 2: Kurzfristig", growth: "Phase 3: Wachstum", detailed_audit: "Detailaudit" },
-  it: { title: "AUDIT MASTER VISIBILITÀ", prepared_for: "Per:", exec_summary: "Riepilogo", lvc_score: "Punteggio Visibilità", roadmap_title: "PIANO D'AZIONE", geo_grid: "Analisi Geo-Grid", grid_legend: "Legenda:", money_zones: "Zona Prime", lost_revenue: "Zona Invisibile", trust_gap: "Gap Fiducia", reviews_needed: "Recensioni Necessarie", immediate: "Fase 1: Immediato", short_term: "Fase 2: Breve Termine", growth: "Fase 3: Crescita", detailed_audit: "Audit Dettagliato" },
-  pt: { title: "AUDITORIA MESTRA DE VISIBILIDADE", prepared_for: "Para:", exec_summary: "Resumo Executivo", lvc_score: "Pontuação Visibilidade", roadmap_title: "ROTEIRO DE AÇÃO", geo_grid: "Análise Geo-Grid", grid_legend: "Legenda:", money_zones: "Zona Prime", lost_revenue: "Zona Invisível", trust_gap: "Lacuna de Confiança", reviews_needed: "Avaliações Necessárias", immediate: "Fase 1: Imediato", short_term: "Fase 2: Curto Prazo", growth: "Fase 3: Crescimento", detailed_audit: "Auditoria Detalhada" }
+  fr: { title: "GUIDE DE VISIBILITÉ CLIENT", prepared_for: "Préparé pour:", how_it_works: "Comment Ça Marche", how_it_works_text: "Basé sur les données réelles de Google Maps. Ceci est un diagnostic.", exec_summary: "Résumé Exécutif", lvc_score: "Score de Visibilité (LVC)", lvc_sub: "Portée réelle", health_check: "Bilan de Santé", safety: "A. Sécurité", trust: "B. Confiance", visibility: "C. Visibilité", improvement: "Plan d'Amélioration", immediate: "Phase 1: Immédiat", short_term: "Phase 2: Court Terme", long_term: "Phase 3: Croissance", notes: "Note: Les résultats varient." },
+  de: { title: "KUNDEN-SICHTBARKEITS-GUIDE", prepared_for: "Für:", how_it_works: "Wie es funktioniert", how_it_works_text: "Basierend auf echten Google Maps Daten.", exec_summary: "Zusammenfassung", lvc_score: "Sichtbarkeitsindex (LVC)", lvc_sub: "Markreichweite", health_check: "Profil-Check", safety: "A. Sicherheit", trust: "B. Vertrauen", visibility: "C. Sichtbarkeit", improvement: "Verbesserungsplan", immediate: "Phase 1: Sofort", short_term: "Phase 2: Kurzfristig", long_term: "Phase 3: Wachstum", notes: "Hinweis: Ergebnisse variieren." },
+  it: { title: "GUIDA ALLA VISIBILITÀ", prepared_for: "Per:", how_it_works: "Come Funziona", how_it_works_text: "Basato su dati reali di Google Maps.", exec_summary: "Riepilogo Esecutivo", lvc_score: "Punteggio Visibilità (LVC)", lvc_sub: "Portata reale", health_check: "Controllo Salute", safety: "A. Sicurezza", trust: "B. Fiducia", visibility: "C. Visibilità", improvement: "Piano di Miglioramento", immediate: "Fase 1: Immediato", short_term: "Fase 2: Breve Termine", long_term: "Fase 3: Crescita", notes: "Nota: I risultati variano." },
+  pt: { title: "GUIA DE VISIBILIDADE", prepared_for: "Para:", how_it_works: "Como Funciona", how_it_works_text: "Baseado em dados reais do Google Maps.", exec_summary: "Resumo Executivo", lvc_score: "Pontuação LVC", lvc_sub: "Alcance real", health_check: "Verificação de Saúde", safety: "A. Segurança", trust: "B. Confiança", visibility: "C. Visibilidade", improvement: "Plano de Melhoria", immediate: "Fase 1: Imediato", short_term: "Fase 2: Curto Prazo", long_term: "Fase 3: Crescimento", notes: "Nota: Resultados variam." }
 };
 
 export const generateAuditPdf = (data: AuditReportData) => {
@@ -66,7 +68,9 @@ export const generateAuditPdf = (data: AuditReportData) => {
     slate900: [30, 41, 59],
     slate600: [71, 85, 105],
     blue600: [37, 99, 235],
+    blue50: [239, 246, 255],
     green500: [34, 197, 94],
+    green50: [240, 253, 244],
     yellow500: [234, 179, 8],
     red500: [239, 68, 68],
     white: [255, 255, 255]
@@ -104,158 +108,139 @@ export const generateAuditPdf = (data: AuditReportData) => {
 
   // --- 1. COVER PAGE ---
   doc.setFillColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
-  doc.rect(0, 0, pageWidth, 50, 'F');
+  doc.rect(0, 0, pageWidth, 60, 'F');
+  
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(10); doc.text("ProRankRadar Intelligence", leftMargin, 15);
-  doc.setFontSize(22); doc.setFont("helvetica", "bold");
+  doc.setFontSize(26); doc.setFont("helvetica", "bold");
   doc.text(t.title, leftMargin, 35);
   
   doc.setFontSize(14); doc.setFont("helvetica", "normal");
-  doc.text(`${t.prepared_for} ${data.business.name}`, leftMargin, 65);
+  doc.text(`${t.prepared_for} ${data.business.name}`, leftMargin, 75);
   doc.setFontSize(11); doc.setTextColor(COLORS.slate600[0], COLORS.slate600[1], COLORS.slate600[2]);
-  doc.text(`${data.inputs.targetCity} | ${new Date().toLocaleDateString()}`, leftMargin, 72);
+  doc.text(`${data.inputs.targetCity} | ${new Date().toLocaleDateString()}`, leftMargin, 82);
 
-  y = 90;
+  y = 100;
 
-  // --- 2. EXECUTIVE SUMMARY & LVC SCORE ---
+  // --- 2. HOW IT WORKS (Methodology) ---
+  doc.setFillColor(COLORS.blue50[0], COLORS.blue50[1], COLORS.blue50[2]);
+  doc.setDrawColor(COLORS.blue600[0], COLORS.blue600[1], COLORS.blue600[2]);
+  doc.roundedRect(leftMargin, y, maxLineWidth, 30, 3, 3, 'FD');
+  
+  doc.setTextColor(COLORS.blue600[0], COLORS.blue600[1], COLORS.blue600[2]);
+  doc.setFontSize(12); doc.setFont("helvetica", "bold");
+  doc.text(t.how_it_works, leftMargin + 5, y + 8);
+  
+  y += 15;
+  addWrappedText(t.how_it_works_text, 10, "normal", COLORS.slate600, 5);
+  y += 20;
+
+  // --- 3. EXECUTIVE SUMMARY ---
   doc.setTextColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
   doc.setFontSize(16); doc.setFont("helvetica", "bold");
   doc.text(t.exec_summary, leftMargin, y);
   y += 10;
 
   if (data.geminiAnalysis.executiveSummary) {
-    addWrappedText(data.geminiAnalysis.executiveSummary, 10, "normal", COLORS.slate600);
+    addWrappedText(data.geminiAnalysis.executiveSummary.plainLanguageInsight, 11, "normal", COLORS.slate600);
+    y += 5;
+    doc.setFont("helvetica", "bold");
+    addWrappedText(`Status: ${data.geminiAnalysis.executiveSummary.visibilityStatus}`, 11, "bold", COLORS.slate900);
+    y += 2;
+    addWrappedText(`Opportunity: ${data.geminiAnalysis.executiveSummary.mainOpportunity}`, 11, "bold", COLORS.blue600);
     y += 10;
   }
 
-  // Draw LVC Score Circle
-  const score = data.geminiAnalysis.visibility.score;
+  // Draw LVC Gauge (Visual)
+  const lvcY = y; // save Y
+  const score = data.geminiAnalysis.lvc.score;
   const scoreColor = score >= 70 ? COLORS.green500 : score >= 40 ? COLORS.yellow500 : COLORS.red500;
   
   doc.setDrawColor(scoreColor[0], scoreColor[1], scoreColor[2]);
-  doc.setLineWidth(3);
-  doc.circle(pageWidth - 40, y + 10, 15);
-  doc.setFontSize(16); doc.setTextColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
-  doc.text(`${score}`, pageWidth - 40, y + 12, { align: "center" });
-  doc.setFontSize(9); doc.setTextColor(COLORS.slate600[0], COLORS.slate600[1], COLORS.slate600[2]);
-  doc.text(t.lvc_score, pageWidth - 40, y + 32, { align: "center" });
+  doc.setLineWidth(4);
+  doc.circle(pageWidth - 45, lvcY + 15, 18); // Circle
+  doc.setFontSize(20); doc.setTextColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
+  doc.text(`${score}`, pageWidth - 45, lvcY + 17, { align: "center" });
+  
+  doc.setFontSize(10); doc.setTextColor(COLORS.slate600[0], COLORS.slate600[1], COLORS.slate600[2]);
+  doc.text(t.lvc_score, pageWidth - 45, lvcY + 40, { align: "center" });
+  doc.setFontSize(8);
+  doc.text(t.lvc_sub, pageWidth - 45, lvcY + 45, { align: "center" });
 
-  y += 45;
+  // Add LVC Explanation Text on the left
+  y += 10;
+  addWrappedText(data.geminiAnalysis.lvc.scoreExplanation, 10, "italic", COLORS.slate600, 0); 
+  
+  y = Math.max(y, lvcY + 55); // Advance Y past the gauge
 
-  // --- 3. 3-PHASE ROADMAP ---
-  checkPageBreak(80);
-  doc.setFillColor(COLORS.blue600[0], COLORS.blue600[1], COLORS.blue600[2]);
-  doc.rect(leftMargin, y, maxLineWidth, 8, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(11); doc.setFont("helvetica", "bold");
-  doc.text(t.roadmap_title, leftMargin + 2, y + 6);
-  y += 15;
+  // --- 4. PROFILE HEALTH CHECK (Cards) ---
+  checkPageBreak(120);
+  doc.setTextColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
+  doc.setFontSize(16); doc.setFont("helvetica", "bold");
+  doc.text(t.health_check, leftMargin, y);
+  y += 12;
 
-  const phases = [
-    { title: t.immediate, steps: data.geminiAnalysis.roadmap.immediate },
-    { title: t.short_term, steps: data.geminiAnalysis.roadmap.shortTerm },
-    { title: t.growth, steps: data.geminiAnalysis.roadmap.growth }
-  ];
+  const drawHealthCard = (title: string, text: string, color: number[]) => {
+    checkPageBreak(35);
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.5);
+    doc.roundedRect(leftMargin, y, maxLineWidth, 30, 2, 2, 'FD'); // Box
+    
+    // Colored strip
+    doc.setFillColor(color[0], color[1], color[2]);
+    doc.rect(leftMargin, y, 2, 30, 'F');
 
-  phases.forEach((phase) => {
-      checkPageBreak(30);
-      doc.setTextColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
-      doc.setFontSize(10); doc.setFont("helvetica", "bold");
-      doc.text(phase.title, leftMargin, y);
-      y += 5;
-      doc.setFont("helvetica", "normal"); doc.setFontSize(9);
-      phase.steps.forEach(step => {
-          doc.text(`• ${step}`, leftMargin + 5, y);
-          y += 4;
-      });
-      y += 6;
-  });
+    doc.setTextColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
+    doc.setFontSize(11); doc.setFont("helvetica", "bold");
+    doc.text(title, leftMargin + 6, y + 8);
+
+    doc.setTextColor(COLORS.slate600[0], COLORS.slate600[1], COLORS.slate600[2]);
+    doc.setFontSize(10); doc.setFont("helvetica", "normal");
+    const splitText = doc.splitTextToSize(text, maxLineWidth - 10);
+    doc.text(splitText, leftMargin + 6, y + 16);
+    
+    y += 35;
+  };
+
+  drawHealthCard(t.safety, data.geminiAnalysis.profileHealth.safetyCheck, COLORS.blue600);
+  drawHealthCard(t.trust, data.geminiAnalysis.profileHealth.trustCheck, COLORS.green500);
+  drawHealthCard(t.visibility, data.geminiAnalysis.profileHealth.visibilityCheck, COLORS.yellow500);
 
   y += 5;
 
-  // --- 4. VISUAL GEO-GRID ---
+  // --- 5. IMPROVEMENT PLAN ---
   checkPageBreak(80);
-  doc.setTextColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
-  doc.setFontSize(16); doc.setFont("helvetica", "bold");
-  doc.text(t.geo_grid, leftMargin, y);
-  y += 15;
+  doc.setFillColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
+  doc.rect(leftMargin, y, maxLineWidth, 10, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(12); doc.setFont("helvetica", "bold");
+  doc.text(t.improvement, leftMargin + 5, y + 7);
+  y += 18;
 
-  const gridSize = 7;
-  const circleSize = 3;
-  const gap = 8;
-  const startX = leftMargin + 15;
-  
-  // Render simulated grid
-  for(let row=0; row<gridSize; row++) {
-    for(let col=0; col<gridSize; col++) {
-      const cx = startX + (col * gap); 
-      const cy = y + (row * gap);
-      const isCenter = row === 3 && col === 3;
-      const dist = Math.abs(row - 3) + Math.abs(col - 3);
-      
-      let color = COLORS.red500;
-      // Simulate ranking decay based on score
-      const greenRadius = score > 80 ? 3 : score > 50 ? 2 : 1;
-      
-      if (isCenter) color = COLORS.blue600; 
-      else if (dist <= greenRadius) color = COLORS.green500; 
-      else if (dist <= greenRadius+1) color = COLORS.yellow500;
-      
-      doc.setFillColor(color[0], color[1], color[2]);
-      doc.circle(cx, cy, circleSize, 'F');
-    }
-  }
-  y += (gridSize * gap) + 15;
+  const phases = [
+    { title: t.immediate, text: data.geminiAnalysis.improvementPlan.immediateAction },
+    { title: t.short_term, text: data.geminiAnalysis.improvementPlan.shortTermStrategy },
+    { title: t.long_term, text: data.geminiAnalysis.improvementPlan.longTermGrowth }
+  ];
 
-  // --- 5. DETAILED AUDIT FACTORS ---
-  doc.addPage(); y = 20; addHeader(); y += 15;
-  doc.setTextColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
-  doc.setFontSize(18); doc.setFont("helvetica", "bold");
-  doc.text(t.detailed_audit, leftMargin, y); y += 15;
-
-  const addAuditRow = (factor: ScoringFactor) => {
-    checkPageBreak(40);
-    let statusText = "[PASS]"; let statusColor = COLORS.green500;
-    if (factor.status === 'warning') { statusText = "[WARN]"; statusColor = COLORS.yellow500; }
-    if (factor.status === 'critical') { statusText = "[FAIL]"; statusColor = COLORS.red500; }
-    
-    doc.setFontSize(10); doc.setFont("helvetica", "bold");
-    doc.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
-    doc.text(statusText, leftMargin, y);
-    
-    doc.setTextColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
-    doc.text(factor.name, leftMargin + 15, y);
-    y += 6;
-    
-    // Analysis
-    doc.setFont("helvetica", "normal"); doc.setTextColor(COLORS.slate600[0], COLORS.slate600[1], COLORS.slate600[2]);
-    addWrappedText(factor.reason, 9, "normal", COLORS.slate600, 5); y += 2;
-    
-    // Action if needed
-    if (factor.status !== 'good') {
-        doc.setFont("helvetica", "bold"); doc.setTextColor(COLORS.blue600[0], COLORS.blue600[1], COLORS.blue600[2]);
-        doc.text("Fix:", leftMargin + 5, y);
-        addWrappedText(factor.fixAction, 9, "normal", COLORS.slate900, 15); y += 4;
-    }
-    y += 6;
-  };
-
-  const groups = {
-    "Compliance & Safety": data.factors.filter(f => f.category === 'compliance'),
-    "Trust & Reputation": data.factors.filter(f => f.category === 'trust'),
-    "Engagement": data.factors.filter(f => f.category === 'engagement'),
-    "SEO & Authority": data.factors.filter(f => f.category === 'seo')
-  };
-
-  Object.entries(groups).forEach(([groupTitle, factors]) => {
-     if (factors.length === 0) return;
-     checkPageBreak(30);
-     doc.setFillColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
-     doc.rect(leftMargin, y, maxLineWidth, 8, 'F');
-     doc.setTextColor(255, 255, 255); doc.setFontSize(11); doc.setFont("helvetica", "bold");
-     doc.text(groupTitle, leftMargin + 2, y + 5.5); y += 15;
-     factors.forEach(addAuditRow); y += 5;
+  phases.forEach((phase) => {
+      checkPageBreak(25);
+      doc.setTextColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
+      doc.setFontSize(11); doc.setFont("helvetica", "bold");
+      doc.text(phase.title, leftMargin, y);
+      y += 5;
+      doc.setFont("helvetica", "normal"); doc.setFontSize(10);
+      doc.setTextColor(COLORS.slate600[0], COLORS.slate600[1], COLORS.slate600[2]);
+      const split = doc.splitTextToSize(phase.text, maxLineWidth - 5);
+      doc.text(split, leftMargin + 5, y);
+      y += (split.length * 5) + 8;
   });
 
-  doc.save(`${data.business.name.replace(/\s+/g, '_')}_MasterAudit.pdf`);
+  // --- 6. FOOTER NOTES ---
+  y = pageHeight - 20;
+  doc.setFontSize(8); doc.setTextColor(COLORS.slate600[0], COLORS.slate600[1], COLORS.slate600[2]);
+  doc.text(t.notes, pageWidth / 2, y, { align: "center" });
+
+  doc.save(`${data.business.name.replace(/\s+/g, '_')}_Audit_V2.pdf`);
 };

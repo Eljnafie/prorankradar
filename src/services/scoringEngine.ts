@@ -15,7 +15,7 @@ export const calculateScore = (
     id: string, name: string, max: number, 
     score: number, 
     reason: string, fix: string, 
-    category: 'compliance' | 'trust' | 'engagement' | 'seo'
+    category: 'safety' | 'trust' | 'visibility'
   ) => {
     totalScore += score;
     const percentage = score / max;
@@ -30,41 +30,40 @@ export const calculateScore = (
     });
   };
 
-  // --- 1. COMPLIANCE & SAFETY (30 pts) ---
+  // --- 1. PROFILE SAFETY & COMPLIANCE (30 pts) ---
   // Name Stuffing check
   const nameClean = business.name.length < 40 && !business.name.includes('|');
-  addFactor('comp_name', 'Profile Name Compliance', 15, nameClean ? 15 : 0,
-    nameClean ? "Name appears compliant." : "High risk of suspension due to keyword stuffing.",
-    "Reset name to legal business name only.", 'compliance');
+  addFactor('safe_name', 'Name Compliance', 15, nameClean ? 15 : 0,
+    nameClean ? "Business name follows guidelines." : "Risk: Keyword stuffing detected.",
+    "Reset name to real-world signage name only.", 'safety');
 
-  addFactor('comp_cat', 'Category Relevance', 15, 12, // Baseline high for demo
-    "Primary category aligns with keyword.", "Verify secondary categories.", 'compliance');
+  addFactor('safe_cat', 'Category Accuracy', 15, 12, 
+    "Primary category appears relevant.", "Check secondary categories for relevancy.", 'safety');
 
-  // --- 2. USER TRUST & REPUTATION (30 pts) ---
+  // --- 2. TRUST & REPUTATION (35 pts) ---
   const reviewScore = business.rating >= 4.5 ? 15 : business.rating >= 4.0 ? 10 : 0;
-  addFactor('trust_rating', 'Star Rating Trust', 15, reviewScore,
+  addFactor('trust_rating', 'Confidence Score (Rating)', 15, reviewScore,
     `Current Rating: ${business.rating} stars.`,
-    `Goal: Reach 4.9 stars to maximize conversion. Needs ~${aiAnalysis.trustAnalysis.reviewsNeeded} reviews.`, 'trust');
+    "Goal: 4.8+ stars. Reply to all negative reviews professionally.", 'trust');
 
-  const volScore = business.user_ratings_total > 20 ? 15 : 5;
-  addFactor('trust_vol', 'Review Volume', 15, volScore,
-    `Volume: ${business.user_ratings_total} reviews.`, "Run a review generation campaign.", 'trust');
+  const volScore = business.user_ratings_total > 20 ? 10 : 2;
+  addFactor('trust_vol', 'Review Volume', 10, volScore,
+    `Total Reviews: ${business.user_ratings_total}.`, "Start an SMS review campaign to build volume.", 'trust');
 
-  // --- 3. ENGAGEMENT (20 pts) ---
+  addFactor('trust_response', 'Owner Response Rate', 10, 5, 
+    "Response analysis (estimated).", "Reply to every review within 48 hours.", 'trust');
+
+  // --- 3. VISIBILITY & COMPETITION (35 pts) ---
   const hasPhotos = (business.photos?.length || 0) > 5;
-  addFactor('eng_photos', 'Visual Engagement', 10, hasPhotos ? 10 : 2,
-    hasPhotos ? "Good photo volume." : "Profile looks abandoned.", "Upload 5-10 new photos immediately.", 'engagement');
+  addFactor('vis_photos', 'Visual Engagement', 15, hasPhotos ? 15 : 5,
+    hasPhotos ? "Good photo foundation." : "Profile looks inactive/empty.", "Upload 5-10 new photos of team/office.", 'visibility');
 
-  addFactor('eng_posts', 'Activity Signals', 10, 5,
-    "Recent activity analysis.", "Post weekly updates to signal activity.", 'engagement');
-
-  // --- 4. SEO & AUTHORITY (20 pts) ---
   const h1Match = inputs.websiteContent?.h1.toLowerCase().includes(inputs.targetKeyword.toLowerCase());
-  addFactor('seo_h1', 'Website H1 Optimization', 10, h1Match ? 10 : 2,
-    h1Match ? "H1 matches target." : "H1 missing keyword.", "Align website H1 with GBP category.", 'seo');
+  addFactor('vis_website', 'Website Connection', 10, h1Match ? 10 : 5,
+    h1Match ? "Website signals match GBP." : "Website missing clear keyword signals.", "Update website H1 to match GBP services.", 'visibility');
 
-  addFactor('seo_local', 'Local Relevance', 10, 8,
-    "Geographic signals present.", "Ensure NAP consistency.", 'seo');
+  addFactor('vis_activity', 'Activity Signals', 10, 5,
+    "Recent updates check.", "Post weekly updates to show Google you are active.", 'visibility');
 
   return { score: totalScore, factors };
 };

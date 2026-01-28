@@ -49,63 +49,87 @@ export const analyzeProfileWithGemini = async (
   
   const prompt = `
     SYSTEM ROLE
-    You are a Google Business Profile (GBP) visibility expert specializing in Google Maps ranking mechanics.
-    You analyze local visibility using ranking signals, compliance checks, and user trust factors.
-    
-    AUDIT PURPOSE
-    Generate a "2026 Master Audit" that explains why this business is visible or invisible.
+    You are a Google Business Profile visibility educator.
+    Your mission is to translate Google Maps data into simple business explanations for clients who have NO technical SEO knowledge.
+    Explain what is happening, why it matters, and what to do next — in plain language.
     Output Language: ${targetLanguage}
 
-    INPUT DATA
+    INPUT CONTEXT
     Business Name: "${business.name}"
     Category: "${business.types[0] || 'Unknown'}"
     Rating: ${business.rating} (${business.user_ratings_total} reviews)
     Target Keyword: "${inputs.targetKeyword}"
     Target City: "${inputs.targetCity}"
     
-    TASK REQUIREMENTS
-    1. Executive Summary: Summarize current visibility status and primary cause of lost leads.
-    2. Local Visibility Coverage (LVC): Estimate a score (0-100) representing how much of the local market they capture.
-    3. Trust Analysis: Calculate the "Trust Gap" (Distance from 4.9 stars) and reviews needed to compete.
-    4. Action Plan: Provide a strict 3-phase roadmap (Immediate, Short Term, Growth).
+    REQUIRED AUDIT OUTPUT STRUCTURE (V2)
+    
+    1. Executive Summary:
+       - State if the business is "Visible", "Partially Visible", or "Invisible" simply.
+       - Explain WHY people nearby might not see them.
+       - Identify the MAIN opportunity.
+    
+    2. Local Visibility Coverage (LVC) Score:
+       - Estimate a score (0-100).
+       - Explain the score using an analogy (e.g., "An LVC of 20% means Google shows other businesses 80% of the time").
+    
+    3. Profile Health Check (3 Sections):
+       - A. Safety Check: Is anything wrong/risky? (Name stuffing, category errors)
+       - B. Trust Check: Do users feel confident? (Reviews, rating gap)
+       - C. Visibility Check: Does Google choose this business? (Activity, photos)
+    
+    4. Improvement Plan:
+       - Immediate (Day 1-7): Focus on Safety/Trust.
+       - Short Term (Day 14-30): Focus on Activity.
+       - Long Term (Day 30-90): Focus on Growth/Reviews.
 
-    RESPONSE FORMAT
-    Return valid JSON strictly matching the schema.
+    TONE RULES
+    - No SEO jargon.
+    - Never guarantee rankings.
+    - Focus on business impact (calls, customers).
+
+    Return valid JSON matching the schema strictly.
   `;
 
   const schema = {
     type: Type.OBJECT,
     properties: {
-      executiveSummary: { type: Type.STRING, description: "High-level summary of the audit findings." },
-      visibility: {
+      executiveSummary: {
         type: Type.OBJECT,
         properties: {
-          score: { type: Type.NUMBER, description: "0-100 Visibility Score" },
-          classification: { type: Type.STRING, enum: ["Strong", "Moderate", "Weak"] },
-          summary: { type: Type.STRING, description: "Explanation of the visibility score" }
+          plainLanguageInsight: { type: Type.STRING, description: "Simple explanation of current status." },
+          visibilityStatus: { type: Type.STRING, enum: ["Visible", "Partially Visible", "Invisible"] },
+          mainOpportunity: { type: Type.STRING, description: "The single biggest thing to fix." }
         },
-        required: ["score", "classification", "summary"]
+        required: ["plainLanguageInsight", "visibilityStatus", "mainOpportunity"]
       },
-      trustAnalysis: {
+      lvc: {
         type: Type.OBJECT,
         properties: {
-          trustGap: { type: Type.NUMBER, description: "Difference from 4.9 stars" },
-          reviewsNeeded: { type: Type.NUMBER, description: "Estimated number of reviews needed" },
-          sentimentSummary: { type: Type.STRING, description: "Summary of review sentiment" }
+          score: { type: Type.NUMBER, description: "0-100 Score" },
+          scoreExplanation: { type: Type.STRING, description: "Analogy explaining the score." }
         },
-        required: ["trustGap", "reviewsNeeded", "sentimentSummary"]
+        required: ["score", "scoreExplanation"]
       },
-      roadmap: {
+      profileHealth: {
         type: Type.OBJECT,
         properties: {
-          immediate: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Actions for Days 0-7" },
-          shortTerm: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Actions for Days 14-30" },
-          growth: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Actions for Days 30-90" }
+          safetyCheck: { type: Type.STRING, description: "Analysis of compliance/risk." },
+          trustCheck: { type: Type.STRING, description: "Analysis of reviews/reputation." },
+          visibilityCheck: { type: Type.STRING, description: "Analysis of competitive strength." }
         },
-        required: ["immediate", "shortTerm", "growth"]
+        required: ["safetyCheck", "trustCheck", "visibilityCheck"]
+      },
+      improvementPlan: {
+        type: Type.OBJECT,
+        properties: {
+          immediateAction: { type: Type.STRING, description: "Step 1 (Safety/Trust)" },
+          shortTermStrategy: { type: Type.STRING, description: "Step 2 (Activity)" },
+          longTermGrowth: { type: Type.STRING, description: "Step 3 (Growth)" }
+        },
+        required: ["immediateAction", "shortTermStrategy", "longTermGrowth"]
       }
     },
-    required: ["executiveSummary", "visibility", "trustAnalysis", "roadmap"]
+    required: ["executiveSummary", "lvc", "profileHealth", "improvementPlan"]
   };
 
   try {
@@ -128,13 +152,24 @@ export const analyzeProfileWithGemini = async (
     
     // Fallback Mock Data
     return {
-      executiveSummary: "Could not generate analysis due to AI service unavailability.",
-      visibility: { score: 50, classification: "Moderate", summary: "Data unavailable." },
-      trustAnalysis: { trustGap: 0, reviewsNeeded: 10, sentimentSummary: "Neutral" },
-      roadmap: {
-        immediate: ["Verify business profile", "Update business hours"],
-        shortTerm: ["Add 5 new photos", "Respond to recent reviews"],
-        growth: ["Start a review generation campaign", "Post weekly updates"]
+      executiveSummary: {
+        plainLanguageInsight: "We could not connect to the AI analyst. However, based on raw data, your profile exists but requires optimization.",
+        visibilityStatus: "Partially Visible",
+        mainOpportunity: "Verify connection settings."
+      },
+      lvc: {
+        score: 50,
+        scoreExplanation: "Data unavailable for precise calculation."
+      },
+      profileHealth: {
+        safetyCheck: "Check business name for keywords.",
+        trustCheck: "Review count needs attention.",
+        visibilityCheck: "Add more photos to signal activity."
+      },
+      improvementPlan: {
+        immediateAction: "Verify business details.",
+        shortTermStrategy: "Upload 5 photos.",
+        longTermGrowth: "Ask for reviews."
       }
     };
   }

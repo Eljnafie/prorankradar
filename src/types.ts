@@ -43,32 +43,32 @@ export interface ScoringFactor {
   impact: 'high' | 'medium' | 'low';
   reason: string;
   fixAction: string;
-  category: 'compliance' | 'trust' | 'engagement' | 'seo';
+  category: 'safety' | 'trust' | 'visibility';
 }
 
-// MASTER PROMPT ANALYSIS INTERFACE
+// V2 CLIENT-GUIDED ANALYSIS INTERFACE
 export interface GeminiAnalysis {
-  executiveSummary: string;
+  executiveSummary: {
+    plainLanguageInsight: string;
+    visibilityStatus: 'Visible' | 'Partially Visible' | 'Invisible';
+    mainOpportunity: string;
+  };
   
-  // Local Visibility Coverage (LVC)
-  visibility: {
+  lvc: {
     score: number; // 0-100
-    classification: 'Strong' | 'Moderate' | 'Weak';
-    summary: string;
+    scoreExplanation: string; // "An LVC score of 20% means..."
   };
 
-  // Trust & Reputation
-  trustAnalysis: {
-    trustGap: number; // difference from leader
-    reviewsNeeded: number;
-    sentimentSummary: string;
+  profileHealth: {
+    safetyCheck: string; // "Is anything wrong or risky?"
+    trustCheck: string;  // "Do users feel confident?"
+    visibilityCheck: string; // "Does Google choose this business?"
   };
 
-  // 3-Phase Action Plan
-  roadmap: {
-    immediate: string[]; // 0-7 days
-    shortTerm: string[]; // 14-30 days
-    growth: string[];    // 30-90 days
+  improvementPlan: {
+    immediateAction: string; // Focus on trust/safety
+    shortTermStrategy: string; // Focus on activity
+    longTermGrowth: string; // Focus on dominance
   };
 }
 

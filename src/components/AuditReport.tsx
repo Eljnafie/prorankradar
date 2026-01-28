@@ -16,27 +16,23 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
   const [expandedFactor, setExpandedFactor] = React.useState<string | null>(null);
   const [showPricing, setShowPricing] = React.useState(false);
 
-  // Group Factors matching Master Prompt categories
+  // Group Factors
   const sections = {
-    "Compliance & Safety": {
+    "A. Profile Safety": {
       icon: <Shield className="w-5 h-5 text-blue-600" />,
-      factors: data.factors.filter(f => f.category === 'compliance')
+      factors: data.factors.filter(f => f.category === 'safety')
     },
-    "Trust & Reputation": {
+    "B. Trust & Reputation": {
       icon: <Activity className="w-5 h-5 text-green-600" />,
       factors: data.factors.filter(f => f.category === 'trust')
     },
-    "Engagement": {
+    "C. Visibility & Competition": {
       icon: <MousePointerClick className="w-5 h-5 text-purple-600" />,
-      factors: data.factors.filter(f => f.category === 'engagement')
-    },
-    "SEO & Authority": {
-      icon: <TrendingUp className="w-5 h-5 text-orange-600" />,
-      factors: data.factors.filter(f => f.category === 'seo')
+      factors: data.factors.filter(f => f.category === 'visibility')
     }
   };
 
-  const lvcScore = data.geminiAnalysis.visibility.score;
+  const lvcScore = data.geminiAnalysis.lvc.score;
   const scoreColor = lvcScore >= 70 ? '#22c55e' : lvcScore >= 40 ? '#eab308' : '#ef4444';
   const chartData = [{ name: 'Score', value: lvcScore }, { name: 'Gap', value: 100 - lvcScore }];
 
@@ -59,7 +55,7 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
            <div className="flex items-center gap-2 mb-1">
              <span className={`px-2 py-0.5 rounded text-xs font-bold border flex items-center gap-1 ${isUnlocked ? 'bg-green-100 text-green-700 border-green-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
                {isUnlocked ? <Unlock className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
-               {isUnlocked ? 'MASTER AUDIT UNLOCKED' : 'FREE AUDIT PREVIEW'}
+               {isUnlocked ? 'CLIENT AUDIT (UNLOCKED)' : 'AUDIT PREVIEW'}
              </span>
            </div>
            <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
@@ -84,27 +80,19 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
 
       {/* EXECUTIVE SUMMARY & WARNINGS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-         {/* Trust Gap Analysis */}
+         {/* Trust Gap / Main Opportunity */}
          <div className="bg-white p-6 rounded-xl border border-red-100 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 w-16 h-16 bg-red-50 rounded-bl-full -mr-2 -mt-2"></div>
             <h3 className="font-bold text-slate-800 mb-2 flex items-center gap-2 relative z-10">
-               <HeartCrack className="w-5 h-5 text-red-500" /> Trust Gap Analysis
+               <HeartCrack className="w-5 h-5 text-red-500" /> Main Opportunity
             </h3>
             <div className="space-y-3 relative z-10">
-               <div className="flex justify-between items-center text-sm">
-                  <span className="text-slate-600">Your Rating</span>
-                  <span className="font-bold text-red-600">{data.business.rating} ★</span>
-               </div>
-               <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                  <div className="h-full bg-red-500" style={{ width: `${(data.business.rating / 5) * 100}%` }}></div>
-               </div>
-               <div className="flex justify-between items-center text-sm">
-                  <span className="text-slate-600">Market Leader Target</span>
-                  <span className="font-bold text-green-600">4.9 ★</span>
-               </div>
-               <p className="text-xs text-slate-500 bg-slate-50 p-2 rounded border border-slate-100">
-                  <strong>Trust Gap:</strong> You are {data.geminiAnalysis.trustAnalysis.trustGap.toFixed(1)} stars behind. You need approx <strong>{data.geminiAnalysis.trustAnalysis.reviewsNeeded} new reviews</strong> to compete.
+               <p className="text-sm text-slate-600">
+                 {data.geminiAnalysis.executiveSummary.plainLanguageInsight}
                </p>
+               <div className="bg-red-50 p-3 rounded-lg border border-red-100 text-sm text-red-900 font-medium">
+                 {data.geminiAnalysis.executiveSummary.mainOpportunity}
+               </div>
             </div>
          </div>
 
@@ -116,13 +104,13 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
             <div className="flex items-center gap-4">
                <div className="text-4xl font-extrabold text-slate-900">{lvcScore}</div>
                <div className="flex-1">
-                  <div className="text-sm font-bold text-slate-700 mb-1">{data.geminiAnalysis.visibility.classification} Coverage</div>
+                  <div className="text-sm font-bold text-slate-700 mb-1">{data.geminiAnalysis.executiveSummary.visibilityStatus} Coverage</div>
                   <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
                      <div className="h-full" style={{ width: `${lvcScore}%`, backgroundColor: scoreColor }}></div>
                   </div>
                </div>
             </div>
-            <p className="text-xs text-slate-500 mt-3">{data.geminiAnalysis.visibility.summary}</p>
+            <p className="text-xs text-slate-500 mt-3">{data.geminiAnalysis.lvc.scoreExplanation}</p>
          </div>
       </div>
 
@@ -131,7 +119,7 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
         {/* LEFT COLUMN: Visuals */}
         <div className="lg:col-span-1 space-y-6">
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col items-center text-center">
-             <h3 className="font-bold text-slate-700 mb-6">Visibility Score</h3>
+             <h3 className="font-bold text-slate-700 mb-6">Profile Health</h3>
              <div className="relative w-40 h-40 mb-4">
                <ResponsiveContainer>
                  <PieChart>
@@ -148,48 +136,32 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
              </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-             <div className="flex items-center gap-2 mb-4">
-                <Grid className="w-5 h-5 text-slate-400" />
-                <h3 className="font-bold text-slate-700">Visual Geo-Grid</h3>
-             </div>
-             <div className="grid grid-cols-7 gap-2 mb-4">
-                {Array.from({ length: 49 }).map((_, i) => {
-                   const row = Math.floor(i / 7); const col = i % 7;
-                   const isCenter = row === 3 && col === 3;
-                   const dist = Math.max(Math.abs(row - 3), Math.abs(col - 3));
-                   let bgClass = 'bg-red-400';
-                   const greenRadius = lvcScore > 70 ? 3 : lvcScore > 40 ? 2 : 1;
-                   if (isCenter) bgClass = 'bg-blue-600'; else if (dist <= greenRadius) bgClass = 'bg-green-500'; else if (dist <= greenRadius + 1) bgClass = 'bg-yellow-400';
-                   return <div key={i} className={`aspect-square rounded-full ${bgClass} shadow-sm transition-all hover:scale-110`}></div>;
-                })}
-             </div>
-             <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase tracking-wide">
-                <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-green-500"></div> Top 3</div>
-                <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-red-400"></div> 10+</div>
-                <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-blue-600"></div> You</div>
-             </div>
+          {/* Profile Health Checks */}
+          <div className="space-y-3">
+             <HealthCheckCard title="Safety Check" text={data.geminiAnalysis.profileHealth.safetyCheck} color="blue" />
+             <HealthCheckCard title="Trust Check" text={data.geminiAnalysis.profileHealth.trustCheck} color="green" />
+             <HealthCheckCard title="Visibility Check" text={data.geminiAnalysis.profileHealth.visibilityCheck} color="orange" />
           </div>
         </div>
 
         {/* RIGHT COLUMN: Roadmap & Details */}
         <div className="lg:col-span-2 space-y-8">
            
-           {/* 90-Day Roadmap */}
+           {/* Improvement Plan */}
            <div className="bg-slate-900 text-white rounded-xl shadow-lg overflow-hidden">
               <div className="p-6 border-b border-slate-700 flex justify-between items-center">
-                 <h3 className="text-xl font-bold flex items-center gap-2"><Zap className="w-6 h-6 text-yellow-400" /> 90-Day Action Roadmap</h3>
+                 <h3 className="text-xl font-bold flex items-center gap-2"><Zap className="w-6 h-6 text-yellow-400" /> Step-by-Step Improvement Plan</h3>
                  {!isUnlocked && <Lock className="w-5 h-5 text-slate-500" />}
               </div>
               <div className={`p-6 space-y-6 ${!isUnlocked ? 'blur-sm select-none opacity-50' : ''}`}>
-                 <RoadmapPhase phase="Phase 1: Immediate (0-7 Days)" steps={data.geminiAnalysis.roadmap.immediate} icon={<Shield className="w-5 h-5 text-blue-400" />} />
-                 <RoadmapPhase phase="Phase 2: Short Term (14-30 Days)" steps={data.geminiAnalysis.roadmap.shortTerm} icon={<MousePointerClick className="w-5 h-5 text-purple-400" />} />
-                 <RoadmapPhase phase="Phase 3: Growth (30-90 Days)" steps={data.geminiAnalysis.roadmap.growth} icon={<TrendingUp className="w-5 h-5 text-green-400" />} />
+                 <RoadmapPhase phase="Phase 1: Immediate (Safety & Trust)" text={data.geminiAnalysis.improvementPlan.immediateAction} icon={<Shield className="w-5 h-5 text-blue-400" />} />
+                 <RoadmapPhase phase="Phase 2: Short Term (Activity)" text={data.geminiAnalysis.improvementPlan.shortTermStrategy} icon={<MousePointerClick className="w-5 h-5 text-purple-400" />} />
+                 <RoadmapPhase phase="Phase 3: Long Term (Growth)" text={data.geminiAnalysis.improvementPlan.longTermGrowth} icon={<TrendingUp className="w-5 h-5 text-green-400" />} />
               </div>
               {!isUnlocked && (
                  <div className="absolute inset-0 top-20 flex flex-col items-center justify-center z-10 pointer-events-none">
                     <button onClick={() => setShowPricing(true)} className="pointer-events-auto px-6 py-3 bg-yellow-500 text-slate-900 font-bold rounded-lg shadow-lg hover:bg-yellow-400 transition-colors">
-                       Unlock Full Roadmap
+                       Unlock Full Plan
                     </button>
                  </div>
               )}
@@ -224,19 +196,22 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
   );
 };
 
-const RoadmapPhase: React.FC<{ phase: string, steps: string[], icon: any }> = ({ phase, steps, icon }) => (
+const HealthCheckCard: React.FC<{ title: string, text: string, color: string }> = ({ title, text, color }) => {
+  const bgColors: any = { blue: 'bg-blue-50 border-blue-200 text-blue-900', green: 'bg-green-50 border-green-200 text-green-900', orange: 'bg-orange-50 border-orange-200 text-orange-900' };
+  return (
+    <div className={`p-4 rounded-lg border ${bgColors[color]} text-sm`}>
+      <div className="font-bold mb-1">{title}</div>
+      <div className="opacity-90 leading-relaxed">{text}</div>
+    </div>
+  );
+}
+
+const RoadmapPhase: React.FC<{ phase: string, text: string, icon: any }> = ({ phase, text, icon }) => (
   <div className="flex gap-4">
      <div className="mt-1 p-2 bg-slate-800 rounded-lg h-fit">{icon}</div>
      <div>
         <h4 className="font-bold text-lg text-slate-100 mb-2">{phase}</h4>
-        <ul className="space-y-2">
-           {steps.map((step, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
-                 <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                 {step}
-              </li>
-           ))}
-        </ul>
+        <p className="text-sm text-slate-300 leading-relaxed">{text}</p>
      </div>
   </div>
 );
