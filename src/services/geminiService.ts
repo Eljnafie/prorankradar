@@ -69,7 +69,7 @@ export const analyzeProfileWithGemini = async (
        - Identify the MAIN opportunity.
     
     2. Local Visibility Coverage (LVC) Score:
-       - Estimate a score (0-100).
+       - Estimate a score (0-100) representing market reach.
        - Explain the score using an analogy (e.g., "An LVC of 20% means Google shows other businesses 80% of the time").
     
     3. Profile Health Check (3 Sections):

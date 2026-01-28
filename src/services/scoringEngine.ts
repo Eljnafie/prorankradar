@@ -5,7 +5,7 @@ export const calculateScore = (
   business: BusinessProfile,
   inputs: AuditInputs,
   _competitors: CompetitorData[],
-  aiAnalysis: GeminiAnalysis
+  _aiAnalysis: GeminiAnalysis
 ): { score: number; factors: ScoringFactor[] } => {
   
   let totalScore = 0;

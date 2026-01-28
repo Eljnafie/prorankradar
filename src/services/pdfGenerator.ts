@@ -1,5 +1,5 @@
 
-import type { AuditReportData, ScoringFactor, AuditLanguage } from "../types";
+import type { AuditReportData, AuditLanguage } from "../types";
 
 // Translation dictionary for PDF Labels
 const PDF_TRANSLATIONS: Record<AuditLanguage, Record<string, string>> = {
