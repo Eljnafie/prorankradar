@@ -43,46 +43,33 @@ export interface ScoringFactor {
   impact: 'high' | 'medium' | 'low';
   reason: string;
   fixAction: string;
-  category: 'gbp' | 'seo' | 'trust' | 'conversion';
+  category: 'compliance' | 'trust' | 'engagement' | 'seo';
 }
 
-// UPGRADED AI ANALYSIS INTERFACE
+// MASTER PROMPT ANALYSIS INTERFACE
 export interface GeminiAnalysis {
-  // 1. Review Sentiment & Response
-  sentimentAnalysis: {
-    trustGap: number; // e.g. 1.9 stars difference
-    reviewsNeeded: number; // e.g. 42 reviews to reach 4.9
-    ratingImpact: string; // "Conversion Killer" description
-    responseAnalysis: string; // "Neglect" vs "Managed"
-  };
-
-  // 2. Technical vs Commercial Duality
-  commercialStatus: {
-    trustHealthScore: number; // 100 if safe
-    isGhostProfile: boolean; // True if activity is zero despite good health
-    revenueImpact: string; // "Massive Lost Revenue" or "Optimized"
-    suspensionRisk: 'Low' | 'Medium' | 'High';
-  };
-
-  // 3. 90-Day Success Roadmap
-  roadmap: {
-    phase1: {
-      title: string; // "Security & Foundation"
-      steps: string[];
-    };
-    phase2: {
-      title: string; // "Lead Generation & Conversion"
-      steps: string[];
-    };
-    phase3: {
-      title: string; // "Authority & Market Dominance"
-      steps: string[];
-    };
-  };
-
-  // Legacy/Visual Assets
   executiveSummary: string;
-  roiForecast: string;
+  
+  // Local Visibility Coverage (LVC)
+  visibility: {
+    score: number; // 0-100
+    classification: 'Strong' | 'Moderate' | 'Weak';
+    summary: string;
+  };
+
+  // Trust & Reputation
+  trustAnalysis: {
+    trustGap: number; // difference from leader
+    reviewsNeeded: number;
+    sentimentSummary: string;
+  };
+
+  // 3-Phase Action Plan
+  roadmap: {
+    immediate: string[]; // 0-7 days
+    shortTerm: string[]; // 14-30 days
+    growth: string[];    // 30-90 days
+  };
 }
 
 export interface AuditReportData {

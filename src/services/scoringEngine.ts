@@ -2,8 +2,8 @@
 import type { BusinessProfile, AuditInputs, CompetitorData, GeminiAnalysis, ScoringFactor } from "../types";
 
 export const calculateScore = (
-  _business: BusinessProfile,
-  _inputs: AuditInputs,
+  business: BusinessProfile,
+  inputs: AuditInputs,
   _competitors: CompetitorData[],
   aiAnalysis: GeminiAnalysis
 ): { score: number; factors: ScoringFactor[] } => {
@@ -15,7 +15,7 @@ export const calculateScore = (
     id: string, name: string, max: number, 
     score: number, 
     reason: string, fix: string, 
-    category: 'trust' | 'gbp' | 'conversion' | 'seo'
+    category: 'compliance' | 'trust' | 'engagement' | 'seo'
   ) => {
     totalScore += score;
     const percentage = score / max;
@@ -30,41 +30,41 @@ export const calculateScore = (
     });
   };
 
-  // --- 1. TRUST HEALTH (Technical Foundation) - 40 pts ---
-  // If clean, this should be high.
-  addFactor('trust_health', 'Technical Trust Health', 25, 
-    aiAnalysis.commercialStatus.trustHealthScore > 90 ? 25 : 0, 
-    aiAnalysis.commercialStatus.trustHealthScore > 90 
-      ? "Profile Foundation is Secure (Safe from Suspension)." 
-      : `High Risk Detected: ${aiAnalysis.commercialStatus.suspensionRisk}`,
-    "Maintain naming consistency. Do not edit core data unnecessarily.", 'trust');
+  // --- 1. COMPLIANCE & SAFETY (30 pts) ---
+  // Name Stuffing check
+  const nameClean = business.name.length < 40 && !business.name.includes('|');
+  addFactor('comp_name', 'Profile Name Compliance', 15, nameClean ? 15 : 0,
+    nameClean ? "Name appears compliant." : "High risk of suspension due to keyword stuffing.",
+    "Reset name to legal business name only.", 'compliance');
 
-  addFactor('nap_safe', 'NAP Consistency & Safety', 15, 
-    aiAnalysis.commercialStatus.suspensionRisk === 'Low' ? 15 : 5,
-    "Name, Address, Phone appear consistent.", "Audit directories if you change address.", 'trust');
+  addFactor('comp_cat', 'Category Relevance', 15, 12, // Baseline high for demo
+    "Primary category aligns with keyword.", "Verify secondary categories.", 'compliance');
 
-  // --- 2. COMMERCIAL PERFORMANCE (The Engine) - 40 pts ---
-  // Penalized by "Ghost Profile" status
-  const isGhost = aiAnalysis.commercialStatus.isGhostProfile;
-  
-  addFactor('comm_activity', 'Commercial Activity Engine', 20, 
-    isGhost ? 0 : 15,
-    isGhost ? "Ghost Profile Detected. Engine is off." : "Profile shows regular activity.",
-    "Activate the engine: Post 2x weekly and upload 5 photos immediately.", 'gbp');
+  // --- 2. USER TRUST & REPUTATION (30 pts) ---
+  const reviewScore = business.rating >= 4.5 ? 15 : business.rating >= 4.0 ? 10 : 0;
+  addFactor('trust_rating', 'Star Rating Trust', 15, reviewScore,
+    `Current Rating: ${business.rating} stars.`,
+    `Goal: Reach 4.9 stars to maximize conversion. Needs ~${aiAnalysis.trustAnalysis.reviewsNeeded} reviews.`, 'trust');
 
-  addFactor('review_perf', 'Review Sentiment Performance', 20,
-    aiAnalysis.sentimentAnalysis.trustGap < 0.5 ? 20 : 5,
-    isGhost ? "No recent reviews found." : `Trust Gap: ${aiAnalysis.sentimentAnalysis.trustGap.toFixed(1)} stars behind leader.`,
-    `Acquire ${aiAnalysis.sentimentAnalysis.reviewsNeeded} new 5-star reviews to close the gap.`, 'gbp');
+  const volScore = business.user_ratings_total > 20 ? 15 : 5;
+  addFactor('trust_vol', 'Review Volume', 15, volScore,
+    `Volume: ${business.user_ratings_total} reviews.`, "Run a review generation campaign.", 'trust');
 
-  // --- 3. CONVERSION & SEO - 20 pts ---
-  addFactor('conv_buttons', 'Conversion Action Buttons', 10, 
-    isGhost ? 2 : 10, // Assume ghosts miss buttons
-    "Action buttons (Book/Order) status.", "Enable 'Reserve with Google' or add appointment links.", 'conversion');
+  // --- 3. ENGAGEMENT (20 pts) ---
+  const hasPhotos = (business.photos?.length || 0) > 5;
+  addFactor('eng_photos', 'Visual Engagement', 10, hasPhotos ? 10 : 2,
+    hasPhotos ? "Good photo volume." : "Profile looks abandoned.", "Upload 5-10 new photos immediately.", 'engagement');
 
-  addFactor('seo_found', 'Local SEO Foundation', 10, 
-    8, // Baseline
-    "Website and Categories present.", "Implement Local Schema on website.", 'seo');
+  addFactor('eng_posts', 'Activity Signals', 10, 5,
+    "Recent activity analysis.", "Post weekly updates to signal activity.", 'engagement');
+
+  // --- 4. SEO & AUTHORITY (20 pts) ---
+  const h1Match = inputs.websiteContent?.h1.toLowerCase().includes(inputs.targetKeyword.toLowerCase());
+  addFactor('seo_h1', 'Website H1 Optimization', 10, h1Match ? 10 : 2,
+    h1Match ? "H1 matches target." : "H1 missing keyword.", "Align website H1 with GBP category.", 'seo');
+
+  addFactor('seo_local', 'Local Relevance', 10, 8,
+    "Geographic signals present.", "Ensure NAP consistency.", 'seo');
 
   return { score: totalScore, factors };
 };

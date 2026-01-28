@@ -48,72 +48,64 @@ export const analyzeProfileWithGemini = async (
   const targetLanguage = LANGUAGE_MAP[inputs.language || 'en'] || 'English';
   
   const prompt = `
-    System Role: You are a Senior Google Business Profile Growth Strategist.
-    Report Language: ${targetLanguage}
+    SYSTEM ROLE
+    You are a Google Business Profile (GBP) visibility expert specializing in Google Maps ranking mechanics.
+    You analyze local visibility using ranking signals, compliance checks, and user trust factors.
+    
+    AUDIT PURPOSE
+    Generate a "2026 Master Audit" that explains why this business is visible or invisible.
+    Output Language: ${targetLanguage}
 
-    Analyze the following business:
-    Name: "${business.name}"
+    INPUT DATA
+    Business Name: "${business.name}"
     Category: "${business.types[0] || 'Unknown'}"
     Rating: ${business.rating} (${business.user_ratings_total} reviews)
     Target Keyword: "${inputs.targetKeyword}"
     Target City: "${inputs.targetCity}"
-    Market Leader Benchmark: 4.9 Stars
     
-    TASK: Generate a "360-Degree Premium Business Growth Audit".
-    
-    1. SENTIMENT & TRUST GAP
-       - Compare ${business.rating} stars to the Market Leader (4.9).
-       - If rating < 4.0, label it a "Conversion Killer".
-       - Assess if response rate to reviews seems low (assume low if not provided).
+    TASK REQUIREMENTS
+    1. Executive Summary: Summarize current visibility status and primary cause of lost leads.
+    2. Local Visibility Coverage (LVC): Estimate a score (0-100) representing how much of the local market they capture.
+    3. Trust Analysis: Calculate the "Trust Gap" (Distance from 4.9 stars) and reviews needed to compete.
+    4. Action Plan: Provide a strict 3-phase roadmap (Immediate, Short Term, Growth).
 
-    2. TECHNICAL VS COMMERCIAL DUALITY
-       - Trust Health: Check if name "${business.name}" has keyword stuffing. If clean, score 100%. If stuffed, High Risk.
-       - Ghost Profile: If reviews < 10 or rating is low, label as "Ghost Profile" -> "Massive Lost Revenue".
-
-    3. 90-DAY SUCCESS ROADMAP (Actionable Steps)
-       - Phase 1 (Days 1-7): Security & Foundation (Naming, Categories, NAP).
-       - Phase 2 (Days 8-30): Conversion (Action Buttons, Attributes, Website).
-       - Phase 3 (Month 2+): Authority (Trust Gap Closure, Velocity).
-
-    Return strict JSON matching the schema.
+    RESPONSE FORMAT
+    Return valid JSON strictly matching the schema.
   `;
 
   const schema = {
     type: Type.OBJECT,
     properties: {
-      sentimentAnalysis: {
+      executiveSummary: { type: Type.STRING, description: "High-level summary of the audit findings." },
+      visibility: {
         type: Type.OBJECT,
         properties: {
-          trustGap: { type: Type.NUMBER, description: "Difference between 4.9 and current rating" },
-          reviewsNeeded: { type: Type.NUMBER, description: "Est. 5-star reviews needed" },
-          ratingImpact: { type: Type.STRING, description: "e.g. Conversion Killer" },
-          responseAnalysis: { type: Type.STRING, description: "Analysis of owner responses" }
+          score: { type: Type.NUMBER, description: "0-100 Visibility Score" },
+          classification: { type: Type.STRING, enum: ["Strong", "Moderate", "Weak"] },
+          summary: { type: Type.STRING, description: "Explanation of the visibility score" }
         },
-        required: ["trustGap", "reviewsNeeded", "ratingImpact", "responseAnalysis"]
+        required: ["score", "classification", "summary"]
       },
-      commercialStatus: {
+      trustAnalysis: {
         type: Type.OBJECT,
         properties: {
-          trustHealthScore: { type: Type.NUMBER, description: "100 if name is clean, else lower" },
-          isGhostProfile: { type: Type.BOOLEAN, description: "True if inactive/low reviews" },
-          revenueImpact: { type: Type.STRING, description: "e.g. Massive Lost Revenue" },
-          suspensionRisk: { type: Type.STRING, enum: ["Low", "Medium", "High"] }
+          trustGap: { type: Type.NUMBER, description: "Difference from 4.9 stars" },
+          reviewsNeeded: { type: Type.NUMBER, description: "Estimated number of reviews needed" },
+          sentimentSummary: { type: Type.STRING, description: "Summary of review sentiment" }
         },
-        required: ["trustHealthScore", "isGhostProfile", "revenueImpact", "suspensionRisk"]
+        required: ["trustGap", "reviewsNeeded", "sentimentSummary"]
       },
       roadmap: {
         type: Type.OBJECT,
         properties: {
-          phase1: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, steps: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["title", "steps"] },
-          phase2: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, steps: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["title", "steps"] },
-          phase3: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, steps: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["title", "steps"] }
+          immediate: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Actions for Days 0-7" },
+          shortTerm: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Actions for Days 14-30" },
+          growth: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Actions for Days 30-90" }
         },
-        required: ["phase1", "phase2", "phase3"]
-      },
-      executiveSummary: { type: Type.STRING },
-      roiForecast: { type: Type.STRING }
+        required: ["immediate", "shortTerm", "growth"]
+      }
     },
-    required: ["sentimentAnalysis", "commercialStatus", "roadmap", "executiveSummary", "roiForecast"]
+    required: ["executiveSummary", "visibility", "trustAnalysis", "roadmap"]
   };
 
   try {
@@ -136,15 +128,14 @@ export const analyzeProfileWithGemini = async (
     
     // Fallback Mock Data
     return {
-        sentimentAnalysis: { trustGap: 1.0, reviewsNeeded: 15, ratingImpact: "Analysis Unavailable", responseAnalysis: "Check manually" },
-        commercialStatus: { trustHealthScore: 50, isGhostProfile: true, revenueImpact: "Unknown", suspensionRisk: "Medium" },
-        roadmap: {
-            phase1: { title: "Security (System Offline)", steps: ["Verify Name", "Check Address", "Confirm Category"] },
-            phase2: { title: "Conversion", steps: ["Add Photos", "Enable Messages"] },
-            phase3: { title: "Authority", steps: ["Get Reviews"] }
-        },
-        executiveSummary: "System could not complete the full AI audit. Please verify API Key.",
-        roiForecast: "N/A"
+      executiveSummary: "Could not generate analysis due to AI service unavailability.",
+      visibility: { score: 50, classification: "Moderate", summary: "Data unavailable." },
+      trustAnalysis: { trustGap: 0, reviewsNeeded: 10, sentimentSummary: "Neutral" },
+      roadmap: {
+        immediate: ["Verify business profile", "Update business hours"],
+        shortTerm: ["Add 5 new photos", "Respond to recent reviews"],
+        growth: ["Start a review generation campaign", "Post weekly updates"]
+      }
     };
   }
 };

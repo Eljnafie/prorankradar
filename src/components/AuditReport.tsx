@@ -16,29 +16,29 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
   const [expandedFactor, setExpandedFactor] = React.useState<string | null>(null);
   const [showPricing, setShowPricing] = React.useState(false);
 
-  // Group Factors
+  // Group Factors matching Master Prompt categories
   const sections = {
-    "1. Trust & Technical Foundation": {
+    "Compliance & Safety": {
       icon: <Shield className="w-5 h-5 text-blue-600" />,
+      factors: data.factors.filter(f => f.category === 'compliance')
+    },
+    "Trust & Reputation": {
+      icon: <Activity className="w-5 h-5 text-green-600" />,
       factors: data.factors.filter(f => f.category === 'trust')
     },
-    "2. Commercial Engine & Engagement": {
-      icon: <Activity className="w-5 h-5 text-green-600" />,
-      factors: data.factors.filter(f => f.category === 'gbp')
-    },
-    "3. Conversion & Action Readiness": {
+    "Engagement": {
       icon: <MousePointerClick className="w-5 h-5 text-purple-600" />,
-      factors: data.factors.filter(f => f.category === 'conversion')
+      factors: data.factors.filter(f => f.category === 'engagement')
     },
-    "4. Local SEO Authority": {
+    "SEO & Authority": {
       icon: <TrendingUp className="w-5 h-5 text-orange-600" />,
       factors: data.factors.filter(f => f.category === 'seo')
     }
   };
 
-  const overallScore = data.overallScore;
-  const scoreColor = overallScore >= 80 ? '#22c55e' : overallScore >= 50 ? '#eab308' : '#ef4444';
-  const chartData = [{ name: 'Score', value: overallScore }, { name: 'Gap', value: 100 - overallScore }];
+  const lvcScore = data.geminiAnalysis.visibility.score;
+  const scoreColor = lvcScore >= 70 ? '#22c55e' : lvcScore >= 40 ? '#eab308' : '#ef4444';
+  const chartData = [{ name: 'Score', value: lvcScore }, { name: 'Gap', value: 100 - lvcScore }];
 
   const handlePdfDownload = () => {
     if (isUnlocked) {
@@ -59,7 +59,7 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
            <div className="flex items-center gap-2 mb-1">
              <span className={`px-2 py-0.5 rounded text-xs font-bold border flex items-center gap-1 ${isUnlocked ? 'bg-green-100 text-green-700 border-green-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
                {isUnlocked ? <Unlock className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
-               {isUnlocked ? 'PREMIUM AUDIT UNLOCKED' : 'FREE AUDIT PREVIEW'}
+               {isUnlocked ? 'MASTER AUDIT UNLOCKED' : 'FREE AUDIT PREVIEW'}
              </span>
            </div>
            <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
@@ -84,11 +84,11 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
 
       {/* EXECUTIVE SUMMARY & WARNINGS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-         {/* Sentiment / Trust Gap Warning */}
+         {/* Trust Gap Analysis */}
          <div className="bg-white p-6 rounded-xl border border-red-100 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 w-16 h-16 bg-red-50 rounded-bl-full -mr-2 -mt-2"></div>
             <h3 className="font-bold text-slate-800 mb-2 flex items-center gap-2 relative z-10">
-               <HeartCrack className="w-5 h-5 text-red-500" /> Review Sentiment Gap
+               <HeartCrack className="w-5 h-5 text-red-500" /> Trust Gap Analysis
             </h3>
             <div className="space-y-3 relative z-10">
                <div className="flex justify-between items-center text-sm">
@@ -103,29 +103,26 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
                   <span className="font-bold text-green-600">4.9 ★</span>
                </div>
                <p className="text-xs text-slate-500 bg-slate-50 p-2 rounded border border-slate-100">
-                  <strong>Trust Gap Analysis:</strong> You are {data.geminiAnalysis.sentimentAnalysis.trustGap.toFixed(1)} stars behind the leader. This gap acts as a "Conversion Killer". You need approximately <strong>{data.geminiAnalysis.sentimentAnalysis.reviewsNeeded} new 5-star reviews</strong> to compete.
+                  <strong>Trust Gap:</strong> You are {data.geminiAnalysis.trustAnalysis.trustGap.toFixed(1)} stars behind. You need approx <strong>{data.geminiAnalysis.trustAnalysis.reviewsNeeded} new reviews</strong> to compete.
                </p>
             </div>
          </div>
 
-         {/* Commercial Status / Ghost Profile */}
-         <div className={`p-6 rounded-xl border shadow-sm relative overflow-hidden ${data.geminiAnalysis.commercialStatus.isGhostProfile ? 'bg-orange-50 border-orange-200' : 'bg-green-50 border-green-200'}`}>
-            <h3 className={`font-bold mb-2 flex items-center gap-2 ${data.geminiAnalysis.commercialStatus.isGhostProfile ? 'text-orange-800' : 'text-green-800'}`}>
-               <Activity className="w-5 h-5" /> Commercial Engine Status
+         {/* LVC Score Box */}
+         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center">
+            <h3 className="font-bold text-slate-800 mb-2 flex items-center gap-2">
+               <Activity className="w-5 h-5 text-blue-600" /> Local Visibility Coverage (LVC)
             </h3>
-            <div className="space-y-2">
-               <div className="text-sm font-medium">
-                  Status: <strong>{data.geminiAnalysis.commercialStatus.isGhostProfile ? 'GHOST PROFILE DETECTED' : 'Active Engine'}</strong>
-               </div>
-               <p className={`text-sm ${data.geminiAnalysis.commercialStatus.isGhostProfile ? 'text-orange-700' : 'text-green-700'}`}>
-                  {data.geminiAnalysis.commercialStatus.revenueImpact}
-               </p>
-               {data.geminiAnalysis.commercialStatus.isGhostProfile && (
-                  <div className="text-xs bg-white/60 p-2 rounded mt-2 text-orange-900">
-                     Despite a technical score of {data.geminiAnalysis.commercialStatus.trustHealthScore}%, your commercial activity is zero. The engine is perfect, but it's turned off.
+            <div className="flex items-center gap-4">
+               <div className="text-4xl font-extrabold text-slate-900">{lvcScore}</div>
+               <div className="flex-1">
+                  <div className="text-sm font-bold text-slate-700 mb-1">{data.geminiAnalysis.visibility.classification} Coverage</div>
+                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                     <div className="h-full" style={{ width: `${lvcScore}%`, backgroundColor: scoreColor }}></div>
                   </div>
-               )}
+               </div>
             </div>
+            <p className="text-xs text-slate-500 mt-3">{data.geminiAnalysis.visibility.summary}</p>
          </div>
       </div>
 
@@ -134,7 +131,7 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
         {/* LEFT COLUMN: Visuals */}
         <div className="lg:col-span-1 space-y-6">
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col items-center text-center">
-             <h3 className="font-bold text-slate-700 mb-6">Overall Health Score</h3>
+             <h3 className="font-bold text-slate-700 mb-6">Visibility Score</h3>
              <div className="relative w-40 h-40 mb-4">
                <ResponsiveContainer>
                  <PieChart>
@@ -145,7 +142,7 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
                  </PieChart>
                </ResponsiveContainer>
                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                 <span className="text-4xl font-extrabold text-slate-800">{overallScore}</span>
+                 <span className="text-4xl font-extrabold text-slate-800">{lvcScore}</span>
                  <span className="text-xs font-bold text-slate-400 uppercase">/ 100</span>
                </div>
              </div>
@@ -162,7 +159,7 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
                    const isCenter = row === 3 && col === 3;
                    const dist = Math.max(Math.abs(row - 3), Math.abs(col - 3));
                    let bgClass = 'bg-red-400';
-                   const greenRadius = overallScore > 80 ? 3 : overallScore > 60 ? 2 : 1;
+                   const greenRadius = lvcScore > 70 ? 3 : lvcScore > 40 ? 2 : 1;
                    if (isCenter) bgClass = 'bg-blue-600'; else if (dist <= greenRadius) bgClass = 'bg-green-500'; else if (dist <= greenRadius + 1) bgClass = 'bg-yellow-400';
                    return <div key={i} className={`aspect-square rounded-full ${bgClass} shadow-sm transition-all hover:scale-110`}></div>;
                 })}
@@ -173,11 +170,6 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
                 <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-blue-600"></div> You</div>
              </div>
           </div>
-
-          <div className="bg-green-50 border border-green-200 text-green-900 rounded-xl p-6">
-             <h3 className="text-sm font-bold uppercase tracking-wider mb-2 flex items-center gap-2"><ArrowUpRight className="w-4 h-4" /> ROI Forecast</h3>
-             <p className="text-sm leading-relaxed">{data.geminiAnalysis.roiForecast}</p>
-          </div>
         </div>
 
         {/* RIGHT COLUMN: Roadmap & Details */}
@@ -186,13 +178,13 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
            {/* 90-Day Roadmap */}
            <div className="bg-slate-900 text-white rounded-xl shadow-lg overflow-hidden">
               <div className="p-6 border-b border-slate-700 flex justify-between items-center">
-                 <h3 className="text-xl font-bold flex items-center gap-2"><Zap className="w-6 h-6 text-yellow-400" /> 90-Day Success Roadmap</h3>
+                 <h3 className="text-xl font-bold flex items-center gap-2"><Zap className="w-6 h-6 text-yellow-400" /> 90-Day Action Roadmap</h3>
                  {!isUnlocked && <Lock className="w-5 h-5 text-slate-500" />}
               </div>
               <div className={`p-6 space-y-6 ${!isUnlocked ? 'blur-sm select-none opacity-50' : ''}`}>
-                 <RoadmapPhase phase="Phase 1: Security & Foundation (Days 1-7)" steps={data.geminiAnalysis.roadmap.phase1.steps} icon={<Shield className="w-5 h-5 text-blue-400" />} />
-                 <RoadmapPhase phase="Phase 2: Lead Generation (Days 8-30)" steps={data.geminiAnalysis.roadmap.phase2.steps} icon={<MousePointerClick className="w-5 h-5 text-purple-400" />} />
-                 <RoadmapPhase phase="Phase 3: Authority & Dominance (Month 2+)" steps={data.geminiAnalysis.roadmap.phase3.steps} icon={<TrendingUp className="w-5 h-5 text-green-400" />} />
+                 <RoadmapPhase phase="Phase 1: Immediate (0-7 Days)" steps={data.geminiAnalysis.roadmap.immediate} icon={<Shield className="w-5 h-5 text-blue-400" />} />
+                 <RoadmapPhase phase="Phase 2: Short Term (14-30 Days)" steps={data.geminiAnalysis.roadmap.shortTerm} icon={<MousePointerClick className="w-5 h-5 text-purple-400" />} />
+                 <RoadmapPhase phase="Phase 3: Growth (30-90 Days)" steps={data.geminiAnalysis.roadmap.growth} icon={<TrendingUp className="w-5 h-5 text-green-400" />} />
               </div>
               {!isUnlocked && (
                  <div className="absolute inset-0 top-20 flex flex-col items-center justify-center z-10 pointer-events-none">

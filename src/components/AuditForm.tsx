@@ -12,7 +12,6 @@ interface AuditFormProps {
   bypassLimits?: boolean;
 }
 
-// SECURITY CONFIGURATION
 const RATE_LIMIT_CONFIG = {
   MAX_AUDITS_PER_DAY: 3,
   COOLDOWN_MINUTES: 2,
@@ -29,12 +28,10 @@ const AuditForm: React.FC<AuditFormProps> = ({
   const [titleTag, setTitleTag] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
   
-  // Security State
   const [honeypot, setHoneypot] = useState('');
   const [rateLimitError, setRateLimitError] = useState<string | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
 
-  // Place Search State
   const [searchValue, setSearchValue] = useState('');
   const [predictions, setPredictions] = useState<any[]>([]);
   const [selectedPlace, setSelectedPlace] = useState<BusinessProfile | null>(null);
@@ -42,7 +39,6 @@ const AuditForm: React.FC<AuditFormProps> = ({
   const autocompleteService = useRef<any>(null);
   const placesService = useRef<any>(null);
 
-  // Initialize Maps Services when Script Loaded
   useEffect(() => {
     if (isMapsLoaded && (window as any).google) {
       try {
@@ -60,7 +56,6 @@ const AuditForm: React.FC<AuditFormProps> = ({
     }
   }, [isMapsLoaded, mapsApiKey]);
 
-  // --- SECURITY: RATE LIMIT CHECKER ---
   const checkRateLimit = (): boolean => {
     try {
       const rawData = localStorage.getItem(RATE_LIMIT_CONFIG.STORAGE_KEY);
@@ -69,17 +64,13 @@ const AuditForm: React.FC<AuditFormProps> = ({
       const cooldownMs = RATE_LIMIT_CONFIG.COOLDOWN_MINUTES * 60 * 1000;
 
       let data = rawData ? JSON.parse(rawData) : { timestamps: [] };
-      
-      // Filter out timestamps older than 24 hours
       data.timestamps = data.timestamps.filter((t: number) => (now - t) < oneDay);
 
-      // Check Daily Quota
       if (data.timestamps.length >= RATE_LIMIT_CONFIG.MAX_AUDITS_PER_DAY) {
-        setRateLimitError(`Daily limit reached (${RATE_LIMIT_CONFIG.MAX_AUDITS_PER_DAY} audits/24h). Please contact support for enterprise access.`);
+        setRateLimitError(`Daily limit reached (${RATE_LIMIT_CONFIG.MAX_AUDITS_PER_DAY} audits/24h).`);
         return false;
       }
 
-      // Check Cooldown (prevent spam clicking)
       if (data.timestamps.length > 0) {
         const lastAudit = data.timestamps[data.timestamps.length - 1];
         if ((now - lastAudit) < cooldownMs) {
@@ -92,8 +83,6 @@ const AuditForm: React.FC<AuditFormProps> = ({
       setRateLimitError(null);
       return true;
     } catch (e) {
-      // In case of localstorage error, allow but log
-      console.warn("Rate limit check failed", e);
       return true;
     }
   };
@@ -183,28 +172,17 @@ const AuditForm: React.FC<AuditFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // 1. HONEYPOT CHECK
     if (honeypot) return; 
 
-    // 2. RATE LIMIT CHECK (Only check if NOT bypassed)
     if (!bypassLimits && !checkRateLimit()) {
       return;
     }
 
-    // 3. INPUT SANITATION
-    if (keyword.length > 100 || city.length > 100) {
-      setSearchError("Input too long.");
-      return;
-    }
-    
-    // 4. BUSINESS SELECTION CHECK
     if (!selectedPlace) {
       alert("Please select a business from the dropdown suggestions.");
       return;
     }
 
-    // Record usage (Only for free users)
     if (!bypassLimits) {
       recordAuditUsage();
     }
@@ -224,15 +202,14 @@ const AuditForm: React.FC<AuditFormProps> = ({
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto bg-white rounded-xl overflow-hidden">
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-8 text-white">
-        <h2 className="text-3xl font-bold mb-2">GBP Audit & Fix Tool</h2>
-        <p className="opacity-90">Enter your business details to generate a 100-point ranking score.</p>
+    <div className="w-full max-w-3xl mx-auto bg-white rounded-xl overflow-hidden shadow-xl border border-slate-100">
+      <div className="bg-slate-900 p-8 text-white">
+        <h2 className="text-3xl font-bold mb-2">GBP Master Audit</h2>
+        <p className="opacity-90">Generate a 360° visibility report using the 2026 Master Standard.</p>
       </div>
 
       <div className="p-8">
         <form onSubmit={handleSubmit} className="space-y-6">
-          
           <div className="opacity-0 absolute top-0 left-0 h-0 w-0 overflow-hidden -z-10">
             <input type="text" name="website_url_honey" tabIndex={-1} value={honeypot} onChange={(e) => setHoneypot(e.target.value)} autoComplete="off" />
           </div>
@@ -320,7 +297,7 @@ const AuditForm: React.FC<AuditFormProps> = ({
             </div>
           </div>
 
-          {/* Website Data (Manual Entry for Advanced Score Accuracy) */}
+          {/* Website Data */}
           <div className="pt-2">
              <button 
                type="button" 
@@ -360,7 +337,7 @@ const AuditForm: React.FC<AuditFormProps> = ({
           </div>
 
           <button type="submit" disabled={isLoading || (!!rateLimitError && !bypassLimits)} className={`w-full py-4 rounded-lg font-bold text-lg flex items-center justify-center gap-2 transition-all shadow-lg ${isLoading || (!!rateLimitError && !bypassLimits) ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-blue-500/30'}`}>
-            {isLoading ? <><Loader2 className="animate-spin" /> Analyzing...</> : rateLimitError && !bypassLimits ? <><ShieldAlert className="w-5 h-5" /> Limit Reached</> : <><ArrowRight className="w-5 h-5" /> Run 360° Audit</>}
+            {isLoading ? <><Loader2 className="animate-spin" /> Analyzing...</> : rateLimitError && !bypassLimits ? <><ShieldAlert className="w-5 h-5" /> Limit Reached</> : <><ArrowRight className="w-5 h-5" /> Run 360° Master Audit</>}
           </button>
         </form>
       </div>
