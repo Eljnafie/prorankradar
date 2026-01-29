@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Download, ExternalLink, Lock, MessageCircle, Check, Unlock, TrendingUp, Shield, MousePointerClick, Activity, HeartCrack, X, FileText } from 'lucide-react';
+import { CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Download, ExternalLink, Lock, MessageCircle, Check, Unlock, TrendingUp, Shield, MousePointerClick, Activity, X, FileText } from 'lucide-react';
 import type { AuditReportData, ScoringFactor, SiteContent } from '../types';
 import { generateAuditPdf } from '../services/pdfGenerator';
 
