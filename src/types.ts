@@ -53,6 +53,18 @@ export interface V5AuditAnalysis {
     audit_version: string;
     generated_at: string;
     audit_type: string;
+    engine: {
+      maps_api: boolean;
+      gemini_api: boolean;
+      geo_grid: boolean;
+    };
+    business: {
+      name: string;
+      primary_category: string;
+      location_type: string;
+      city: string;
+      country: string;
+    };
   };
   executive_summary: {
     overall_health: 'Poor' | 'Fair' | 'Good' | 'Strong';
@@ -77,17 +89,24 @@ export interface V5AuditAnalysis {
       category_legitimacy: string;
       profile_ownership_signals: string;
     };
+    recommended_caution: string[];
   };
   category_and_relevance_analysis: {
     primary_category: {
       status: string;
       explanation: string;
       recommended_action: string;
+      micro_steps: string[];
     };
     secondary_categories: {
       status: string;
       explanation: string;
       recommended_changes: string[];
+    };
+    services_alignment: {
+      status: string;
+      explanation: string;
+      actions: string[];
     };
   };
   reviews_analysis: {
@@ -100,15 +119,18 @@ export interface V5AuditAnalysis {
       velocity: string;
       text_quality: string;
     };
+    issues_detected: string[];
     improvement_plan: {
       monthly_target: number;
       what_customers_should_mention: string[];
+      owner_response_guidelines: string[];
     };
   };
   photos_and_media_analysis: {
     overall_status: string;
     explanation: string;
     missing_photo_types: string[];
+    freshness_status: string;
     recommended_actions: {
       upload_frequency: string;
       photo_guidelines: string[];
@@ -118,9 +140,25 @@ export interface V5AuditAnalysis {
     status: string;
     analysis: {
       google_posts: string;
+      services_section: string;
       q_and_a: string;
+      messaging: string;
+      hours_accuracy: string;
     };
     recommended_actions: string[];
+  };
+  geo_grid_and_local_coverage: {
+    explanation: string;
+    visibility_zones: {
+      strong_zones: string[];
+      moderate_zones: string[];
+      weak_zones: string[];
+    };
+    priority_focus_zones: {
+      zone_name: string;
+      reason: string;
+      difficulty: string;
+    }[];
   };
   competitive_benchmark: {
     summary: string;
@@ -131,24 +169,36 @@ export interface V5AuditAnalysis {
     days_0_30: {
       focus: string;
       actions: string[];
+      expected_changes: string[];
     };
     days_31_60: {
       focus: string;
       actions: string[];
+      expected_changes: string[];
     };
     days_61_90: {
       focus: string;
       actions: string[];
+      expected_changes: string[];
     };
+  };
+  expected_outcomes: {
+    short_term: string[];
+    mid_term: string[];
+    long_term: string[];
   };
   final_priorities: {
     top_actions: string[];
     actions_to_avoid: string[];
+    consistency_requirements: string[];
+  };
+  disclaimer: {
+    statement: string;
+    no_guarantees: boolean;
   };
 }
 
 // --- EXTERNAL DASHBOARD (Client View) ---
-// This wraps the raw V5 Analysis for the React Components
 export interface AuditReportData {
   business: BusinessProfile;
   inputs: AuditInputs;

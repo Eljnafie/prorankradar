@@ -50,7 +50,7 @@ export const analyzeProfileWithGemini = async (
   const prompt = `
     SYSTEM ROLE
     You are the "V5 Master Auditor" for ProRankRadar.
-    Your objective is to generate a JSON-based strategic audit for a Google Business Profile (GBP).
+    Your objective is to generate a detailed JSON-based strategic audit for a Google Business Profile (GBP).
     
     INPUT CONTEXT
     Business: "${business.name}"
@@ -65,13 +65,13 @@ export const analyzeProfileWithGemini = async (
     1.  **Analyze Safety**: Check for name stuffing (spam) or address issues.
     2.  **Score Confidence**: Calculate 'local_visibility_confidence' (0-100) based on how well the profile matches the keyword/city.
     3.  **Generate Timeline**: Create a specific 30/60/90 day plan.
-    4.  **Strict JSON**: Output MUST match the V5 schema exactly.
+    4.  **Strict JSON**: Output MUST match the V5 schema exactly. No Markdown.
 
     OUTPUT FORMAT
     Return ONLY valid JSON.
   `;
 
-  // V5 Schema Definition
+  // V5 Schema Definition based on user prompt
   const schema = {
     type: Type.OBJECT,
     properties: {
@@ -80,9 +80,19 @@ export const analyzeProfileWithGemini = async (
         properties: {
           audit_version: { type: Type.STRING, enum: ["5.0"] },
           generated_at: { type: Type.STRING },
-          audit_type: { type: Type.STRING }
+          audit_type: { type: Type.STRING },
+          engine: {
+            type: Type.OBJECT,
+            properties: { maps_api: { type: Type.BOOLEAN }, gemini_api: { type: Type.BOOLEAN }, geo_grid: { type: Type.BOOLEAN } },
+            required: ["maps_api", "gemini_api", "geo_grid"]
+          },
+          business: {
+            type: Type.OBJECT,
+            properties: { name: { type: Type.STRING }, primary_category: { type: Type.STRING }, location_type: { type: Type.STRING }, city: { type: Type.STRING }, country: { type: Type.STRING } },
+            required: ["name", "primary_category", "location_type", "city", "country"]
+          }
         },
-        required: ["audit_version", "generated_at", "audit_type"]
+        required: ["audit_version", "generated_at", "audit_type", "engine", "business"]
       },
       executive_summary: {
         type: Type.OBJECT,
@@ -113,40 +123,33 @@ export const analyzeProfileWithGemini = async (
           explanation: { type: Type.STRING },
           checked_elements: {
             type: Type.OBJECT,
-            properties: {
-              business_name: { type: Type.STRING },
-              address_logic: { type: Type.STRING },
-              category_legitimacy: { type: Type.STRING },
-              profile_ownership_signals: { type: Type.STRING }
-            },
+            properties: { business_name: { type: Type.STRING }, address_logic: { type: Type.STRING }, category_legitimacy: { type: Type.STRING }, profile_ownership_signals: { type: Type.STRING } },
             required: ["business_name", "address_logic", "category_legitimacy", "profile_ownership_signals"]
-          }
+          },
+          recommended_caution: { type: Type.ARRAY, items: { type: Type.STRING } }
         },
-        required: ["status", "explanation", "checked_elements"]
+        required: ["status", "explanation", "checked_elements", "recommended_caution"]
       },
       category_and_relevance_analysis: {
         type: Type.OBJECT,
         properties: {
           primary_category: {
             type: Type.OBJECT,
-            properties: {
-              status: { type: Type.STRING },
-              explanation: { type: Type.STRING },
-              recommended_action: { type: Type.STRING }
-            },
-            required: ["status", "explanation", "recommended_action"]
+            properties: { status: { type: Type.STRING }, explanation: { type: Type.STRING }, recommended_action: { type: Type.STRING }, micro_steps: { type: Type.ARRAY, items: { type: Type.STRING } } },
+            required: ["status", "explanation", "recommended_action", "micro_steps"]
           },
           secondary_categories: {
             type: Type.OBJECT,
-            properties: {
-              status: { type: Type.STRING },
-              explanation: { type: Type.STRING },
-              recommended_changes: { type: Type.ARRAY, items: { type: Type.STRING } }
-            },
+            properties: { status: { type: Type.STRING }, explanation: { type: Type.STRING }, recommended_changes: { type: Type.ARRAY, items: { type: Type.STRING } } },
             required: ["status", "explanation", "recommended_changes"]
+          },
+          services_alignment: {
+            type: Type.OBJECT,
+            properties: { status: { type: Type.STRING }, explanation: { type: Type.STRING }, actions: { type: Type.ARRAY, items: { type: Type.STRING } } },
+            required: ["status", "explanation", "actions"]
           }
         },
-        required: ["primary_category", "secondary_categories"]
+        required: ["primary_category", "secondary_categories", "services_alignment"]
       },
       reviews_analysis: {
         type: Type.OBJECT,
@@ -155,25 +158,17 @@ export const analyzeProfileWithGemini = async (
           explanation: { type: Type.STRING },
           metrics: {
             type: Type.OBJECT,
-            properties: {
-              review_count_vs_competitors: { type: Type.STRING },
-              average_rating_status: { type: Type.STRING },
-              freshness: { type: Type.STRING },
-              velocity: { type: Type.STRING },
-              text_quality: { type: Type.STRING }
-            },
+            properties: { review_count_vs_competitors: { type: Type.STRING }, average_rating_status: { type: Type.STRING }, freshness: { type: Type.STRING }, velocity: { type: Type.STRING }, text_quality: { type: Type.STRING } },
             required: ["review_count_vs_competitors", "average_rating_status", "freshness", "velocity", "text_quality"]
           },
+          issues_detected: { type: Type.ARRAY, items: { type: Type.STRING } },
           improvement_plan: {
             type: Type.OBJECT,
-            properties: {
-              monthly_target: { type: Type.NUMBER },
-              what_customers_should_mention: { type: Type.ARRAY, items: { type: Type.STRING } }
-            },
-            required: ["monthly_target", "what_customers_should_mention"]
+            properties: { monthly_target: { type: Type.NUMBER }, what_customers_should_mention: { type: Type.ARRAY, items: { type: Type.STRING } }, owner_response_guidelines: { type: Type.ARRAY, items: { type: Type.STRING } } },
+            required: ["monthly_target", "what_customers_should_mention", "owner_response_guidelines"]
           }
         },
-        required: ["overall_status", "explanation", "metrics", "improvement_plan"]
+        required: ["overall_status", "explanation", "metrics", "issues_detected", "improvement_plan"]
       },
       photos_and_media_analysis: {
         type: Type.OBJECT,
@@ -181,16 +176,14 @@ export const analyzeProfileWithGemini = async (
           overall_status: { type: Type.STRING },
           explanation: { type: Type.STRING },
           missing_photo_types: { type: Type.ARRAY, items: { type: Type.STRING } },
+          freshness_status: { type: Type.STRING },
           recommended_actions: {
             type: Type.OBJECT,
-            properties: {
-              upload_frequency: { type: Type.STRING },
-              photo_guidelines: { type: Type.ARRAY, items: { type: Type.STRING } }
-            },
+            properties: { upload_frequency: { type: Type.STRING }, photo_guidelines: { type: Type.ARRAY, items: { type: Type.STRING } } },
             required: ["upload_frequency", "photo_guidelines"]
           }
         },
-        required: ["overall_status", "explanation", "missing_photo_types", "recommended_actions"]
+        required: ["overall_status", "explanation", "missing_photo_types", "freshness_status", "recommended_actions"]
       },
       profile_activity_and_engagement: {
         type: Type.OBJECT,
@@ -198,15 +191,32 @@ export const analyzeProfileWithGemini = async (
           status: { type: Type.STRING },
           analysis: {
             type: Type.OBJECT,
-            properties: {
-              google_posts: { type: Type.STRING },
-              q_and_a: { type: Type.STRING }
-            },
-            required: ["google_posts", "q_and_a"]
+            properties: { google_posts: { type: Type.STRING }, services_section: { type: Type.STRING }, q_and_a: { type: Type.STRING }, messaging: { type: Type.STRING }, hours_accuracy: { type: Type.STRING } },
+            required: ["google_posts", "services_section", "q_and_a", "messaging", "hours_accuracy"]
           },
           recommended_actions: { type: Type.ARRAY, items: { type: Type.STRING } }
         },
         required: ["status", "analysis", "recommended_actions"]
+      },
+      geo_grid_and_local_coverage: {
+        type: Type.OBJECT,
+        properties: {
+          explanation: { type: Type.STRING },
+          visibility_zones: {
+            type: Type.OBJECT,
+            properties: { strong_zones: { type: Type.ARRAY, items: { type: Type.STRING } }, moderate_zones: { type: Type.ARRAY, items: { type: Type.STRING } }, weak_zones: { type: Type.ARRAY, items: { type: Type.STRING } } },
+            required: ["strong_zones", "moderate_zones", "weak_zones"]
+          },
+          priority_focus_zones: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: { zone_name: { type: Type.STRING }, reason: { type: Type.STRING }, difficulty: { type: Type.STRING } },
+              required: ["zone_name", "reason", "difficulty"]
+            }
+          }
+        },
+        required: ["explanation", "visibility_zones", "priority_focus_zones"]
       },
       competitive_benchmark: {
         type: Type.OBJECT,
@@ -222,35 +232,54 @@ export const analyzeProfileWithGemini = async (
         properties: {
           days_0_30: {
             type: Type.OBJECT,
-            properties: { focus: { type: Type.STRING }, actions: { type: Type.ARRAY, items: { type: Type.STRING } } },
-            required: ["focus", "actions"]
+            properties: { focus: { type: Type.STRING }, actions: { type: Type.ARRAY, items: { type: Type.STRING } }, expected_changes: { type: Type.ARRAY, items: { type: Type.STRING } } },
+            required: ["focus", "actions", "expected_changes"]
           },
           days_31_60: {
             type: Type.OBJECT,
-            properties: { focus: { type: Type.STRING }, actions: { type: Type.ARRAY, items: { type: Type.STRING } } },
-            required: ["focus", "actions"]
+            properties: { focus: { type: Type.STRING }, actions: { type: Type.ARRAY, items: { type: Type.STRING } }, expected_changes: { type: Type.ARRAY, items: { type: Type.STRING } } },
+            required: ["focus", "actions", "expected_changes"]
           },
           days_61_90: {
             type: Type.OBJECT,
-            properties: { focus: { type: Type.STRING }, actions: { type: Type.ARRAY, items: { type: Type.STRING } } },
-            required: ["focus", "actions"]
+            properties: { focus: { type: Type.STRING }, actions: { type: Type.ARRAY, items: { type: Type.STRING } }, expected_changes: { type: Type.ARRAY, items: { type: Type.STRING } } },
+            required: ["focus", "actions", "expected_changes"]
           }
         },
         required: ["days_0_30", "days_31_60", "days_61_90"]
+      },
+      expected_outcomes: {
+        type: Type.OBJECT,
+        properties: {
+          short_term: { type: Type.ARRAY, items: { type: Type.STRING } },
+          mid_term: { type: Type.ARRAY, items: { type: Type.STRING } },
+          long_term: { type: Type.ARRAY, items: { type: Type.STRING } }
+        },
+        required: ["short_term", "mid_term", "long_term"]
       },
       final_priorities: {
         type: Type.OBJECT,
         properties: {
           top_actions: { type: Type.ARRAY, items: { type: Type.STRING } },
-          actions_to_avoid: { type: Type.ARRAY, items: { type: Type.STRING } }
+          actions_to_avoid: { type: Type.ARRAY, items: { type: Type.STRING } },
+          consistency_requirements: { type: Type.ARRAY, items: { type: Type.STRING } }
         },
-        required: ["top_actions", "actions_to_avoid"]
+        required: ["top_actions", "actions_to_avoid", "consistency_requirements"]
+      },
+      disclaimer: {
+        type: Type.OBJECT,
+        properties: {
+          statement: { type: Type.STRING },
+          no_guarantees: { type: Type.BOOLEAN }
+        },
+        required: ["statement", "no_guarantees"]
       }
     },
     required: [
       "meta", "executive_summary", "local_visibility_confidence", "profile_safety_and_compliance",
       "category_and_relevance_analysis", "reviews_analysis", "photos_and_media_analysis",
-      "profile_activity_and_engagement", "competitive_benchmark", "action_plan_timeline", "final_priorities"
+      "profile_activity_and_engagement", "geo_grid_and_local_coverage", "competitive_benchmark", 
+      "action_plan_timeline", "expected_outcomes", "final_priorities", "disclaimer"
     ]
   };
 

@@ -97,7 +97,10 @@ const AppContent: React.FC = () => {
     try {
       const competitors: CompetitorData[] = [];
       const geminiAnalysis = await analyzeProfileWithGemini(business, inputs, competitors, geminiKey);
+      
+      // Calculate score now returns the full AuditReportData object with the V5 analysis embedded
       const reportData = calculateScore(business, inputs, competitors, geminiAnalysis);
+      
       setReport(reportData);
       navigate('/report');
       window.scrollTo(0, 0);

@@ -31,7 +31,7 @@ export const calculateScore = (
 
   // 2. Categories (20pts)
   const catStatus = internal.category_and_relevance_analysis.primary_category.status;
-  addFactor('v5_cat', 'Category Relevance', catStatus.includes('Strong') ? 20 : 10, 20, 
+  addFactor('v5_cat', 'Category Relevance', catStatus.includes('Strong') || catStatus.includes('Optimized') ? 20 : 10, 20, 
     internal.category_and_relevance_analysis.primary_category.explanation, 
     internal.category_and_relevance_analysis.primary_category.recommended_action, 'relevance');
 
