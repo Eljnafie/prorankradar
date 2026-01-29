@@ -43,32 +43,67 @@ export interface ScoringFactor {
   impact: 'high' | 'medium' | 'low';
   reason: string;
   fixAction: string;
-  category: 'safety' | 'trust' | 'visibility';
+  category: 'profile_safety' | 'user_trust' | 'visibility_and_competition';
 }
 
-// V2 CLIENT-GUIDED ANALYSIS INTERFACE
+interface SignalAnalysis {
+  what_it_means: string;
+  current_state: string;
+  why_it_matters: string;
+}
+
+// V3 MASTER SPEC INTERFACE
 export interface GeminiAnalysis {
-  executiveSummary: {
-    plainLanguageInsight: string;
-    visibilityStatus: 'Visible' | 'Partially Visible' | 'Invisible';
-    mainOpportunity: string;
+  audit_version: string;
+  tool_name: string;
+  business_overview: {
+    business_name: string;
+    category: string;
+    location: string;
+    audit_date: string;
   };
-  
-  lvc: {
-    score: number; // 0-100
-    scoreExplanation: string; // "An LVC score of 20% means..."
+  executive_summary: {
+    plain_language_summary: string;
+    current_visibility_status: 'visible' | 'partially_visible' | 'mostly_invisible';
+    main_problem_explained_simply: string;
+    primary_opportunity: string;
   };
-
-  profileHealth: {
-    safetyCheck: string; // "Is anything wrong or risky?"
-    trustCheck: string;  // "Do users feel confident?"
-    visibilityCheck: string; // "Does Google choose this business?"
+  methodology: {
+    maps_data_explanation: string;
+    ai_explanation_role: string;
+    important_note: string;
   };
-
-  improvementPlan: {
-    immediateAction: string; // Focus on trust/safety
-    shortTermStrategy: string; // Focus on activity
-    longTermGrowth: string; // Focus on dominance
+  geo_grid_analysis: {
+    what_the_grid_means: string;
+    color_legend: {
+      green: string;
+      orange: string;
+      red: string;
+    };
+    key_observations: string[];
+    geographic_insight: string;
+  };
+  local_visibility_coverage: {
+    lvc_score_percent: number;
+    simple_explanation: string;
+    benchmark_context: {
+      weak: string;
+      partial: string;
+      strong: string;
+    };
+    business_impact: string;
+  };
+  baseline_scorecard: {
+    profile_safety: 'high' | 'medium' | 'low';
+    user_trust: 'high' | 'medium' | 'low';
+    engagement_activity: 'high' | 'medium' | 'low';
+    local_visibility: 'high' | 'medium' | 'low';
+    notes: string;
+  };
+  signal_separation: {
+    profile_safety: SignalAnalysis;
+    user_trust: SignalAnalysis;
+    visibility_and_competition: SignalAnalysis;
   };
 }
 
