@@ -2,8 +2,8 @@
 import type { BusinessProfile, AuditInputs, CompetitorData, V4InternalAnalysis, V4ExternalDashboard, ScoringFactor } from "../types";
 
 export const calculateScore = (
-  business: BusinessProfile,
-  inputs: AuditInputs,
+  _business: BusinessProfile,
+  _inputs: AuditInputs,
   _competitors: CompetitorData[],
   internal: V4InternalAnalysis
 ): { score: number; factors: ScoringFactor[]; dashboard: V4ExternalDashboard } => {
