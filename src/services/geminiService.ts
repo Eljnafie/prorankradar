@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
-import type { BusinessProfile, AuditInputs, V4InternalAnalysis, BlogPost, AuditLanguage } from "../types";
+import type { BusinessProfile, AuditInputs, V5AuditAnalysis, BlogPost, AuditLanguage } from "../types";
 
 const ANALYSIS_MODEL = 'gemini-3-flash-preview';
 
@@ -42,116 +42,216 @@ export const analyzeProfileWithGemini = async (
   inputs: AuditInputs,
   _competitors: any[],
   apiKey?: string
-): Promise<V4InternalAnalysis> => {
+): Promise<V5AuditAnalysis> => {
   
   const ai = getAI(apiKey);
   const targetLanguage = LANGUAGE_MAP[inputs.language || 'en'] || 'English';
   
   const prompt = `
     SYSTEM ROLE
-    You are the "V4 Core Engine" for a Local Confidence Intelligence System.
-    Your job is to analyze raw Google Maps signals and output a complex INTERNAL JSON structure.
-    Do NOT write for the client. Write for the scoring engine.
+    You are the "V5 Master Auditor" for ProRankRadar.
+    Your objective is to generate a JSON-based strategic audit for a Google Business Profile (GBP).
     
     INPUT CONTEXT
     Business: "${business.name}"
-    Category: "${business.types[0] || 'Unknown'}"
+    Address: "${business.address}"
+    Primary Category (Current): "${business.types[0] || 'Unknown'}"
     Rating: ${business.rating} (${business.user_ratings_total} reviews)
     Target Keyword: "${inputs.targetKeyword}"
     Target City: "${inputs.targetCity}"
-    Output Language: ${targetLanguage} (for the opportunity strings only)
+    Output Language: ${targetLanguage}
 
-    ANALYSIS INSTRUCTIONS
-    1. Eligibility Layer: Check for name stuffing (spam risk) and address validity.
-    2. Relevance Layer: Analyze if the category and name match the target keyword.
-    3. Review Layer: Analyze rating freshness and authenticity (0.0 to 1.0 scores).
-    4. Confidence Components:
-       - Relevance: How well do they fit the search?
-       - Proximity: (Estimate based on city match)
-       - Prominence: Review count/rating strength.
-    
+    INSTRUCTIONS
+    1.  **Analyze Safety**: Check for name stuffing (spam) or address issues.
+    2.  **Score Confidence**: Calculate 'local_visibility_confidence' (0-100) based on how well the profile matches the keyword/city.
+    3.  **Generate Timeline**: Create a specific 30/60/90 day plan.
+    4.  **Strict JSON**: Output MUST match the V5 schema exactly.
+
     OUTPUT FORMAT
-    Return ONLY valid JSON matching the 'V4InternalAnalysis' schema.
-    All scores must be floats between 0.0 and 1.0.
+    Return ONLY valid JSON.
   `;
 
+  // V5 Schema Definition
   const schema = {
     type: Type.OBJECT,
     properties: {
-      engine_meta: {
+      meta: {
         type: Type.OBJECT,
         properties: {
-          audit_version: { type: Type.STRING, enum: ["4.0-internal"] },
+          audit_version: { type: Type.STRING, enum: ["5.0"] },
           generated_at: { type: Type.STRING },
-          confidence_model: { type: Type.STRING }
+          audit_type: { type: Type.STRING }
         },
-        required: ["audit_version", "generated_at", "confidence_model"]
+        required: ["audit_version", "generated_at", "audit_type"]
       },
-      eligibility_layer: {
+      executive_summary: {
         type: Type.OBJECT,
         properties: {
-          real_world_validation: { type: Type.BOOLEAN },
-          business_name_integrity: { type: Type.BOOLEAN },
-          risk_flags: { type: Type.ARRAY, items: { type: Type.STRING } }
+          overall_health: { type: Type.STRING, enum: ["Poor", "Fair", "Good", "Strong"] },
+          summary: { type: Type.STRING },
+          main_strengths: { type: Type.ARRAY, items: { type: Type.STRING } },
+          main_limitations: { type: Type.ARRAY, items: { type: Type.STRING } },
+          overall_priority: { type: Type.STRING }
         },
-        required: ["real_world_validation", "business_name_integrity", "risk_flags"]
+        required: ["overall_health", "summary", "main_strengths", "main_limitations", "overall_priority"]
       },
-      relevance_layer: {
+      local_visibility_confidence: {
         type: Type.OBJECT,
         properties: {
-          primary_category_match: { type: Type.NUMBER },
-          service_semantic_match: { type: Type.NUMBER }
+          score: { type: Type.NUMBER },
+          score_label: { type: Type.STRING, enum: ["Low", "Moderate", "Strong", "Dominant"] },
+          explanation: { type: Type.STRING },
+          confidence_drivers: { type: Type.ARRAY, items: { type: Type.STRING } },
+          confidence_gaps: { type: Type.ARRAY, items: { type: Type.STRING } }
         },
-        required: ["primary_category_match", "service_semantic_match"]
+        required: ["score", "score_label", "explanation", "confidence_drivers", "confidence_gaps"]
       },
-      review_layer: {
+      profile_safety_and_compliance: {
         type: Type.OBJECT,
         properties: {
-          review_freshness: { type: Type.NUMBER },
-          review_sentiment: { type: Type.NUMBER },
-          review_authenticity: { type: Type.NUMBER }
+          status: { type: Type.STRING, enum: ["Safe", "Needs Attention", "At Risk"] },
+          explanation: { type: Type.STRING },
+          checked_elements: {
+            type: Type.OBJECT,
+            properties: {
+              business_name: { type: Type.STRING },
+              address_logic: { type: Type.STRING },
+              category_legitimacy: { type: Type.STRING },
+              profile_ownership_signals: { type: Type.STRING }
+            },
+            required: ["business_name", "address_logic", "category_legitimacy", "profile_ownership_signals"]
+          }
         },
-        required: ["review_freshness", "review_sentiment", "review_authenticity"]
+        required: ["status", "explanation", "checked_elements"]
       },
-      activity_layer: {
+      category_and_relevance_analysis: {
         type: Type.OBJECT,
         properties: {
-          posting_consistency: { type: Type.NUMBER },
-          media_freshness: { type: Type.NUMBER }
-        },
-        required: ["posting_consistency", "media_freshness"]
-      },
-      geo_layer: {
-        type: Type.OBJECT,
-        properties: {
-          coverage_density: { type: Type.NUMBER },
-          competitive_pressure: { type: Type.NUMBER }
-        },
-        required: ["coverage_density", "competitive_pressure"]
-      },
-      confidence_components: {
-        type: Type.OBJECT,
-        properties: {
-          relevance: { type: Type.NUMBER },
-          proximity: { type: Type.NUMBER },
-          prominence: { type: Type.NUMBER }
-        },
-        required: ["relevance", "proximity", "prominence"]
-      },
-      strategic_opportunities: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            title: { type: Type.STRING },
-            description: { type: Type.STRING },
-            impact: { type: Type.STRING, enum: ["high", "medium", "low"] }
+          primary_category: {
+            type: Type.OBJECT,
+            properties: {
+              status: { type: Type.STRING },
+              explanation: { type: Type.STRING },
+              recommended_action: { type: Type.STRING }
+            },
+            required: ["status", "explanation", "recommended_action"]
           },
-          required: ["title", "description", "impact"]
-        }
+          secondary_categories: {
+            type: Type.OBJECT,
+            properties: {
+              status: { type: Type.STRING },
+              explanation: { type: Type.STRING },
+              recommended_changes: { type: Type.ARRAY, items: { type: Type.STRING } }
+            },
+            required: ["status", "explanation", "recommended_changes"]
+          }
+        },
+        required: ["primary_category", "secondary_categories"]
+      },
+      reviews_analysis: {
+        type: Type.OBJECT,
+        properties: {
+          overall_status: { type: Type.STRING },
+          explanation: { type: Type.STRING },
+          metrics: {
+            type: Type.OBJECT,
+            properties: {
+              review_count_vs_competitors: { type: Type.STRING },
+              average_rating_status: { type: Type.STRING },
+              freshness: { type: Type.STRING },
+              velocity: { type: Type.STRING },
+              text_quality: { type: Type.STRING }
+            },
+            required: ["review_count_vs_competitors", "average_rating_status", "freshness", "velocity", "text_quality"]
+          },
+          improvement_plan: {
+            type: Type.OBJECT,
+            properties: {
+              monthly_target: { type: Type.NUMBER },
+              what_customers_should_mention: { type: Type.ARRAY, items: { type: Type.STRING } }
+            },
+            required: ["monthly_target", "what_customers_should_mention"]
+          }
+        },
+        required: ["overall_status", "explanation", "metrics", "improvement_plan"]
+      },
+      photos_and_media_analysis: {
+        type: Type.OBJECT,
+        properties: {
+          overall_status: { type: Type.STRING },
+          explanation: { type: Type.STRING },
+          missing_photo_types: { type: Type.ARRAY, items: { type: Type.STRING } },
+          recommended_actions: {
+            type: Type.OBJECT,
+            properties: {
+              upload_frequency: { type: Type.STRING },
+              photo_guidelines: { type: Type.ARRAY, items: { type: Type.STRING } }
+            },
+            required: ["upload_frequency", "photo_guidelines"]
+          }
+        },
+        required: ["overall_status", "explanation", "missing_photo_types", "recommended_actions"]
+      },
+      profile_activity_and_engagement: {
+        type: Type.OBJECT,
+        properties: {
+          status: { type: Type.STRING },
+          analysis: {
+            type: Type.OBJECT,
+            properties: {
+              google_posts: { type: Type.STRING },
+              q_and_a: { type: Type.STRING }
+            },
+            required: ["google_posts", "q_and_a"]
+          },
+          recommended_actions: { type: Type.ARRAY, items: { type: Type.STRING } }
+        },
+        required: ["status", "analysis", "recommended_actions"]
+      },
+      competitive_benchmark: {
+        type: Type.OBJECT,
+        properties: {
+          summary: { type: Type.STRING },
+          where_competitors_are_stronger: { type: Type.ARRAY, items: { type: Type.STRING } },
+          realistic_opportunities_to_close_gap: { type: Type.ARRAY, items: { type: Type.STRING } }
+        },
+        required: ["summary", "where_competitors_are_stronger", "realistic_opportunities_to_close_gap"]
+      },
+      action_plan_timeline: {
+        type: Type.OBJECT,
+        properties: {
+          days_0_30: {
+            type: Type.OBJECT,
+            properties: { focus: { type: Type.STRING }, actions: { type: Type.ARRAY, items: { type: Type.STRING } } },
+            required: ["focus", "actions"]
+          },
+          days_31_60: {
+            type: Type.OBJECT,
+            properties: { focus: { type: Type.STRING }, actions: { type: Type.ARRAY, items: { type: Type.STRING } } },
+            required: ["focus", "actions"]
+          },
+          days_61_90: {
+            type: Type.OBJECT,
+            properties: { focus: { type: Type.STRING }, actions: { type: Type.ARRAY, items: { type: Type.STRING } } },
+            required: ["focus", "actions"]
+          }
+        },
+        required: ["days_0_30", "days_31_60", "days_61_90"]
+      },
+      final_priorities: {
+        type: Type.OBJECT,
+        properties: {
+          top_actions: { type: Type.ARRAY, items: { type: Type.STRING } },
+          actions_to_avoid: { type: Type.ARRAY, items: { type: Type.STRING } }
+        },
+        required: ["top_actions", "actions_to_avoid"]
       }
     },
-    required: ["engine_meta", "eligibility_layer", "relevance_layer", "review_layer", "activity_layer", "geo_layer", "confidence_components", "strategic_opportunities"]
+    required: [
+      "meta", "executive_summary", "local_visibility_confidence", "profile_safety_and_compliance",
+      "category_and_relevance_analysis", "reviews_analysis", "photos_and_media_analysis",
+      "profile_activity_and_engagement", "competitive_benchmark", "action_plan_timeline", "final_priorities"
+    ]
   };
 
   try {
@@ -167,25 +267,11 @@ export const analyzeProfileWithGemini = async (
     const text = response.text;
     if (!text) throw new Error("Empty response from Gemini");
     
-    return JSON.parse(text) as V4InternalAnalysis;
+    return JSON.parse(text) as V5AuditAnalysis;
 
   } catch (error: any) {
-    console.error("Gemini Analysis Error:", error);
-    
-    // Fallback V4 Mock Data
-    return {
-      engine_meta: { audit_version: "4.0-internal", generated_at: new Date().toISOString(), confidence_model: "fallback" },
-      eligibility_layer: { real_world_validation: true, business_name_integrity: true, risk_flags: [] },
-      relevance_layer: { primary_category_match: 0.8, service_semantic_match: 0.7 },
-      review_layer: { review_freshness: 0.5, review_sentiment: 0.9, review_authenticity: 0.9 },
-      activity_layer: { posting_consistency: 0.4, media_freshness: 0.5 },
-      geo_layer: { coverage_density: 0.6, competitive_pressure: 0.7 },
-      confidence_components: { relevance: 0.75, proximity: 0.6, prominence: 0.65 },
-      strategic_opportunities: [
-        { title: "Review Velocity", description: "Increase weekly review frequency.", impact: "high" },
-        { title: "Visual Signals", description: "Add owner photos to improve engagement.", impact: "medium" }
-      ]
-    };
+    console.error("Gemini V5 Analysis Error:", error);
+    throw new Error("Analysis failed: " + (error.message || "Unknown error"));
   }
 };
 

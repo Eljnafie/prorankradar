@@ -97,16 +97,8 @@ const AppContent: React.FC = () => {
     try {
       const competitors: CompetitorData[] = [];
       const geminiAnalysis = await analyzeProfileWithGemini(business, inputs, competitors, geminiKey);
-      const { score, factors, dashboard } = calculateScore(business, inputs, competitors, geminiAnalysis);
-      setReport({ 
-        business, 
-        inputs, 
-        overallScore: score, 
-        factors, 
-        internalAnalysis: geminiAnalysis,
-        externalDashboard: dashboard,
-        competitors 
-      });
+      const reportData = calculateScore(business, inputs, competitors, geminiAnalysis);
+      setReport(reportData);
       navigate('/report');
       window.scrollTo(0, 0);
     } catch (error: any) {

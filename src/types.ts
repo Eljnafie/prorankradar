@@ -46,74 +46,115 @@ export interface ScoringFactor {
   category: 'eligibility' | 'relevance' | 'authority' | 'conversion';
 }
 
-// --- V4 INTERNAL ENGINE (The "Brain" - Hidden from Client) ---
-export interface V4InternalAnalysis {
-  engine_meta: {
+// --- V5 MASTER AUDIT STRUCTURE ---
+
+export interface V5AuditAnalysis {
+  meta: {
     audit_version: string;
     generated_at: string;
-    confidence_model: string;
+    audit_type: string;
   };
-  eligibility_layer: {
-    real_world_validation: boolean;
-    business_name_integrity: boolean;
-    risk_flags: string[];
+  executive_summary: {
+    overall_health: 'Poor' | 'Fair' | 'Good' | 'Strong';
+    summary: string;
+    main_strengths: string[];
+    main_limitations: string[];
+    overall_priority: string;
   };
-  relevance_layer: {
-    primary_category_match: number; // 0.0 - 1.0
-    service_semantic_match: number;
+  local_visibility_confidence: {
+    score: number; // 0-100
+    score_label: 'Low' | 'Moderate' | 'Strong' | 'Dominant';
+    explanation: string;
+    confidence_drivers: string[];
+    confidence_gaps: string[];
   };
-  review_layer: {
-    review_freshness: number;
-    review_sentiment: number;
-    review_authenticity: number;
+  profile_safety_and_compliance: {
+    status: 'Safe' | 'Needs Attention' | 'At Risk';
+    explanation: string;
+    checked_elements: {
+      business_name: string;
+      address_logic: string;
+      category_legitimacy: string;
+      profile_ownership_signals: string;
+    };
   };
-  activity_layer: {
-    posting_consistency: number;
-    media_freshness: number;
+  category_and_relevance_analysis: {
+    primary_category: {
+      status: string;
+      explanation: string;
+      recommended_action: string;
+    };
+    secondary_categories: {
+      status: string;
+      explanation: string;
+      recommended_changes: string[];
+    };
   };
-  geo_layer: {
-    coverage_density: number;
-    competitive_pressure: number;
+  reviews_analysis: {
+    overall_status: string;
+    explanation: string;
+    metrics: {
+      review_count_vs_competitors: string;
+      average_rating_status: string;
+      freshness: string;
+      velocity: string;
+      text_quality: string;
+    };
+    improvement_plan: {
+      monthly_target: number;
+      what_customers_should_mention: string[];
+    };
   };
-  confidence_components: {
-    relevance: number;
-    proximity: number;
-    prominence: number;
+  photos_and_media_analysis: {
+    overall_status: string;
+    explanation: string;
+    missing_photo_types: string[];
+    recommended_actions: {
+      upload_frequency: string;
+      photo_guidelines: string[];
+    };
   };
-  strategic_opportunities: {
-    title: string;
-    description: string;
-    impact: 'high' | 'medium' | 'low';
-  }[];
+  profile_activity_and_engagement: {
+    status: string;
+    analysis: {
+      google_posts: string;
+      q_and_a: string;
+    };
+    recommended_actions: string[];
+  };
+  competitive_benchmark: {
+    summary: string;
+    where_competitors_are_stronger: string[];
+    realistic_opportunities_to_close_gap: string[];
+  };
+  action_plan_timeline: {
+    days_0_30: {
+      focus: string;
+      actions: string[];
+    };
+    days_31_60: {
+      focus: string;
+      actions: string[];
+    };
+    days_61_90: {
+      focus: string;
+      actions: string[];
+    };
+  };
+  final_priorities: {
+    top_actions: string[];
+    actions_to_avoid: string[];
+  };
 }
 
-// --- V4 EXTERNAL DASHBOARD (What the Client Sees) ---
-export interface V4ExternalDashboard {
-  lvc_score: number; // 0-100 Confidence Score
-  alert_status: {
-    type: 'risk' | 'stagnation' | 'growth' | 'stable';
-    title: string;
-    message: string;
-    color: string;
-  };
-  outlook: {
-    timeline_30_day: string;
-    timeline_90_day: string;
-  };
-  opportunities: {
-    title: string;
-    description: string;
-    impact: 'High' | 'Medium' | 'Low';
-  }[];
-}
-
+// --- EXTERNAL DASHBOARD (Client View) ---
+// This wraps the raw V5 Analysis for the React Components
 export interface AuditReportData {
   business: BusinessProfile;
   inputs: AuditInputs;
-  overallScore: number; // Mapped to LVC
-  factors: ScoringFactor[]; // Backward compatibility for list view
-  internalAnalysis: V4InternalAnalysis; // The Brain
-  externalDashboard: V4ExternalDashboard; // The View
+  overallScore: number; // Mapped from local_visibility_confidence.score
+  factors: ScoringFactor[]; // Mapped from V5 sections for list view
+  geminiAnalysis: V5AuditAnalysis; // The V5 Brain
   competitors: CompetitorData[];
 }
 

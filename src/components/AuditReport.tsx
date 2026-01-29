@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Download, ExternalLink, Lock, MessageCircle, Check, Unlock, TrendingUp, Shield, Activity, AlertOctagon, Info, Zap, X } from 'lucide-react';
+import { CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Download, ExternalLink, Lock, MessageCircle, Check, Unlock, TrendingUp, Shield, Activity, AlertOctagon, Info, Zap, X, Calendar, Flag } from 'lucide-react';
 import type { AuditReportData, ScoringFactor, SiteContent } from '../types';
 import { generateAuditPdf } from '../services/pdfGenerator';
 
@@ -16,11 +16,11 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
   const [showPricing, setShowPricing] = React.useState(false);
   const [expandedFactor, setExpandedFactor] = React.useState<string | null>(null);
 
-  const { externalDashboard } = data;
-  const { lvc_score, alert_status, outlook, opportunities } = externalDashboard;
-
-  const scoreColor = lvc_score >= 70 ? '#22c55e' : lvc_score >= 40 ? '#eab308' : '#ef4444';
-  const chartData = [{ name: 'Score', value: lvc_score }, { name: 'Gap', value: 100 - lvc_score }];
+  // V5 Data Extraction
+  const v5 = data.geminiAnalysis;
+  const score = v5.local_visibility_confidence.score;
+  const scoreColor = score >= 75 ? '#22c55e' : score >= 50 ? '#eab308' : '#ef4444';
+  const chartData = [{ name: 'Score', value: score }, { name: 'Gap', value: 100 - score }];
 
   const handlePdfDownload = () => {
     if (isUnlocked) {
@@ -32,20 +32,6 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
 
   const whatsappNumber = content?.contact?.phone?.replace(/[^0-9]/g, '') || '15550123456';
 
-  const alertIcon = {
-    risk: <AlertOctagon className="w-6 h-6 text-red-600" />,
-    stagnation: <AlertTriangle className="w-6 h-6 text-yellow-600" />,
-    growth: <TrendingUp className="w-6 h-6 text-green-600" />,
-    stable: <Info className="w-6 h-6 text-blue-600" />
-  };
-
-  const alertBg = {
-    risk: 'bg-red-50 border-red-200',
-    stagnation: 'bg-yellow-50 border-yellow-200',
-    growth: 'bg-green-50 border-green-200',
-    stable: 'bg-blue-50 border-blue-200'
-  };
-
   return (
     <div className="w-full max-w-6xl mx-auto space-y-8 pb-12 relative">
       
@@ -55,8 +41,9 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
            <div className="flex items-center gap-2 mb-1">
              <span className={`px-2 py-0.5 rounded text-xs font-bold border flex items-center gap-1 ${isUnlocked ? 'bg-green-100 text-green-700 border-green-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
                {isUnlocked ? <Unlock className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
-               {isUnlocked ? 'CONFIDENCE AUDIT (UNLOCKED)' : 'AUDIT PREVIEW'}
+               {isUnlocked ? 'V5 MASTER AUDIT (UNLOCKED)' : 'AUDIT PREVIEW'}
              </span>
+             <span className="text-xs text-slate-400">Generated: {new Date(v5.meta.generated_at).toLocaleDateString()}</span>
            </div>
            <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
              {data.business.name}
@@ -69,7 +56,7 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
         
         <div className="flex flex-wrap gap-3 mt-4 md:mt-0 justify-center">
           <button onClick={handlePdfDownload} className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 font-medium text-sm transition-colors">
-            <Download className="w-4 h-4" /> Download Report
+            <Download className="w-4 h-4" /> Download PDF
           </button>
           <button onClick={() => setShowPricing(true)} className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 font-medium text-sm transition-colors shadow-lg shadow-green-500/20">
             <MessageCircle className="w-4 h-4" /> Speak to Expert
@@ -78,13 +65,13 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
         </div>
       </div>
 
-      {/* DASHBOARD GRID */}
+      {/* EXECUTIVE SUMMARY & SCORE */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* LVC CARD */}
+        {/* Score Card */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col items-center justify-center text-center">
            <h3 className="font-bold text-slate-700 mb-2 flex items-center gap-2">
-             <Shield className="w-4 h-4" /> Confidence Score (LVC)
+             <Shield className="w-4 h-4" /> Visibility Confidence
            </h3>
            <div className="relative w-48 h-48">
              <ResponsiveContainer>
@@ -96,84 +83,145 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
                </PieChart>
              </ResponsiveContainer>
              <div className="absolute inset-0 flex flex-col items-center justify-center">
-               <span className="text-5xl font-extrabold text-slate-800">{lvc_score}</span>
+               <span className="text-5xl font-extrabold text-slate-800">{score}</span>
                <span className="text-xs font-bold text-slate-400 uppercase">/ 100</span>
              </div>
            </div>
-           <p className="text-xs text-slate-500 mt-2">Local Visibility Confidence Model V4</p>
+           <div className="mt-2 px-3 py-1 bg-slate-100 rounded-full text-xs font-bold text-slate-600">
+             {v5.local_visibility_confidence.score_label}
+           </div>
         </div>
 
-        {/* ALERT CARD */}
-        <div className={`col-span-1 lg:col-span-2 rounded-xl p-8 border flex flex-col justify-center ${alertBg[alert_status.type]}`}>
+        {/* Executive Summary */}
+        <div className="col-span-1 lg:col-span-2 bg-slate-900 text-white rounded-xl p-8 border border-slate-800 flex flex-col justify-center">
            <div className="flex items-start gap-4">
-              <div className="p-3 bg-white rounded-full shadow-sm">
-                {alertIcon[alert_status.type]}
-              </div>
               <div>
-                 <h2 className="text-2xl font-bold text-slate-900 mb-2">{alert_status.title}</h2>
-                 <p className="text-lg text-slate-700 leading-relaxed opacity-90">{alert_status.message}</p>
+                 <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-2">
+                   Executive Summary
+                   <span className={`text-xs px-2 py-1 rounded border ${v5.executive_summary.overall_health === 'Strong' ? 'border-green-500 text-green-400' : 'border-red-500 text-red-400'}`}>
+                     Health: {v5.executive_summary.overall_health}
+                   </span>
+                 </h2>
+                 <p className="text-lg text-slate-300 leading-relaxed opacity-90">{v5.executive_summary.summary}</p>
               </div>
            </div>
-           <div className="mt-6 pt-6 border-t border-black/5 grid grid-cols-1 md:grid-cols-2 gap-6">
+           
+           <div className="mt-6 pt-6 border-t border-slate-700 grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                 <div className="text-xs font-bold uppercase tracking-wider opacity-60 mb-1">30-Day Outlook</div>
-                 <div className="font-medium text-slate-800">{outlook.timeline_30_day}</div>
+                 <div className="text-xs font-bold uppercase tracking-wider text-green-400 mb-1 flex items-center gap-1"><TrendingUp className="w-3 h-3"/> Top Strengths</div>
+                 <ul className="text-sm text-slate-300 space-y-1">
+                   {v5.executive_summary.main_strengths.slice(0,2).map((s, i) => <li key={i}>• {s}</li>)}
+                 </ul>
               </div>
               <div>
-                 <div className="text-xs font-bold uppercase tracking-wider opacity-60 mb-1">90-Day Outlook</div>
-                 <div className="font-medium text-slate-800">{outlook.timeline_90_day}</div>
+                 <div className="text-xs font-bold uppercase tracking-wider text-red-400 mb-1 flex items-center gap-1"><AlertTriangle className="w-3 h-3"/> Critical Limitations</div>
+                 <ul className="text-sm text-slate-300 space-y-1">
+                   {v5.executive_summary.main_limitations.slice(0,2).map((s, i) => <li key={i}>• {s}</li>)}
+                 </ul>
               </div>
            </div>
         </div>
       </div>
 
-      {/* STRATEGIC OPPORTUNITIES */}
+      {/* COMPLIANCE & TIMELINE GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-         <div className="lg:col-span-2 space-y-6">
-            <h3 className="font-bold text-slate-800 text-xl flex items-center gap-2">
-               <Zap className="w-5 h-5 text-yellow-500" /> Strategic Opportunities
-            </h3>
+         
+         {/* Left Col: Compliance & Factors */}
+         <div className="lg:col-span-1 space-y-6">
             
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 divide-y divide-slate-100 overflow-hidden relative">
-               {opportunities.map((op, idx) => (
-                 <div key={idx} className={`p-6 ${!isUnlocked && idx > 0 ? 'blur-sm select-none opacity-50' : ''}`}>
-                    <div className="flex justify-between items-start mb-2">
-                       <h4 className="font-bold text-slate-800 text-lg">{op.title}</h4>
-                       <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${op.impact === 'High' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
-                         {op.impact} Impact
-                       </span>
-                    </div>
-                    <p className="text-slate-600">{op.description}</p>
-                 </div>
-               ))}
-               
-               {!isUnlocked && (
-                 <div className="absolute inset-0 top-24 bg-gradient-to-b from-transparent to-white/90 z-10 flex flex-col items-center justify-end pb-12">
-                    <Lock className="w-8 h-8 text-slate-400 mb-4" />
-                    <button onClick={() => setShowPricing(true)} className="px-6 py-3 bg-slate-900 text-white font-bold rounded-lg shadow-lg hover:bg-slate-800 transition-colors">
-                       Unlock All Opportunities
-                    </button>
-                 </div>
-               )}
+            {/* Safety Check */}
+            <div className={`rounded-xl p-6 border ${v5.profile_safety_and_compliance.status === 'Safe' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                <h3 className="font-bold text-slate-900 flex items-center gap-2 mb-2">
+                   {v5.profile_safety_and_compliance.status === 'Safe' ? <CheckCircle className="w-5 h-5 text-green-600"/> : <AlertOctagon className="w-5 h-5 text-red-600"/>}
+                   Profile Safety
+                </h3>
+                <p className="text-sm text-slate-700">{v5.profile_safety_and_compliance.explanation}</p>
+            </div>
+
+            {/* Factor List */}
+            <div>
+              <h3 className="font-bold text-slate-800 text-lg mb-4 flex items-center gap-2">
+                 <Activity className="w-5 h-5 text-slate-500" /> Signal Breakdown
+              </h3>
+              <div className="space-y-3">
+                 {data.factors.map(factor => (
+                   <FactorRow 
+                     key={factor.id} 
+                     factor={factor} 
+                     isExpanded={expandedFactor === factor.id}
+                     onToggle={() => setExpandedFactor(expandedFactor === factor.id ? null : factor.id)}
+                     isLocked={!isUnlocked && factor.status !== 'good'}
+                     onUnlock={() => setShowPricing(true)}
+                   />
+                 ))}
+              </div>
             </div>
          </div>
 
-         {/* Technical Signals (Legacy Factors) */}
-         <div>
-            <h3 className="font-bold text-slate-800 text-xl flex items-center gap-2 mb-6">
-               <Activity className="w-5 h-5 text-slate-500" /> Signal Breakdown
+         {/* Right Col: Timeline & Plan */}
+         <div className="lg:col-span-2 space-y-6">
+            
+            <h3 className="font-bold text-slate-800 text-xl flex items-center gap-2">
+               <Calendar className="w-5 h-5 text-blue-600" /> Strategic Action Plan
             </h3>
-            <div className="space-y-3">
-               {data.factors.map(factor => (
-                 <FactorRow 
-                   key={factor.id} 
-                   factor={factor} 
-                   isExpanded={expandedFactor === factor.id}
-                   onToggle={() => setExpandedFactor(expandedFactor === factor.id ? null : factor.id)}
-                   isLocked={!isUnlocked && factor.status !== 'good'}
-                   onUnlock={() => setShowPricing(true)}
-                 />
-               ))}
+
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden relative">
+               
+               {/* 0-30 Days */}
+               <div className="p-6 border-b border-slate-100">
+                  <div className="flex items-center gap-3 mb-3">
+                     <span className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full">Day 0-30</span>
+                     <span className="font-bold text-slate-700">Focus: {v5.action_plan_timeline.days_0_30.focus}</span>
+                  </div>
+                  <ul className="space-y-2">
+                     {v5.action_plan_timeline.days_0_30.actions.map((act, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-slate-600">
+                           <Check className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" /> {act}
+                        </li>
+                     ))}
+                  </ul>
+               </div>
+
+               {/* 31-60 Days (Blur if Locked) */}
+               <div className={`p-6 border-b border-slate-100 ${!isUnlocked ? 'blur-sm select-none opacity-60' : ''}`}>
+                  <div className="flex items-center gap-3 mb-3">
+                     <span className="bg-purple-100 text-purple-800 text-xs font-bold px-3 py-1 rounded-full">Day 31-60</span>
+                     <span className="font-bold text-slate-700">Focus: {v5.action_plan_timeline.days_31_60.focus}</span>
+                  </div>
+                  <ul className="space-y-2">
+                     {v5.action_plan_timeline.days_31_60.actions.map((act, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-slate-600">
+                           <Check className="w-4 h-4 text-purple-500 mt-0.5 flex-shrink-0" /> {act}
+                        </li>
+                     ))}
+                  </ul>
+               </div>
+
+               {/* 61-90 Days (Blur if Locked) */}
+               <div className={`p-6 ${!isUnlocked ? 'blur-sm select-none opacity-60' : ''}`}>
+                  <div className="flex items-center gap-3 mb-3">
+                     <span className="bg-green-100 text-green-800 text-xs font-bold px-3 py-1 rounded-full">Day 61-90</span>
+                     <span className="font-bold text-slate-700">Focus: {v5.action_plan_timeline.days_61_90.focus}</span>
+                  </div>
+                  <ul className="space-y-2">
+                     {v5.action_plan_timeline.days_61_90.actions.map((act, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-slate-600">
+                           <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" /> {act}
+                        </li>
+                     ))}
+                  </ul>
+               </div>
+
+               {/* LOCK OVERLAY */}
+               {!isUnlocked && (
+                 <div className="absolute inset-0 top-32 bg-gradient-to-b from-transparent via-white/80 to-white z-10 flex flex-col items-center justify-center pt-20">
+                    <Lock className="w-8 h-8 text-slate-400 mb-4" />
+                    <h4 className="font-bold text-slate-900 mb-2">Unlock the 90-Day Strategy</h4>
+                    <button onClick={() => setShowPricing(true)} className="px-6 py-3 bg-slate-900 text-white font-bold rounded-lg shadow-lg hover:bg-slate-800 transition-colors">
+                       View Upgrade Options
+                    </button>
+                 </div>
+               )}
             </div>
          </div>
       </div>
