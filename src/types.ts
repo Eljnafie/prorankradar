@@ -43,76 +43,77 @@ export interface ScoringFactor {
   impact: 'high' | 'medium' | 'low';
   reason: string;
   fixAction: string;
-  category: 'profile_safety' | 'user_trust' | 'visibility_and_competition';
+  category: 'eligibility' | 'relevance' | 'authority' | 'conversion';
 }
 
-interface SignalAnalysis {
-  what_it_means: string;
-  current_state: string;
-  why_it_matters: string;
+// --- V4 INTERNAL ENGINE (The "Brain" - Hidden from Client) ---
+export interface V4InternalAnalysis {
+  engine_meta: {
+    audit_version: string;
+    generated_at: string;
+    confidence_model: string;
+  };
+  eligibility_layer: {
+    real_world_validation: boolean;
+    business_name_integrity: boolean;
+    risk_flags: string[];
+  };
+  relevance_layer: {
+    primary_category_match: number; // 0.0 - 1.0
+    service_semantic_match: number;
+  };
+  review_layer: {
+    review_freshness: number;
+    review_sentiment: number;
+    review_authenticity: number;
+  };
+  activity_layer: {
+    posting_consistency: number;
+    media_freshness: number;
+  };
+  geo_layer: {
+    coverage_density: number;
+    competitive_pressure: number;
+  };
+  confidence_components: {
+    relevance: number;
+    proximity: number;
+    prominence: number;
+  };
+  strategic_opportunities: {
+    title: string;
+    description: string;
+    impact: 'high' | 'medium' | 'low';
+  }[];
 }
 
-// V3 MASTER SPEC INTERFACE
-export interface GeminiAnalysis {
-  audit_version: string;
-  tool_name: string;
-  business_overview: {
-    business_name: string;
-    category: string;
-    location: string;
-    audit_date: string;
+// --- V4 EXTERNAL DASHBOARD (What the Client Sees) ---
+export interface V4ExternalDashboard {
+  lvc_score: number; // 0-100 Confidence Score
+  alert_status: {
+    type: 'risk' | 'stagnation' | 'growth' | 'stable';
+    title: string;
+    message: string;
+    color: string;
   };
-  executive_summary: {
-    plain_language_summary: string;
-    current_visibility_status: 'visible' | 'partially_visible' | 'mostly_invisible';
-    main_problem_explained_simply: string;
-    primary_opportunity: string;
+  outlook: {
+    timeline_30_day: string;
+    timeline_90_day: string;
   };
-  methodology: {
-    maps_data_explanation: string;
-    ai_explanation_role: string;
-    important_note: string;
-  };
-  geo_grid_analysis: {
-    what_the_grid_means: string;
-    color_legend: {
-      green: string;
-      orange: string;
-      red: string;
-    };
-    key_observations: string[];
-    geographic_insight: string;
-  };
-  local_visibility_coverage: {
-    lvc_score_percent: number;
-    simple_explanation: string;
-    benchmark_context: {
-      weak: string;
-      partial: string;
-      strong: string;
-    };
-    business_impact: string;
-  };
-  baseline_scorecard: {
-    profile_safety: 'high' | 'medium' | 'low';
-    user_trust: 'high' | 'medium' | 'low';
-    engagement_activity: 'high' | 'medium' | 'low';
-    local_visibility: 'high' | 'medium' | 'low';
-    notes: string;
-  };
-  signal_separation: {
-    profile_safety: SignalAnalysis;
-    user_trust: SignalAnalysis;
-    visibility_and_competition: SignalAnalysis;
-  };
+  opportunities: {
+    title: string;
+    description: string;
+    impact: 'High' | 'Medium' | 'Low';
+  }[];
 }
 
 export interface AuditReportData {
   business: BusinessProfile;
   inputs: AuditInputs;
-  overallScore: number;
-  factors: ScoringFactor[];
-  geminiAnalysis: GeminiAnalysis;
+  overallScore: number; // Mapped to LVC
+  factors: ScoringFactor[]; // Backward compatibility for list view
+  internalAnalysis: V4InternalAnalysis; // The Brain
+  externalDashboard: V4ExternalDashboard; // The View
   competitors: CompetitorData[];
 }
 
