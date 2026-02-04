@@ -26,12 +26,12 @@ export const calculateScore = (
 
   // 1. Profile Accuracy (20 pts)
   addFactor('v5_acc', 'Profile Accuracy', 10, 20, 
-    breakdown.profile_accuracy.the_gap, 
-    "Fix category alignment.", 'eligibility');
+    `${breakdown.profile_accuracy.expert_insight}\n\nGAP: ${breakdown.profile_accuracy.the_gap}`, 
+    "Fix category alignment and semantic signals.", 'eligibility');
 
   // 2. Reputation (25 pts)
   addFactor('v5_rep', 'Reputation Intelligence', 12, 25, 
-    breakdown.reputation_intelligence.the_gap, 
+    `${breakdown.reputation_intelligence.expert_insight}\n\nSENTIMENT: ${breakdown.reputation_intelligence.sentiment_analysis}`, 
     "Implement keyword-rich response protocol.", 'authority');
 
   // 3. Media (15 pts)

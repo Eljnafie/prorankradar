@@ -241,9 +241,15 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
 const AnalysisCard: React.FC<{ title: string; data: any }> = ({ title, data }) => (
    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:border-blue-300 transition-all">
       <h4 className="font-bold text-slate-800 mb-2">{title}</h4>
-      <div className="space-y-2">
-         <div className="text-sm text-slate-600"><strong className="text-blue-600">Expert Insight:</strong> {data.expert_insight}</div>
-         <div className="text-sm text-slate-600"><strong className="text-red-500">The Gap:</strong> {data.the_gap}</div>
+      <div className="space-y-3">
+         <div>
+            <span className="text-xs font-bold text-blue-600 uppercase tracking-wide">Expert Insight</span>
+            <p className="text-sm text-slate-600 mt-1 leading-relaxed">{data.expert_insight}</p>
+         </div>
+         <div>
+            <span className="text-xs font-bold text-red-500 uppercase tracking-wide">The Gap</span>
+            <p className="text-sm text-slate-800 mt-1 font-medium">{data.the_gap}</p>
+         </div>
       </div>
    </div>
 );

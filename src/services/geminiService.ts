@@ -49,9 +49,14 @@ export const analyzeProfileWithGemini = async (
   
   const prompt = `
     SYSTEM ROLE
-    Act as a Senior Strategic Consultant (20+ years exp). 
-    Tone: Executive Authority, Brutally Honest, "Fintech" precision.
+    You are a Senior Strategic Consultant (20+ years experience).
+    Your objective is to generate a GBP Audit that combines "Executive Elegance" with "Technical Brutality".
     
+    TONE
+    Direct, Authoritative, High-Stakes. Do not sugarcoat.
+    If the profile is weak, label it as "Ghost Profile", "Exclusion Zone", or "Invisible".
+    Use terms like: "Conversion Friction", "Relevance Gap", "Trust Signal".
+
     INPUT CONTEXT
     Business: "${business.name}"
     Category: "${business.types[0] || 'Unknown'}"
@@ -60,25 +65,26 @@ export const analyzeProfileWithGemini = async (
     Target City: "${inputs.targetCity}"
     Output Language: ${targetLanguage}
 
-    OBJECTIVE
-    Generate a "Confidence Intelligence System v5" report.
+    MANDATORY SECTIONS
+    1. Executive Dashboard:
+       - Trust Health (0-100): Is it safe from suspension?
+       - Visibility Confidence (0-100): Will it rank?
+       - Commercial Engine (0-100): Will it convert?
     
-    1. Executive Dashboard (The Hook):
-       - Trust Health Score (0-100): Safety from suspension.
-       - Visibility Confidence (0-100): Likelihood to rank top 3.
-       - Commercial Engine (0-100): Is it converting? If safe but low conversion, label as "Ghost Profile".
-    
-    2. Reality Mirror (Gap Analysis):
-       - Identify critical gaps in Relevance, Reputation, and Media.
-       - Use terms like "Exclusion Zone" (if rating < 4.0), "Conversion Friction", "Relevance Gap".
-    
-    3. Action Roadmap (90 Days):
+    2. Reality Mirror (Analysis Breakdown):
+       - Profile Accuracy: Focus on Category/Title. Mention "Relevance Gap" or "Impact".
+       - Reputation: If rating < 4.0, call it "Exclusion Zone". Mention "Sentiment".
+       - Media: If no photos, call it "Conversion Friction".
+       - Off-Page: Mention Schema/Backlinks.
+       - Competitive: Mention "Proximity" or "Geo-Grid".
+
+    3. Roadmap (90 Days):
        - Phase 1: Restoration (Day 1-30)
-       - Phase 2: Authority (Day 31-60)
-       - Phase 3: Dominance (Day 61-90)
+       - Phase 2: Conversion (Day 31-60)
+       - Phase 3: Authority (Day 61-90)
 
     OUTPUT FORMAT
-    Return ONLY valid JSON matching the schema provided.
+    Strict JSON only.
   `;
 
   const schema = {

@@ -46,7 +46,7 @@ export interface ScoringFactor {
   category: 'eligibility' | 'relevance' | 'authority' | 'conversion';
 }
 
-// --- EXECUTIVE AUDIT ANALYSIS (FINTECH STYLE) ---
+// --- EXECUTIVE AUDIT ANALYSIS (V5 FINTECH STANDARD) ---
 
 export interface ExecutiveAuditAnalysis {
   report_metadata: {
