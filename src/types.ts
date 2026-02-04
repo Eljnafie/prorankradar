@@ -46,155 +46,36 @@ export interface ScoringFactor {
   category: 'eligibility' | 'relevance' | 'authority' | 'conversion';
 }
 
-// --- V5 MASTER AUDIT STRUCTURE ---
+// --- EXECUTIVE AUDIT ANALYSIS (FINTECH STYLE) ---
 
-export interface V5AuditAnalysis {
-  meta: {
-    audit_version: string;
-    generated_at: string;
-    audit_type: string;
-    engine: {
-      maps_api: boolean;
-      gemini_api: boolean;
-      geo_grid: boolean;
-    };
-    business: {
-      name: string;
-      primary_category: string;
-      location_type: string;
-      city: string;
-      country: string;
+export interface ExecutiveAuditAnalysis {
+  report_metadata: {
+    style: string;
+    tone: string;
+    brand: string;
+  };
+  executive_dashboard: {
+    kpis: {
+      trust_health_score: { value: number; label: string; description: string };
+      visibility_confidence: { value: number; label: string; description: string };
+      commercial_engine: { value: number; label: string; description: string };
     };
   };
-  executive_summary: {
-    overall_health: 'Poor' | 'Fair' | 'Good' | 'Strong';
-    summary: string;
-    main_strengths: string[];
-    main_limitations: string[];
-    overall_priority: string;
+  audit_analysis_breakdown: {
+    profile_accuracy: { expert_insight: string; the_gap: string; impact: string };
+    reputation_intelligence: { expert_insight: string; the_gap: string; sentiment_analysis: string };
+    media_engagement: { expert_insight: string; the_gap: string };
+    off_profile_authority: { expert_insight: string; the_gap: string };
+    competitive_positioning: { expert_insight: string; the_gap: string };
   };
-  local_visibility_confidence: {
-    score: number; // 0-100
-    score_label: 'Low' | 'Moderate' | 'Strong' | 'Dominant';
-    explanation: string;
-    confidence_drivers: string[];
-    confidence_gaps: string[];
+  prioritized_action_roadmap: {
+    phase_1_foundation: { title: string; actions: string[]; goal: string };
+    phase_2_conversion: { title: string; actions: string[]; goal: string };
+    phase_3_authority: { title: string; actions: string[]; goal: string };
   };
-  profile_safety_and_compliance: {
-    status: 'Safe' | 'Needs Attention' | 'At Risk';
-    explanation: string;
-    checked_elements: {
-      business_name: string;
-      address_logic: string;
-      category_legitimacy: string;
-      profile_ownership_signals: string;
-    };
-    recommended_caution: string[];
-  };
-  category_and_relevance_analysis: {
-    primary_category: {
-      status: string;
-      explanation: string;
-      recommended_action: string;
-      micro_steps: string[];
-    };
-    secondary_categories: {
-      status: string;
-      explanation: string;
-      recommended_changes: string[];
-    };
-    services_alignment: {
-      status: string;
-      explanation: string;
-      actions: string[];
-    };
-  };
-  reviews_analysis: {
-    overall_status: string;
-    explanation: string;
-    metrics: {
-      review_count_vs_competitors: string;
-      average_rating_status: string;
-      freshness: string;
-      velocity: string;
-      text_quality: string;
-    };
-    issues_detected: string[];
-    improvement_plan: {
-      monthly_target: number;
-      what_customers_should_mention: string[];
-      owner_response_guidelines: string[];
-    };
-  };
-  photos_and_media_analysis: {
-    overall_status: string;
-    explanation: string;
-    missing_photo_types: string[];
-    freshness_status: string;
-    recommended_actions: {
-      upload_frequency: string;
-      photo_guidelines: string[];
-    };
-  };
-  profile_activity_and_engagement: {
-    status: string;
-    analysis: {
-      google_posts: string;
-      services_section: string;
-      q_and_a: string;
-      messaging: string;
-      hours_accuracy: string;
-    };
-    recommended_actions: string[];
-  };
-  geo_grid_and_local_coverage: {
-    explanation: string;
-    visibility_zones: {
-      strong_zones: string[];
-      moderate_zones: string[];
-      weak_zones: string[];
-    };
-    priority_focus_zones: {
-      zone_name: string;
-      reason: string;
-      difficulty: string;
-    }[];
-  };
-  competitive_benchmark: {
-    summary: string;
-    where_competitors_are_stronger: string[];
-    realistic_opportunities_to_close_gap: string[];
-  };
-  action_plan_timeline: {
-    days_0_30: {
-      focus: string;
-      actions: string[];
-      expected_changes: string[];
-    };
-    days_31_60: {
-      focus: string;
-      actions: string[];
-      expected_changes: string[];
-    };
-    days_61_90: {
-      focus: string;
-      actions: string[];
-      expected_changes: string[];
-    };
-  };
-  expected_outcomes: {
-    short_term: string[];
-    mid_term: string[];
-    long_term: string[];
-  };
-  final_priorities: {
-    top_actions: string[];
-    actions_to_avoid: string[];
-    consistency_requirements: string[];
-  };
-  disclaimer: {
-    statement: string;
-    no_guarantees: boolean;
+  roi_projection: {
+    estimated_growth: string;
+    expert_conclusion: string;
   };
 }
 
@@ -202,9 +83,9 @@ export interface V5AuditAnalysis {
 export interface AuditReportData {
   business: BusinessProfile;
   inputs: AuditInputs;
-  overallScore: number; // Mapped from local_visibility_confidence.score
-  factors: ScoringFactor[]; // Mapped from V5 sections for list view
-  geminiAnalysis: V5AuditAnalysis; // The V5 Brain
+  overallScore: number; // Mapped from visibility_confidence
+  factors: ScoringFactor[]; // Mapped from analysis sections
+  geminiAnalysis: ExecutiveAuditAnalysis; // The Executive Brain
   competitors: CompetitorData[];
 }
 
