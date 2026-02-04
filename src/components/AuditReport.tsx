@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Download, ExternalLink, Lock, MessageCircle, Unlock, Shield, TrendingUp, Zap, Target, BarChart2, X } from 'lucide-react';
@@ -67,11 +68,11 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
         </div>
       </div>
 
-      {/* KPI DASHBOARD */}
+      {/* KPI DASHBOARD (Fintech Style) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         
-        {/* KPI 1: Trust Health */}
-        <div className="bg-slate-900 text-white rounded-xl p-6 border border-slate-800 relative overflow-hidden group">
+        {/* KPI 1: Trust Health (Dark Card) */}
+        <div className="bg-slate-900 text-white rounded-xl p-6 border border-slate-800 relative overflow-hidden group shadow-lg">
            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
               <Shield className="w-24 h-24" />
            </div>
@@ -117,7 +118,7 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
       {/* STRATEGIC BREAKDOWN & ROADMAP */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
          
-         {/* Left: Analysis Breakdown */}
+         {/* Left: Analysis Breakdown (Reality Mirror) */}
          <div className="lg:col-span-2 space-y-6">
             <h3 className="font-bold text-slate-800 text-xl flex items-center gap-2">
                <Target className="w-5 h-5 text-blue-600" /> Strategic Analysis
@@ -192,7 +193,7 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
                   </div>
                   {!isUnlocked && (
                      <div className="absolute inset-0 flex items-center justify-center">
-                        <button onClick={() => setShowPricing(true)} className="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-lg shadow-lg hover:bg-slate-800">
+                        <button onClick={() => setShowPricing(true)} className="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-lg shadow-lg hover:bg-slate-800 transition-colors">
                            Unlock Full Plan
                         </button>
                      </div>

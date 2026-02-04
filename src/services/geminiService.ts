@@ -49,8 +49,8 @@ export const analyzeProfileWithGemini = async (
   
   const prompt = `
     SYSTEM ROLE
-    Act as a Senior Strategic Consultant. Tone: "Executive Authority / Strategic Growth".
-    You are generating a high-level "Confidence Intelligence System v5" report.
+    Act as a Senior Strategic Consultant (20+ years exp). 
+    Tone: Executive Authority, Brutally Honest, "Fintech" precision.
     
     INPUT CONTEXT
     Business: "${business.name}"
@@ -61,12 +61,21 @@ export const analyzeProfileWithGemini = async (
     Output Language: ${targetLanguage}
 
     OBJECTIVE
-    Analyze the profile and output a strategic roadmap.
-    - Trust Health: Is the profile safe from suspension? (0-100)
-    - Visibility Confidence: How likely is it to rank #1-3? (0-100)
-    - Commercial Engine: Is it converting traffic? (0-100)
+    Generate a "Confidence Intelligence System v5" report.
     
-    Provide specific gaps and a 3-phase roadmap.
+    1. Executive Dashboard (The Hook):
+       - Trust Health Score (0-100): Safety from suspension.
+       - Visibility Confidence (0-100): Likelihood to rank top 3.
+       - Commercial Engine (0-100): Is it converting? If safe but low conversion, label as "Ghost Profile".
+    
+    2. Reality Mirror (Gap Analysis):
+       - Identify critical gaps in Relevance, Reputation, and Media.
+       - Use terms like "Exclusion Zone" (if rating < 4.0), "Conversion Friction", "Relevance Gap".
+    
+    3. Action Roadmap (90 Days):
+       - Phase 1: Restoration (Day 1-30)
+       - Phase 2: Authority (Day 31-60)
+       - Phase 3: Dominance (Day 61-90)
 
     OUTPUT FORMAT
     Return ONLY valid JSON matching the schema provided.
