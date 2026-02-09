@@ -2,12 +2,12 @@
 import type { AuditReportData, AuditLanguage } from "../types";
 
 const PDF_TRANSLATIONS: Record<AuditLanguage, Record<string, string>> = {
-  en: { title: "AUDIT MASTER REPORT", subtitle: "CONFIDENCE INTELLIGENCE SYSTEM v5", kpis: "EXECUTIVE DASHBOARD", gaps: "REALITY MIRROR (GAP ANALYSIS)", roadmap: "PRIORITIZED ACTION ROADMAP", notes: "CONFIDENTIAL / STRATEGIC USE ONLY" },
-  es: { title: "REPORTE DE AUDITORÍA", subtitle: "SISTEMA DE INTELIGENCIA v5", kpis: "PANEL EJECUTIVO", gaps: "ANÁLISIS DE BRECHAS", roadmap: "HOJA DE RUTA", notes: "CONFIDENCIAL" },
-  fr: { title: "RAPPORT D'AUDIT", subtitle: "SYSTÈME D'INTELLIGENCE v5", kpis: "TABLEAU DE BORD", gaps: "ANALYSE DES ÉCARTS", roadmap: "FEUILLE DE ROUTE", notes: "CONFIDENTIEL" },
-  de: { title: "AUDIT-BERICHT", subtitle: "INTELLIGENZSYSTEM v5", kpis: "EXECUTIVE DASHBOARD", gaps: "LÜCKENANALYSE", roadmap: "AKTIONSPLAN", notes: "VERTRAULICH" },
-  it: { title: "RAPPORTO DI AUDIT", subtitle: "SISTEMA DI INTELLIGENZA v5", kpis: "CRUSCOTTO ESECUTIVO", gaps: "ANALISI DEI GAP", roadmap: "TABELLA DI MARCIA", notes: "RISERVATO" },
-  pt: { title: "RELATÓRIO DE AUDITORIA", subtitle: "SISTEMA DE INTELIGÊNCIA v5", kpis: "PAINEL EXECUTIVO", gaps: "ANÁLISE DE LACUNAS", roadmap: "ROTEIRO DE AÇÃO", notes: "CONFIDENCIAL" }
+  en: { title: "AUDIT MASTER REPORT", subtitle: "CONFIDENCE INTELLIGENCE SYSTEM v5", kpi_section: "EXECUTIVE KPIs", gaps: "REALITY MIRROR (GAP ANALYSIS)", roadmap: "PRIORITIZED ACTION ROADMAP", notes: "CONFIDENTIAL / STRATEGIC USE ONLY" },
+  es: { title: "REPORTE DE AUDITORÍA", subtitle: "SISTEMA DE INTELIGENCIA v5", kpi_section: "KPIs EJECUTIVOS", gaps: "ANÁLISIS DE BRECHAS", roadmap: "HOJA DE RUTA", notes: "CONFIDENCIAL" },
+  fr: { title: "RAPPORT D'AUDIT", subtitle: "SYSTÈME D'INTELLIGENCE v5", kpi_section: "KPIs", gaps: "ANALYSE DES ÉCARTS", roadmap: "FEUILLE DE ROUTE", notes: "CONFIDENTIEL" },
+  de: { title: "AUDIT-BERICHT", subtitle: "INTELLIGENZSYSTEM v5", kpi_section: "KPIs", gaps: "LÜCKENANALYSE", roadmap: "AKTIONSPLAN", notes: "VERTRAULICH" },
+  it: { title: "RAPPORTO DI AUDIT", subtitle: "SISTEMA DI INTELLIGENZA v5", kpi_section: "KPIs", gaps: "ANALISI DEI GAP", roadmap: "TABELLA DI MARCIA", notes: "RISERVATO" },
+  pt: { title: "RELATÓRIO DE AUDITORIA", subtitle: "SISTEMA DE INTELIGÊNCIA v5", kpi_section: "KPIs", gaps: "ANÁLISE DE LACUNAS", roadmap: "ROTEIRO DE AÇÃO", notes: "CONFIDENCIAL" }
 };
 
 export const generateAuditPdf = (data: AuditReportData) => {
@@ -49,9 +49,11 @@ export const generateAuditPdf = (data: AuditReportData) => {
     doc.setFont("helvetica", weight);
     doc.setTextColor(color[0], color[1], color[2]);
     if (maxWidth) {
-      const lines = doc.splitTextToSize(text, maxWidth);
+      // Remove generic emojis if jspdf doesn't support them to avoid junk chars
+      const cleanText = text.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '');
+      const lines = doc.splitTextToSize(cleanText, maxWidth);
       doc.text(lines, x, y);
-      return lines.length * (size * 0.45); // Adjusted line height
+      return lines.length * (size * 0.45); 
     } else {
       doc.text(text, x, y);
       return size * 0.45;
