@@ -2,12 +2,12 @@
 import type { AuditReportData, AuditLanguage } from "../types";
 
 const PDF_TRANSLATIONS: Record<AuditLanguage, Record<string, string>> = {
-  en: { title: "AUDIT MASTER REPORT", subtitle: "CONFIDENCE INTELLIGENCE SYSTEM v5", kpi_section: "EXECUTIVE KPIs", gaps: "REALITY MIRROR (GAP ANALYSIS)", roadmap: "PRIORITIZED ACTION ROADMAP", notes: "CONFIDENTIAL / STRATEGIC USE ONLY" },
-  es: { title: "REPORTE DE AUDITORÍA", subtitle: "SISTEMA DE INTELIGENCIA v5", kpi_section: "KPIs EJECUTIVOS", gaps: "ANÁLISIS DE BRECHAS", roadmap: "HOJA DE RUTA", notes: "CONFIDENCIAL" },
-  fr: { title: "RAPPORT D'AUDIT", subtitle: "SYSTÈME D'INTELLIGENCE v5", kpi_section: "KPIs", gaps: "ANALYSE DES ÉCARTS", roadmap: "FEUILLE DE ROUTE", notes: "CONFIDENTIEL" },
-  de: { title: "AUDIT-BERICHT", subtitle: "INTELLIGENZSYSTEM v5", kpi_section: "KPIs", gaps: "LÜCKENANALYSE", roadmap: "AKTIONSPLAN", notes: "VERTRAULICH" },
-  it: { title: "RAPPORTO DI AUDIT", subtitle: "SISTEMA DI INTELLIGENZA v5", kpi_section: "KPIs", gaps: "ANALISI DEI GAP", roadmap: "TABELLA DI MARCIA", notes: "RISERVATO" },
-  pt: { title: "RELATÓRIO DE AUDITORIA", subtitle: "SISTEMA DE INTELIGÊNCIA v5", kpi_section: "KPIs", gaps: "ANÁLISE DE LACUNAS", roadmap: "ROTEIRO DE AÇÃO", notes: "CONFIDENCIAL" }
+  en: { title: "AUDIT MASTER REPORT", subtitle: "CONFIDENCE INTELLIGENCE SYSTEM v5", kpi_section: "EXECUTIVE KPIs", gaps: "REALITY MIRROR (GAP ANALYSIS)", roadmap: "PRIORITIZED ACTION ROADMAP", signals: "TECHNICAL AUDIT SIGNALS", notes: "CONFIDENTIAL / STRATEGIC USE ONLY" },
+  es: { title: "REPORTE DE AUDITORÍA", subtitle: "SISTEMA DE INTELIGENCIA v5", kpi_section: "KPIs EJECUTIVOS", gaps: "ANÁLISIS DE BRECHAS", roadmap: "HOJA DE RUTA", signals: "SEÑALES TÉCNICAS", notes: "CONFIDENCIAL" },
+  fr: { title: "RAPPORT D'AUDIT", subtitle: "SYSTÈME D'INTELLIGENCE v5", kpi_section: "KPIs", gaps: "ANALYSE DES ÉCARTS", roadmap: "FEUILLE DE ROUTE", signals: "SIGNAUX TECHNIQUES", notes: "CONFIDENTIEL" },
+  de: { title: "AUDIT-BERICHT", subtitle: "INTELLIGENZSYSTEM v5", kpi_section: "KPIs", gaps: "LÜCKENANALYSE", roadmap: "AKTIONSPLAN", signals: "TECHNISCHE SIGNALE", notes: "VERTRAULICH" },
+  it: { title: "RAPPORTO DI AUDIT", subtitle: "SISTEMA DI INTELLIGENZA v5", kpi_section: "KPIs", gaps: "ANALISI DEI GAP", roadmap: "TABELLA DI MARCIA", signals: "SEGNALI TECNICI", notes: "RISERVATO" },
+  pt: { title: "RELATÓRIO DE AUDITORIA", subtitle: "SISTEMA DE INTELIGÊNCIA v5", kpi_section: "KPIs", gaps: "ANÁLISE DE LACUNAS", roadmap: "ROTEIRO DE AÇÃO", signals: "SINAIS TÉCNICOS", notes: "CONFIDENCIAL" }
 };
 
 export const generateAuditPdf = (data: AuditReportData) => {
@@ -44,6 +44,7 @@ export const generateAuditPdf = (data: AuditReportData) => {
   const C_YELLOW = [202, 138, 4]; // Yellow 600
 
   // Helper: Text Wrapping
+  // Fixed line height calculation to prevent overlapping
   const printText = (text: string, x: number, y: number, size: number, weight: "normal" | "bold", color: number[], maxWidth?: number) => {
     doc.setFontSize(size);
     doc.setFont("helvetica", weight);
@@ -53,10 +54,11 @@ export const generateAuditPdf = (data: AuditReportData) => {
       const cleanText = text.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '');
       const lines = doc.splitTextToSize(cleanText, maxWidth);
       doc.text(lines, x, y);
-      return lines.length * (size * 0.45); 
+      // Increased multiplier from 0.45 to 0.55 to prevent overlapping lines
+      return lines.length * (size * 0.55); 
     } else {
       doc.text(text, x, y);
-      return size * 0.45;
+      return size * 0.55;
     }
   };
 
@@ -160,13 +162,14 @@ export const generateAuditPdf = (data: AuditReportData) => {
     doc.setFontSize(8); doc.setTextColor(C_BLUE[0], C_BLUE[1], C_BLUE[2]); doc.setFont("helvetica", "bold");
     doc.text("INSIGHT:", margin, y);
     const h1 = printText(sec.d.expert_insight, margin + 25, y, 8, "normal", C_DARK, pageWidth - margin - 30);
-    y += h1 + 3;
+    // Added extra spacing to prevent overlapping
+    y += h1 + 4; 
 
     // Gap
     doc.setTextColor(C_RED[0], C_RED[1], C_RED[2]); doc.setFont("helvetica", "bold");
     doc.text("THE GAP:", margin, y);
     const h2 = printText(sec.d.the_gap, margin + 25, y, 8, "bold", C_DARK, pageWidth - margin - 30);
-    y += h2 + 6;
+    y += h2 + 8; // Extra padding between sections
   });
 
   // --- PAGE 2: ROADMAP ---
@@ -184,6 +187,7 @@ export const generateAuditPdf = (data: AuditReportData) => {
   ];
 
   phases.forEach((phase) => {
+    checkPage(40);
     // Phase Header
     doc.setFillColor(phase.c[0], phase.c[1], phase.c[2]);
     doc.roundedRect(margin, y, 20, 6, 1, 1, 'F');
@@ -200,7 +204,7 @@ export const generateAuditPdf = (data: AuditReportData) => {
       doc.setFillColor(200, 200, 200);
       doc.circle(margin + 4, y - 1, 1, 'F');
       const h = printText(act, margin + 8, y, 9, "normal", C_DARK, pageWidth - margin - 15);
-      y += h + 2;
+      y += h + 3;
     });
 
     // Goal
@@ -210,6 +214,63 @@ export const generateAuditPdf = (data: AuditReportData) => {
     doc.setFont("helvetica", "normal");
     
     y += 12;
+  });
+
+  // --- PAGE 3: TECHNICAL SIGNALS (NEW SECTION) ---
+  doc.addPage();
+  y = margin;
+  printText(t.signals || "TECHNICAL AUDIT SIGNALS", margin, y, 12, "bold", C_DARK);
+  y += 10;
+
+  // Table Header
+  doc.setFillColor(C_LIGHT_GRAY[0], C_LIGHT_GRAY[1], C_LIGHT_GRAY[2]);
+  doc.rect(margin, y, pageWidth - (margin * 2), 8, 'F');
+  doc.setFontSize(8); doc.setFont("helvetica", "bold"); doc.setTextColor(C_DARK[0], C_DARK[1], C_DARK[2]);
+  doc.text("FACTOR", margin + 2, y + 5);
+  doc.text("STATUS", margin + 80, y + 5);
+  doc.text("SCORE", margin + 120, y + 5);
+  y += 12;
+
+  data.factors.forEach((factor) => {
+    checkPage(30); // Ensure space for item
+
+    // Status visual
+    let statusColor = C_GREEN;
+    let statusText = "PASS";
+    if (factor.status === 'warning') { statusColor = C_YELLOW; statusText = "WARN"; }
+    if (factor.status === 'critical') { statusColor = C_RED; statusText = "FAIL"; }
+
+    // Name row
+    doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.setTextColor(C_DARK[0], C_DARK[1], C_DARK[2]);
+    doc.text(factor.name, margin + 2, y);
+
+    doc.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
+    doc.text(statusText, margin + 80, y);
+
+    doc.setTextColor(C_DARK[0], C_DARK[1], C_DARK[2]);
+    doc.text(`${factor.score} / ${factor.maxScore}`, margin + 120, y);
+
+    y += 5;
+
+    // Reason & Fix
+    const reasonText = `Analysis: ${factor.reason}`;
+    const fixText = `Fix: ${factor.fixAction}`;
+    
+    // Print Analysis
+    const h1 = printText(reasonText, margin + 5, y, 8, "normal", C_GRAY, pageWidth - margin - 30);
+    y += h1 + 2;
+    
+    // Print Fix (only if not passing perfectly)
+    if (factor.status !== 'good') {
+        const h2 = printText(fixText, margin + 5, y, 8, "bold", C_BLUE, pageWidth - margin - 30);
+        y += h2 + 2;
+    }
+    
+    y += 4;
+    
+    // Divider
+    doc.setDrawColor(240, 240, 240);
+    doc.line(margin, y - 2, pageWidth - margin, y - 2);
   });
 
   // Footer
