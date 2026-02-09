@@ -2,12 +2,12 @@
 import type { AuditReportData, AuditLanguage } from "../types";
 
 const PDF_TRANSLATIONS: Record<AuditLanguage, Record<string, string>> = {
-  en: { title: "AUDIT MASTER REPORT", subtitle: "CONFIDENCE INTELLIGENCE SYSTEM v5", kpi_section: "EXECUTIVE KPIs", gaps: "REALITY MIRROR (GAP ANALYSIS)", roadmap: "PRIORITIZED ACTION ROADMAP", signals: "TECHNICAL AUDIT SIGNALS", notes: "CONFIDENTIAL / STRATEGIC USE ONLY" },
-  es: { title: "REPORTE DE AUDITORÍA", subtitle: "SISTEMA DE INTELIGENCIA v5", kpi_section: "KPIs EJECUTIVOS", gaps: "ANÁLISIS DE BRECHAS", roadmap: "HOJA DE RUTA", signals: "SEÑALES TÉCNICAS", notes: "CONFIDENCIAL" },
-  fr: { title: "RAPPORT D'AUDIT", subtitle: "SYSTÈME D'INTELLIGENCE v5", kpi_section: "KPIs", gaps: "ANALYSE DES ÉCARTS", roadmap: "FEUILLE DE ROUTE", signals: "SIGNAUX TECHNIQUES", notes: "CONFIDENTIEL" },
-  de: { title: "AUDIT-BERICHT", subtitle: "INTELLIGENZSYSTEM v5", kpi_section: "KPIs", gaps: "LÜCKENANALYSE", roadmap: "AKTIONSPLAN", signals: "TECHNISCHE SIGNALE", notes: "VERTRAULICH" },
-  it: { title: "RAPPORTO DI AUDIT", subtitle: "SISTEMA DI INTELLIGENZA v5", kpi_section: "KPIs", gaps: "ANALISI DEI GAP", roadmap: "TABELLA DI MARCIA", signals: "SEGNALI TECNICI", notes: "RISERVATO" },
-  pt: { title: "RELATÓRIO DE AUDITORIA", subtitle: "SISTEMA DE INTELIGÊNCIA v5", kpi_section: "KPIs", gaps: "ANÁLISE DE LACUNAS", roadmap: "ROTEIRO DE AÇÃO", signals: "SINAIS TÉCNICOS", notes: "CONFIDENCIAL" }
+  en: { title: "AUDIT MASTER REPORT", subtitle: "CONFIDENCE INTELLIGENCE SYSTEM v6", kpi_section: "EXECUTIVE KPIs", gaps: "REALITY MIRROR (GAP ANALYSIS)", roadmap: "PRIORITIZED ACTION ROADMAP", signals: "TECHNICAL AUDIT SIGNALS", content: "CONTENT & ENGAGEMENT", grid: "GEO-DOMINANCE GRID", notes: "CONFIDENTIAL / STRATEGIC USE ONLY" },
+  es: { title: "REPORTE DE AUDITORÍA", subtitle: "SISTEMA DE INTELIGENCIA v6", kpi_section: "KPIs EJECUTIVOS", gaps: "ANÁLISIS DE BRECHAS", roadmap: "HOJA DE RUTA", signals: "SEÑALES TÉCNICAS", content: "CONTENIDO Y COMPROMISO", grid: "RED DE GEO-DOMINANCIA", notes: "CONFIDENCIAL" },
+  fr: { title: "RAPPORT D'AUDIT", subtitle: "SYSTÈME D'INTELLIGENCE v6", kpi_section: "KPIs", gaps: "ANALYSE DES ÉCARTS", roadmap: "FEUILLE DE ROUTE", signals: "SIGNAUX TECHNIQUES", content: "CONTENU ET ENGAGEMENT", grid: "GRILLE DE GÉO-DOMINATION", notes: "CONFIDENTIEL" },
+  de: { title: "AUDIT-BERICHT", subtitle: "INTELLIGENZSYSTEM v6", kpi_section: "KPIs", gaps: "LÜCKENANALYSE", roadmap: "AKTIONSPLAN", signals: "TECHNISCHE SIGNALE", content: "INHALT UND ENGAGEMENT", grid: "GEO-DOMINANZ-RASTER", notes: "VERTRAULICH" },
+  it: { title: "RAPPORTO DI AUDIT", subtitle: "SISTEMA DI INTELLIGENZA v6", kpi_section: "KPIs", gaps: "ANALISI DEI GAP", roadmap: "TABELLA DI MARCIA", signals: "SEGNALI TECNICI", content: "CONTENUTO E COINVOLGIMENTO", grid: "GRIGLIA DI GEO-DOMINIO", notes: "RISERVATO" },
+  pt: { title: "RELATÓRIO DE AUDITORIA", subtitle: "SISTEMA DE INTELIGÊNCIA v6", kpi_section: "KPIs", gaps: "ANÁLISIS DE LACUNAS", roadmap: "ROTEIRO DE AÇÃO", signals: "SINAIS TÉCNICOS", content: "CONTEÚDO E ENGAJAMENTO", grid: "GRADE DE GEO-DOMÍNIO", notes: "CONFIDENCIAL" }
 };
 
 export const generateAuditPdf = (data: AuditReportData) => {
@@ -28,6 +28,8 @@ export const generateAuditPdf = (data: AuditReportData) => {
   const t = PDF_TRANSLATIONS[lang] || PDF_TRANSLATIONS['en'];
   const analysis = data.geminiAnalysis;
   const kpis = analysis.executive_dashboard.kpis;
+  const geoGrid = analysis.geo_grid_dominance;
+  const contentStrat = analysis.engagement_and_content;
 
   const pageWidth = doc.internal.pageSize.width;
   const pageHeight = doc.internal.pageSize.height;
@@ -44,17 +46,14 @@ export const generateAuditPdf = (data: AuditReportData) => {
   const C_YELLOW = [202, 138, 4]; // Yellow 600
 
   // Helper: Text Wrapping
-  // Fixed line height calculation to prevent overlapping
   const printText = (text: string, x: number, y: number, size: number, weight: "normal" | "bold", color: number[], maxWidth?: number) => {
     doc.setFontSize(size);
     doc.setFont("helvetica", weight);
     doc.setTextColor(color[0], color[1], color[2]);
     if (maxWidth) {
-      // Remove generic emojis if jspdf doesn't support them to avoid junk chars
       const cleanText = text.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '');
       const lines = doc.splitTextToSize(cleanText, maxWidth);
       doc.text(lines, x, y);
-      // Increased multiplier from 0.45 to 0.55 to prevent overlapping lines
       return lines.length * (size * 0.55); 
     } else {
       doc.text(text, x, y);
@@ -94,8 +93,9 @@ export const generateAuditPdf = (data: AuditReportData) => {
   printText(t.kpi_section, margin, y, 12, "bold", C_DARK);
   y += 8;
 
-  const kpiList = [kpis.trust_health_score, kpis.visibility_confidence, kpis.commercial_engine];
-  const boxW = (pageWidth - (margin * 2) - 10) / 3;
+  // Add Friction Score to the list for V6
+  const kpiList = [kpis.trust_health_score, kpis.visibility_confidence, kpis.commercial_engine, kpis.friction_score];
+  const boxW = (pageWidth - (margin * 2) - 15) / 4; // 4 boxes now
   
   kpiList.forEach((kpi, i) => {
     const bx = margin + (i * (boxW + 5));
@@ -106,18 +106,16 @@ export const generateAuditPdf = (data: AuditReportData) => {
     doc.roundedRect(bx, y, boxW, 45, 2, 2, 'FD');
     
     // Label
-    doc.setFontSize(7); doc.setFont("helvetica", "bold"); doc.setTextColor(C_GRAY[0], C_GRAY[1], C_GRAY[2]);
+    doc.setFontSize(6); doc.setFont("helvetica", "bold"); doc.setTextColor(C_GRAY[0], C_GRAY[1], C_GRAY[2]);
     doc.text(kpi.label.toUpperCase(), bx + 5, y + 10);
     
     // Score
     const color = kpi.value > 75 ? C_GREEN : kpi.value > 40 ? C_YELLOW : C_RED;
-    doc.setFontSize(24); doc.setFont("helvetica", "bold"); doc.setTextColor(color[0], color[1], color[2]);
+    doc.setFontSize(20); doc.setFont("helvetica", "bold"); doc.setTextColor(color[0], color[1], color[2]);
     doc.text(kpi.value.toString(), bx + 5, y + 24);
-    doc.setFontSize(10); doc.setTextColor(C_GRAY[0], C_GRAY[1], C_GRAY[2]);
-    doc.text("/ 100", bx + 5 + doc.getTextWidth(kpi.value.toString()) + 2, y + 24);
 
     // Desc
-    printText(kpi.description, bx + 5, y + 32, 7, "normal", C_DARK, boxW - 10);
+    printText(kpi.description, bx + 5, y + 32, 6, "normal", C_DARK, boxW - 10);
   });
 
   y += 60;
@@ -135,6 +133,24 @@ export const generateAuditPdf = (data: AuditReportData) => {
   // Right side conclusion
   printText(analysis.roi_projection.expert_conclusion, margin + 100, y + 8, 8, "normal", C_DARK, pageWidth - margin - 120);
 
+  y += 45;
+
+  // --- GEO GRID SECTION (New V6) ---
+  printText(t.grid, margin, y, 12, "bold", C_DARK);
+  y += 8;
+  
+  doc.setDrawColor(C_BLUE[0], C_BLUE[1], C_BLUE[2]);
+  doc.rect(margin, y, pageWidth - (margin*2), 35);
+  
+  doc.setFontSize(10); doc.setFont("helvetica", "bold");
+  doc.text(`Center Rank: #${geoGrid.visual_ranking_grid.center_rank}`, margin + 5, y + 10);
+  
+  doc.setFontSize(9); doc.setFont("helvetica", "normal");
+  doc.text(`Radius: ${geoGrid.visual_ranking_grid.proximity_trap_radius}`, margin + 5, y + 16);
+  doc.text(`Share of Voice: ${geoGrid.share_of_voice}`, margin + 5, y + 22);
+  
+  printText(`Insight: ${geoGrid.visual_ranking_grid.insight}`, margin + 80, y + 5, 8, "normal", C_DARK, pageWidth - margin - 90);
+  
   y += 45;
 
   // --- REALITY MIRROR ---
@@ -162,7 +178,6 @@ export const generateAuditPdf = (data: AuditReportData) => {
     doc.setFontSize(8); doc.setTextColor(C_BLUE[0], C_BLUE[1], C_BLUE[2]); doc.setFont("helvetica", "bold");
     doc.text("INSIGHT:", margin, y);
     const h1 = printText(sec.d.expert_insight, margin + 25, y, 8, "normal", C_DARK, pageWidth - margin - 30);
-    // Added extra spacing to prevent overlapping
     y += h1 + 4; 
 
     // Gap
@@ -216,7 +231,27 @@ export const generateAuditPdf = (data: AuditReportData) => {
     y += 12;
   });
 
-  // --- PAGE 3: TECHNICAL SIGNALS (NEW SECTION) ---
+  // --- CONTENT STRATEGY (New V6) ---
+  checkPage(60);
+  printText(t.content, margin, y, 12, "bold", C_DARK);
+  y += 8;
+  
+  // Frequency
+  printText(`Posting Analysis: ${contentStrat.post_frequency_analysis}`, margin, y, 9, "normal", C_DARK, pageWidth - (margin*2));
+  y += 10;
+  
+  // Post Ideas
+  doc.setFont("helvetica", "bold");
+  doc.text("AI Post Ideas:", margin, y);
+  y += 6;
+  contentStrat.ai_generated_templates.post_ideas.forEach(idea => {
+      doc.setFillColor(200, 200, 200);
+      doc.circle(margin + 4, y - 1, 1, 'F');
+      const h = printText(idea, margin + 8, y, 8, "normal", C_DARK, pageWidth - margin - 15);
+      y += h + 3;
+  });
+
+  // --- PAGE 3: TECHNICAL SIGNALS ---
   doc.addPage();
   y = margin;
   printText(t.signals || "TECHNICAL AUDIT SIGNALS", margin, y, 12, "bold", C_DARK);
@@ -277,5 +312,5 @@ export const generateAuditPdf = (data: AuditReportData) => {
   doc.setFontSize(7); doc.setTextColor(150, 150, 150);
   doc.text(t.notes, pageWidth / 2, pageHeight - 10, { align: "center" });
 
-  doc.save(`V5_Executive_Report_${data.business.name.replace(/\s+/g, '_')}.pdf`);
+  doc.save(`V6_Executive_Report_${data.business.name.replace(/\s+/g, '_')}.pdf`);
 };

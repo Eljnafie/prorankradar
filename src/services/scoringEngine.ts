@@ -25,29 +25,29 @@ export const calculateScore = (
   const breakdown = internal.audit_analysis_breakdown;
 
   // 1. Profile Accuracy (20 pts)
-  addFactor('v5_acc', 'Profile Accuracy', 10, 20, 
+  addFactor('v6_acc', 'Profile Semantic Accuracy', 10, 20, 
     `${breakdown.profile_accuracy.expert_insight}\n\nGAP: ${breakdown.profile_accuracy.the_gap}`, 
-    "Fix category alignment and semantic signals.", 'eligibility');
+    "Fix category alignment and entity signals.", 'eligibility');
 
   // 2. Reputation (25 pts)
-  addFactor('v5_rep', 'Reputation Intelligence', 12, 25, 
+  addFactor('v6_rep', 'Reputation Intelligence', 12, 25, 
     `${breakdown.reputation_intelligence.expert_insight}\n\nSENTIMENT: ${breakdown.reputation_intelligence.sentiment_analysis}`, 
-    "Implement keyword-rich response protocol.", 'authority');
+    "Implement high-velocity keyword response protocol.", 'authority');
 
   // 3. Media (15 pts)
-  addFactor('v5_media', 'Media Engagement', 5, 15, 
+  addFactor('v6_media', 'Visual Authority & Media', 5, 15, 
     breakdown.media_engagement.the_gap, 
-    "Upload 5 high-quality team photos.", 'conversion');
+    "Upload 5 high-quality staff/interior photos.", 'conversion');
 
   // 4. Authority (20 pts)
-  addFactor('v5_auth', 'Off-Profile Authority', 5, 20, 
+  addFactor('v6_auth', 'Off-Profile Authority', 5, 20, 
     breakdown.off_profile_authority.the_gap, 
-    "Sync Website Schema with GBP.", 'relevance');
+    "Sync Website Schema with GBP and build local citations.", 'relevance');
 
   // 5. Competitive (20 pts)
-  addFactor('v5_comp', 'Competitive Positioning', 5, 20, 
+  addFactor('v6_comp', 'Competitive Positioning', 5, 20, 
     breakdown.competitive_positioning.the_gap, 
-    "Focus on proximity dominance.", 'authority');
+    "Focus on proximity dominance and geo-signals.", 'authority');
 
   return { 
     business, 

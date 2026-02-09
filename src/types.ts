@@ -46,7 +46,7 @@ export interface ScoringFactor {
   category: 'eligibility' | 'relevance' | 'authority' | 'conversion';
 }
 
-// --- EXECUTIVE AUDIT ANALYSIS (V5 FINTECH STANDARD) ---
+// --- EXECUTIVE AUDIT ANALYSIS (V6 HYPER-LOCAL STANDARD) ---
 
 export interface ExecutiveAuditAnalysis {
   report_metadata: {
@@ -59,6 +59,7 @@ export interface ExecutiveAuditAnalysis {
       trust_health_score: { value: number; label: string; description: string };
       visibility_confidence: { value: number; label: string; description: string };
       commercial_engine: { value: number; label: string; description: string };
+      friction_score: { value: number; label: string; description: string }; // New V6
     };
   };
   audit_analysis_breakdown: {
@@ -67,6 +68,25 @@ export interface ExecutiveAuditAnalysis {
     media_engagement: { expert_insight: string; the_gap: string };
     off_profile_authority: { expert_insight: string; the_gap: string };
     competitive_positioning: { expert_insight: string; the_gap: string };
+  };
+  // New V6 Section: Geo Dominance
+  geo_grid_dominance: {
+    visual_ranking_grid: {
+      center_rank: number;
+      proximity_trap_radius: string;
+      grid_simulation: number[]; // 9 points (3x3) simulation
+      insight: string;
+    };
+    share_of_voice: string;
+  };
+  // New V6 Section: Content & Engagement
+  engagement_and_content: {
+    post_frequency_analysis: string;
+    ugc_opportunity: string;
+    ai_generated_templates: {
+      review_responses: string[]; // 3 templates
+      post_ideas: string[]; // 3 ideas
+    };
   };
   prioritized_action_roadmap: {
     phase_1_foundation: { title: string; actions: string[]; goal: string };

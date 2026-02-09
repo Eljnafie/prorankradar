@@ -1,7 +1,7 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Download, ExternalLink, Lock, MessageCircle, Unlock, Shield, TrendingUp, Zap, Target, BarChart2, X } from 'lucide-react';
+import { CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Download, ExternalLink, Lock, MessageCircle, Unlock, Shield, TrendingUp, Zap, Target, BarChart2, X, Grid, PenTool, Copy } from 'lucide-react';
 import type { AuditReportData, ScoringFactor, SiteContent } from '../types';
 import { generateAuditPdf } from '../services/pdfGenerator';
 
@@ -13,13 +13,16 @@ interface AuditReportProps {
 }
 
 const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = false, content }) => {
-  const [showPricing, setShowPricing] = React.useState(false);
-  const [expandedFactor, setExpandedFactor] = React.useState<string | null>(null);
+  const [showPricing, setShowPricing] = useState(false);
+  const [expandedFactor, setExpandedFactor] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'strategy' | 'content'>('strategy');
 
   const dashboard = data.geminiAnalysis.executive_dashboard;
   const kpis = dashboard.kpis;
   const roadmap = data.geminiAnalysis.prioritized_action_roadmap;
   const breakdown = data.geminiAnalysis.audit_analysis_breakdown;
+  const geoGrid = data.geminiAnalysis.geo_grid_dominance;
+  const contentStrat = data.geminiAnalysis.engagement_and_content;
 
   // Chart Data for the main Visibility Score
   const score = kpis.visibility_confidence.value;
@@ -35,6 +38,11 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
   };
 
   const whatsappNumber = content?.contact?.phone?.replace(/[^0-9]/g, '') || '15550123456';
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    alert("Copied to clipboard!");
+  };
 
   return (
     <div className="w-full max-w-6xl mx-auto space-y-8 pb-12 relative font-sans">
@@ -69,61 +77,128 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
       </div>
 
       {/* KPI DASHBOARD (Fintech Style) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6">
         
         {/* KPI 1: Trust Health (Dark Card) */}
-        <div className="bg-slate-900 text-white rounded-xl p-6 border border-slate-800 relative overflow-hidden group shadow-lg">
+        <div className="bg-slate-900 text-white rounded-xl p-6 border border-slate-800 relative overflow-hidden group shadow-lg col-span-1 md:col-span-1">
            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
               <Shield className="w-24 h-24" />
            </div>
            <div className="relative z-10">
               <div className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">{kpis.trust_health_score.label}</div>
-              <div className="text-4xl font-extrabold mb-2">{kpis.trust_health_score.value}/100</div>
-              <p className="text-slate-400 text-sm leading-relaxed">{kpis.trust_health_score.description}</p>
+              <div className="text-3xl lg:text-4xl font-extrabold mb-2">{kpis.trust_health_score.value}/100</div>
+              <p className="text-slate-400 text-xs leading-relaxed">{kpis.trust_health_score.description}</p>
            </div>
         </div>
 
         {/* KPI 2: Visibility Confidence (Main Score) */}
-        <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm flex flex-col items-center justify-center text-center relative">
+        <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm flex flex-col items-center justify-center text-center relative col-span-1 md:col-span-1">
            <div className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">{kpis.visibility_confidence.label}</div>
-           <div className="relative w-32 h-32 my-2">
+           <div className="relative w-24 h-24 my-2">
              <ResponsiveContainer>
                <PieChart>
-                 <Pie data={chartData} cx="50%" cy="50%" innerRadius={45} outerRadius={60} startAngle={90} endAngle={-270} dataKey="value" stroke="none">
+                 <Pie data={chartData} cx="50%" cy="50%" innerRadius={35} outerRadius={45} startAngle={90} endAngle={-270} dataKey="value" stroke="none">
                    <Cell fill={scoreColor} />
                    <Cell fill="#f1f5f9" />
                  </Pie>
                </PieChart>
              </ResponsiveContainer>
              <div className="absolute inset-0 flex flex-col items-center justify-center">
-               <span className="text-2xl font-extrabold text-slate-800">{score}</span>
+               <span className="text-xl font-extrabold text-slate-800">{score}</span>
              </div>
            </div>
-           <p className="text-slate-600 text-sm px-4">{kpis.visibility_confidence.description}</p>
+           <p className="text-slate-600 text-xs px-2">{kpis.visibility_confidence.description}</p>
         </div>
 
-        {/* KPI 3: Commercial Engine */}
-        <div className="bg-slate-50 rounded-xl p-6 border border-slate-200 relative">
+         {/* KPI 3: Commercial Engine */}
+        <div className="bg-slate-50 rounded-xl p-6 border border-slate-200 relative col-span-1 md:col-span-1">
            <div className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">{kpis.commercial_engine.label}</div>
-           <div className="text-4xl font-extrabold text-slate-800 mb-2">{kpis.commercial_engine.value}/100</div>
-           <p className="text-slate-600 text-sm leading-relaxed">{kpis.commercial_engine.description}</p>
-           <div className="mt-4 pt-4 border-t border-slate-200">
-              <div className="text-xs font-bold text-green-600 flex items-center gap-1">
-                 <TrendingUp className="w-3 h-3" /> Potential Growth: {data.geminiAnalysis.roi_projection.estimated_growth}
-              </div>
-           </div>
+           <div className="text-3xl lg:text-4xl font-extrabold text-slate-800 mb-2">{kpis.commercial_engine.value}/100</div>
+           <p className="text-slate-600 text-xs leading-relaxed">{kpis.commercial_engine.description}</p>
+        </div>
+
+        {/* KPI 4: Friction Score */}
+        <div className="bg-red-50 rounded-xl p-6 border border-red-100 relative col-span-1 md:col-span-1">
+           <div className="text-red-800 text-xs font-bold uppercase tracking-wider mb-2">{kpis.friction_score.label}</div>
+           <div className="text-3xl lg:text-4xl font-extrabold text-red-700 mb-2">{kpis.friction_score.value}/100</div>
+           <p className="text-red-900/60 text-xs leading-relaxed">{kpis.friction_score.description}</p>
         </div>
       </div>
 
-      {/* STRATEGIC BREAKDOWN & ROADMAP */}
+      {/* TABS */}
+      <div className="flex gap-4 border-b border-slate-200 pb-1">
+        <button 
+          onClick={() => setActiveTab('strategy')}
+          className={`pb-3 px-4 text-sm font-bold flex items-center gap-2 transition-colors border-b-2 ${activeTab === 'strategy' ? 'text-blue-600 border-blue-600' : 'text-slate-500 border-transparent hover:text-slate-800'}`}
+        >
+          <Target className="w-4 h-4" /> Strategy & Grid
+        </button>
+        <button 
+          onClick={() => setActiveTab('content')}
+          className={`pb-3 px-4 text-sm font-bold flex items-center gap-2 transition-colors border-b-2 ${activeTab === 'content' ? 'text-blue-600 border-blue-600' : 'text-slate-500 border-transparent hover:text-slate-800'}`}
+        >
+          <PenTool className="w-4 h-4" /> Content AI
+        </button>
+      </div>
+
+      {activeTab === 'strategy' && (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-         
-         {/* Left: Analysis Breakdown (Reality Mirror) */}
-         <div className="lg:col-span-2 space-y-6">
-            <h3 className="font-bold text-slate-800 text-xl flex items-center gap-2">
-               <Target className="w-5 h-5 text-blue-600" /> Strategic Analysis
-            </h3>
+         {/* Left: Geo Grid + Breakdown */}
+         <div className="lg:col-span-2 space-y-8">
             
+            {/* V6 GEO GRID HEATMAP */}
+            <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+               <div className="flex items-center justify-between mb-6">
+                 <div>
+                    <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">
+                       <Grid className="w-5 h-5 text-blue-600" /> Geo-Dominance Grid
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-1">Simulated ranking positions based on 20+ signals</p>
+                 </div>
+                 <div className="text-right">
+                    <div className="text-xs font-bold text-slate-400 uppercase">Center Rank</div>
+                    <div className="text-2xl font-extrabold text-slate-800">#{geoGrid.visual_ranking_grid.center_rank}</div>
+                 </div>
+               </div>
+
+               <div className="flex flex-col md:flex-row gap-8 items-center">
+                  {/* The Grid */}
+                  <div className="grid grid-cols-3 gap-2 w-full max-w-[300px] aspect-square">
+                     {geoGrid.visual_ranking_grid.grid_simulation.map((rank, i) => {
+                       let bgClass = 'bg-red-500';
+                       if (rank <= 3) bgClass = 'bg-green-500';
+                       else if (rank <= 7) bgClass = 'bg-yellow-400';
+                       else if (rank <= 15) bgClass = 'bg-orange-400';
+                       
+                       return (
+                         <div key={i} className={`${bgClass} rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-sm transition-transform hover:scale-105`}>
+                           {rank}
+                         </div>
+                       );
+                     })}
+                  </div>
+                  
+                  {/* Grid Stats */}
+                  <div className="flex-1 space-y-4">
+                     <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                        <span className="text-xs font-bold text-slate-500 uppercase">Share of Voice</span>
+                        <div className="text-lg font-bold text-slate-800">{geoGrid.share_of_voice}</div>
+                     </div>
+                     <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                        <span className="text-xs font-bold text-slate-500 uppercase">Proximity Trap Radius</span>
+                        <div className="text-lg font-bold text-slate-800">{geoGrid.visual_ranking_grid.proximity_trap_radius}</div>
+                     </div>
+                     <div className="p-4 bg-blue-50 border border-blue-100 rounded-lg text-sm text-blue-800">
+                        <strong>Insight:</strong> {geoGrid.visual_ranking_grid.insight}
+                     </div>
+                  </div>
+               </div>
+            </div>
+
+            {/* Analysis Breakdown */}
+            <h3 className="font-bold text-slate-800 text-xl flex items-center gap-2 pt-4">
+               <Target className="w-5 h-5 text-blue-600" /> Reality Mirror Analysis
+            </h3>
             <div className="space-y-4">
                <AnalysisCard title="Profile Accuracy" data={breakdown.profile_accuracy} />
                <AnalysisCard title="Reputation Intelligence" data={breakdown.reputation_intelligence} />
@@ -135,7 +210,7 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
          {/* Right: Roadmap & Actions */}
          <div className="space-y-6">
             <h3 className="font-bold text-slate-800 text-xl flex items-center gap-2">
-               <Zap className="w-5 h-5 text-yellow-500" /> Action Roadmap
+               <Zap className="w-5 h-5 text-yellow-500" /> 90-Day Roadmap
             </h3>
 
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
@@ -223,6 +298,66 @@ const AuditReport: React.FC<AuditReportProps> = ({ data, onReset, isUnlocked = f
             </div>
          </div>
       </div>
+      )}
+
+      {activeTab === 'content' && (
+         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               <div className="bg-white rounded-xl border border-slate-200 p-6">
+                  <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                     <TrendingUp className="w-5 h-5 text-purple-600" /> Posting Strategy
+                  </h3>
+                  <div className="space-y-4">
+                     <p className="text-sm text-slate-600">{contentStrat.post_frequency_analysis}</p>
+                     <p className="text-sm text-slate-600 bg-purple-50 p-3 rounded-lg border border-purple-100">
+                        <strong>UGC Opportunity:</strong> {contentStrat.ugc_opportunity}
+                     </p>
+                  </div>
+               </div>
+               
+               <div className="bg-white rounded-xl border border-slate-200 p-6">
+                   <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                     <Zap className="w-5 h-5 text-yellow-500" /> AI Post Ideas
+                  </h3>
+                  <div className="space-y-3">
+                     {contentStrat.ai_generated_templates.post_ideas.map((idea, i) => (
+                        <div key={i} className="flex gap-3 text-sm text-slate-600 border-b border-slate-50 pb-2 last:border-0 last:pb-0">
+                           <div className="w-5 h-5 bg-yellow-100 text-yellow-700 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold">{i+1}</div>
+                           <p>{idea}</p>
+                        </div>
+                     ))}
+                  </div>
+               </div>
+            </div>
+
+            <div>
+               <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                  <MessageCircle className="w-5 h-5 text-blue-600" /> Smart Review Response Templates
+               </h3>
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {contentStrat.ai_generated_templates.review_responses.map((template, i) => (
+                     <div key={i} className="bg-slate-50 rounded-xl border border-slate-200 p-5 relative group">
+                        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                           <button onClick={() => copyToClipboard(template)} className="p-1 hover:bg-white rounded shadow-sm text-slate-500"><Copy className="w-4 h-4" /></button>
+                        </div>
+                        <div className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Template {i+1}</div>
+                        <p className="text-sm text-slate-600 italic">"{template}"</p>
+                     </div>
+                  ))}
+               </div>
+            </div>
+            
+            {!isUnlocked && (
+               <div className="bg-slate-900 rounded-xl p-8 text-center text-white">
+                  <h3 className="text-xl font-bold mb-2">Unlock Full Content Calendar</h3>
+                  <p className="text-slate-400 mb-6">Get a 30-day posting schedule tailored to your niche.</p>
+                  <button onClick={() => setShowPricing(true)} className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-bold transition-colors">
+                     Unlock Pro Content
+                  </button>
+               </div>
+            )}
+         </div>
+      )}
 
       {showPricing && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 print:hidden">

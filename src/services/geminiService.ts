@@ -40,7 +40,7 @@ const retryOperation = async <T>(operation: () => Promise<T>, retries = 3, delay
 export const analyzeProfileWithGemini = async (
   business: BusinessProfile,
   inputs: AuditInputs,
-  _competitors: any[],
+  competitors: any[],
   apiKey?: string
 ): Promise<ExecutiveAuditAnalysis> => {
   
@@ -48,43 +48,28 @@ export const analyzeProfileWithGemini = async (
   const targetLanguage = LANGUAGE_MAP[inputs.language || 'en'] || 'English';
   
   const prompt = `
-    SYSTEM ROLE
-    You are a Senior Strategic Consultant (20+ years experience).
-    Your objective is to generate a GBP Audit that combines "Executive Elegance" with "Technical Brutality".
+    Act as a Senior Hyper-Local SEO & GBP Intelligence Consultant.
+    Transform the provided business data into a V6 Strategy Report.
     
-    TONE
-    Direct, Authoritative, High-Stakes. Do not sugarcoat.
-    If the profile is weak, label it as "Ghost Profile", "Exclusion Zone", or "Invisible".
-    Use terms like: "Conversion Friction", "Relevance Gap", "Trust Signal".
-
-    INPUT CONTEXT
+    DATA CONTEXT:
     Business: "${business.name}"
     Category: "${business.types[0] || 'Unknown'}"
     Rating: ${business.rating} (${business.user_ratings_total} reviews)
     Target Keyword: "${inputs.targetKeyword}"
     Target City: "${inputs.targetCity}"
-    Output Language: ${targetLanguage}
-
-    MANDATORY SECTIONS
-    1. Executive Dashboard:
-       - Trust Health (0-100): Is it safe from suspension?
-       - Visibility Confidence (0-100): Will it rank?
-       - Commercial Engine (0-100): Will it convert?
+    Competitors: ${JSON.stringify(competitors.map(c => ({name: c.name, rating: c.rating, reviews: c.reviewCount})))}
     
-    2. Reality Mirror (Analysis Breakdown):
-       - Profile Accuracy: Focus on Category/Title. Mention "Relevance Gap" or "Impact".
-       - Reputation: If rating < 4.0, call it "Exclusion Zone". Mention "Sentiment".
-       - Media: If no photos, call it "Conversion Friction".
-       - Off-Page: Mention Schema/Backlinks.
-       - Competitive: Mention "Proximity" or "Geo-Grid".
+    INSTRUCTIONS (V6 PROTOCOL):
+    1. SEMANTIC IDENTITY: Analyze if the category is specific or generic (Generality Trap).
+    2. GEO-DOMINANCE: Estimate a 3x3 Geo-Grid ranking simulation based on current strength (1=Ranked #1, 20=Not Ranked).
+    3. FRICTION ANALYSIS: Evaluate visual authority and review critical mass.
+    4. 90-DAY ROADMAP: Create a 3-phase plan (Alignment, Authority, Domination).
+    5. CONTENT STRATEGY: Generate 3 smart review response templates and 3 post ideas.
 
-    3. Roadmap (90 Days):
-       - Phase 1: Restoration (Day 1-30)
-       - Phase 2: Conversion (Day 31-60)
-       - Phase 3: Authority (Day 61-90)
-
-    OUTPUT FORMAT
-    Strict JSON only.
+    OUTPUT SETTINGS:
+    Language: ${targetLanguage}
+    Format: Strict JSON matching the schema provided.
+    Tone: Professional, Direct, Strategic.
   `;
 
   const schema = {
@@ -107,9 +92,10 @@ export const analyzeProfileWithGemini = async (
             properties: {
               trust_health_score: { type: Type.OBJECT, properties: { value: { type: Type.NUMBER }, label: { type: Type.STRING }, description: { type: Type.STRING } }, required: ["value", "label", "description"] },
               visibility_confidence: { type: Type.OBJECT, properties: { value: { type: Type.NUMBER }, label: { type: Type.STRING }, description: { type: Type.STRING } }, required: ["value", "label", "description"] },
-              commercial_engine: { type: Type.OBJECT, properties: { value: { type: Type.NUMBER }, label: { type: Type.STRING }, description: { type: Type.STRING } }, required: ["value", "label", "description"] }
+              commercial_engine: { type: Type.OBJECT, properties: { value: { type: Type.NUMBER }, label: { type: Type.STRING }, description: { type: Type.STRING } }, required: ["value", "label", "description"] },
+              friction_score: { type: Type.OBJECT, properties: { value: { type: Type.NUMBER }, label: { type: Type.STRING }, description: { type: Type.STRING } }, required: ["value", "label", "description"] }
             },
-            required: ["trust_health_score", "visibility_confidence", "commercial_engine"]
+            required: ["trust_health_score", "visibility_confidence", "commercial_engine", "friction_score"]
           }
         },
         required: ["kpis"]
@@ -124,6 +110,39 @@ export const analyzeProfileWithGemini = async (
           competitive_positioning: { type: Type.OBJECT, properties: { expert_insight: { type: Type.STRING }, the_gap: { type: Type.STRING } }, required: ["expert_insight", "the_gap"] }
         },
         required: ["profile_accuracy", "reputation_intelligence", "media_engagement", "off_profile_authority", "competitive_positioning"]
+      },
+      geo_grid_dominance: {
+        type: Type.OBJECT,
+        properties: {
+          visual_ranking_grid: { 
+            type: Type.OBJECT, 
+            properties: {
+              center_rank: { type: Type.NUMBER, description: "Rank at exact location" },
+              proximity_trap_radius: { type: Type.STRING, description: "e.g. 0.5 miles" },
+              grid_simulation: { type: Type.ARRAY, items: { type: Type.NUMBER }, description: "Array of 9 numbers representing 3x3 grid rankings" },
+              insight: { type: Type.STRING }
+            },
+            required: ["center_rank", "proximity_trap_radius", "grid_simulation", "insight"]
+          },
+          share_of_voice: { type: Type.STRING }
+        },
+        required: ["visual_ranking_grid", "share_of_voice"]
+      },
+      engagement_and_content: {
+        type: Type.OBJECT,
+        properties: {
+          post_frequency_analysis: { type: Type.STRING },
+          ugc_opportunity: { type: Type.STRING },
+          ai_generated_templates: {
+             type: Type.OBJECT,
+             properties: {
+               review_responses: { type: Type.ARRAY, items: { type: Type.STRING } },
+               post_ideas: { type: Type.ARRAY, items: { type: Type.STRING } }
+             },
+             required: ["review_responses", "post_ideas"]
+          }
+        },
+        required: ["post_frequency_analysis", "ugc_opportunity", "ai_generated_templates"]
       },
       prioritized_action_roadmap: {
         type: Type.OBJECT,
@@ -143,7 +162,7 @@ export const analyzeProfileWithGemini = async (
         required: ["estimated_growth", "expert_conclusion"]
       }
     },
-    required: ["report_metadata", "executive_dashboard", "audit_analysis_breakdown", "prioritized_action_roadmap", "roi_projection"]
+    required: ["report_metadata", "executive_dashboard", "audit_analysis_breakdown", "geo_grid_dominance", "engagement_and_content", "prioritized_action_roadmap", "roi_projection"]
   };
 
   try {
